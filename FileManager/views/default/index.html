@@ -1,0 +1,65 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+        <title>{{=request.application}}</title>
+        
+        <link rel="stylesheet" type="text/css" href={{=URL(r=request,c='static/scripts/jquery_filetree',f='jqueryFileTree.css')}} />
+        <link rel="stylesheet" type="text/css" href={{=URL(r=request,c='static/scripts/jquery_contextmenu',f='jquery.contextMenu.css')}} />
+        <link rel="stylesheet" type="text/css" href={{=URL(r=request,c='static/styles',f='filemanager.css')}} />
+        <link rel="stylesheet" type="text/css" href={{=URL(r=request,c='static/scripts',f='jquery.splitter.css')}} />
+        {{include 'web2py_ajax.html'}}
+        <!--[if IE]>
+        <link rel="stylesheet" type="text/css" href={{=URL(r=request,c='static/styles',f='ie.css')}} />
+        <![endif]-->
+    </head>
+    <body>
+    <div id="user" >    
+     <nobr>
+       
+       {{if not auth.user:}}
+       
+       <a href="{{=URL('user/login')}}">Login</a>       
+       {{else:}}
+       {{=auth.user.first_name}} |
+       <a href="{{=URL('user/logout')}}">Logout</a> |
+       <a href="{{=URL('user/change_password')}}">Password</a> |
+       <a href="{{=URL('user/profile')}}">Profile</a>
+       {{pass}} 
+     </nobr>
+   </div>
+       <div id="uploadform"> <form id="uploader" enctype="multipart/form-data" method="post">
+            <nobr><h1></h1>
+            <div id="uploadresponse"></div>
+            <input id="mode" name="mode" type="hidden" value="add" />
+            <input id="currentpath" name="currentpath" type="hidden" />
+            <input id="newfile" name="file" type="file" />
+            <button id="upload" name="upload" type="submit" value="Upload">Upload</button>
+            <button id="newfolder" name="newfolder" type="button" value="New Folder">New Folder</button>
+            <button id="grid" class="ON" type="button" title="Switch to grid view.">&nbsp;</button><button id="list" type="button" title="Switch to list view.">&nbsp;</button></nobr>
+        </form>
+        </div>
+        <div id="splitter">
+            <div id="filetree"></div>
+            <div id="fileinfo"><h1>Select an item from the left.</h1></div>
+        </div>
+
+        <ul id="itemOptions" class="contextMenu">
+            <li class="download"><a href="#download">Download</a></li>
+            <li class="rename"><a href="#rename">Rename</a></li>
+            <li class="delete separator"><a href="#delete">Delete</a></li>
+        </ul>
+
+        <script type="text/javascript" src={{=URL(r=request,c='static/scripts',f='jquery-1.2.6.min.js')}}></script>
+        <script type="text/javascript" src={{=URL(r=request,c='static/scripts',f='jquery.form.js')}}></script>
+        <script type="text/javascript" src={{=URL(r=request,c='static/ckeditor',f='ckeditor.js')}}></script>
+        <script type="text/javascript" src={{=URL(r=request,c='static/scripts',f='jquery.splitter.js')}}></script>
+        <script type="text/javascript" src={{=URL(r=request,c='static/scripts/jquery_filetree',f='jqueryFileTree.js')}}></script>
+        <script type="text/javascript" src={{=URL(r=request,c='static/scripts/jquery_contextmenu',f='jquery.contextMenu.js')}}></script>
+        <script type="text/javascript" src={{=URL(r=request,c='static/scripts',f='jquery.impromptu-1.5.js')}}></script>
+        <script type="text/javascript" src={{=URL(r=request,c='static/scripts',f='jquery.tablesorter.min.js')}}></script>
+        <script type="text/javascript" src={{=URL(r=request,c='static/scripts',f='filemanager.config.js')}}></script>
+        <script type="text/javascript" src={{=URL(r=request,c='static/scripts',f='filemanager.js')}}></script>
+        <script type="text/javascript"> var appname='{{=appname}}'; </script>
+    </body>
+</html>

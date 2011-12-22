@@ -1,0 +1,29 @@
+{{extend 'layout.html'}}
+
+<h1>My Events</h1>
+
+<table>
+    <tr>
+      <th>Name</th>
+      <th>Begin</th>
+      <th>End</th>
+      <th></th>
+      <th></th>
+    </tr>
+    <tr>
+      <td>...</td>
+      <td></td>
+      <td></td>
+      <td><a href="{{=URL('create_event')}}">Create</a></td>
+      <td></td>
+    </tr>     
+    {{for event in rows:}}
+    <tr>
+      <td>{{=event.name}}</td>
+      <td>{{=event.start}}</td>
+      <td>{{=event.stop}}</td>
+      <td><a href="{{=URL('create_event',args=event.id)}}">Edit</a></td>
+      <td><a href="{{=URL('respond_event',args=event.uuid)}}">Respond</a></td>
+    </tr>   
+    {{pass}} 
+</table>

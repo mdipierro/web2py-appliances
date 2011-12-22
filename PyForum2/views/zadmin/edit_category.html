@@ -1,0 +1,72 @@
+{{extend 'zlayout.html'}}
+
+<h2 class="fancy">{{=XML(T('pyForum - Update/Edit Category'))}}</h2>
+
+{{include 'zadmin/admin_options.html'}}
+
+{{if view_info['errors']:}}
+    <p class="error">{{=XML(T('There were some errors while processing your request, please correct the following'))}}:</p>
+    <ul>
+        {{for err in view_info['errors']:}}
+            <li class="error">{{=err}}</li>
+        {{pass}}
+    </ul>
+{{pass}}
+
+<form id="add_cat_form" method="post" action="">
+<fieldset id="add_cat_form_fields">
+    <input type="hidden" id="form_submitted" name="form_submitted" value="1" />
+    <input type="hidden" id="cat_id" name="cat_id" value="{{=this_category.id}}" />
+    <table cellspacing="2" cellpadding="2">
+    <tbody>
+        <tr>
+            <td><span class="warning">[*]</span> {{=XML(T('Category Name'))}}:</td>
+            <td><input type="text" id="cat_name" name="cat_name" value="{{=request.vars.get('cat_name', this_category.cat_name)}}" style="width:400px;" /></td>
+        </tr>
+        <tr>
+            <td>{{=XML(T('Category Description'))}}:</td>
+            <td><textarea id="cat_desc" name="cat_desc" rows="0" cols="0" style="width:400px;height:150px;">{{=request.vars.get('cat_desc', this_category.cat_desc)}}</textarea></td>
+        </tr>
+        <tr>
+            <td style="vertical-align:top;">{{=XML(T('Visible To'))}}:</td>
+            <td style="vertical-align:top;">
+                <table cellspacing="2" cellpadding="2" cellspacing="2">
+                <tbody>
+                    <tr>
+                        <td><input type="checkbox" id="zadmin_access" name="zadmin_access" {{if 'zAdministrator' in this_category.cat_visible_to.split(','):}}checked="checked"{{pass}} /></td>
+                        <td><label for="zadmin_access">{{=XML(T('Forum Administrators ONLY'))}} [1]</label></td>
+                    </tr>
+                    <!-- !MODIFIED CODE
+                             The following code is commented out as it is bugged in the original system. 
+                    <tr>
+                        <td><input type="checkbox" id="zmember_access" name="zmember_access" {{if 'zMember' in this_category.cat_visible_to.split(','):}}checked="checked"{{pass}} /></td>
+                        <td><label for="zmember_access">{{=XML(T('Regular Members'))}}</label></td>
+                    </tr>
+                    <tr>
+                        <td><input type="checkbox" id="zmember_vip_access" name="zmember_vip_access" {{if 'zMemberVIP' in this_category.cat_visible_to.split(','):}}checked="checked"{{pass}} /></td>
+                        <td><label for="zmember_vip_access">{{=XML(T('VIP Members'))}}</label></td>
+                    </tr> -->
+                    <tr>
+                        <td><input type="checkbox" id="auth_access" name="auth_access" {{if 'Authenticated' in this_category.cat_visible_to.split(','):}}checked="checked"{{pass}} /></td>
+                        <td><label for="auth_access">{{=XML(T('Any Logged-In User'))}} [2]</label></td>
+                    </tr>
+                    <tr>
+                        <td><input type="checkbox" id="public_access" name="public_access" {{if this_category.cat_visible_to == '':}}checked="checked"{{pass}} /></td>
+                        <td><label for="public_access">{{=XML(T('Public Access'))}} [3]</label></td>
+                    </tr>
+                </tbody>
+                </table>
+            </td>
+        </tr>
+    </tbody>
+    </table>
+    <div class="top-separator">
+        <input type="submit" id="submit" name="update_cat" value="{{=XML(T('Update'))}}" />
+        <input type="submit" id="cancel" name="cancel" value="{{=XML(T('Cancel'))}}" />
+        &nbsp;&nbsp;
+        <input type="submit" id="remove" name="remove" value="{{=XML(T('Remove this Category'))}}" />
+    </div>
+    <div class="note small">{{=XML(T('Note'))}}: {{=XML(T('If no roles are selected (except zAdministrator) then the category will become public (can be changerd later)'))}}.</div>
+    <div class="note small">{{=XML(T('Note'))}}: {{=XML(T('Values in [x] denotes precedence'))}}.</div>
+</fieldset>
+</form>

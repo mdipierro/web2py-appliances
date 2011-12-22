@@ -1,0 +1,39 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <style>
+      * {font-family: Arial, Helvetica; font-size: 12px;}
+      LABEL, TH {font-weight: bold;}
+      TD {text-align: left; vertical-align:top}
+    </style>
+    {{include 'web2py_ajax.html'}}
+  </head>  
+  <body>
+    {{if request.args(2):}}
+    [{{=A('new attachment',_href=URL(r=request,args=request.args[:2]))}}]
+    {{pass}}
+    {{if request.vars.list_all:}}
+    [<a href="{{=URL(r=request,args=request.args)}}">show attachments for this page</a>]
+    {{else:}}
+    [<a href="{{=URL(r=request,args=request.args,vars=dict(list_all=1))}}">show all attachements</a>]
+    {{pass}}
+
+    {{=form}}
+
+    <table  style="background: #e5e5e5;width:100%;padding:5px;-moz-border-radius: 10px; -webkit-border-radius: 10px;">
+      <tr>
+	<th style="text-align:left">{{=T('Name')}}</th>
+	<th style="text-align:left">{{=T('Link')}}</th>
+	<th style="text-align:left">{{=T('Wiki')}}</th>
+	<th style="text-align:left">{{=T('Upload Datetime')}}</th>
+      </tr>
+      {{for row in rows:}}
+      <tr>
+	<td style="text-align:left">{{=A(row.name,_href=URL(r=request,args=request.args[:2]+[row.id]))}}</td>
+	<td style="text-align:left">{{=A('link',_href=URL(r=request,c='plugin_wiki',f='attachment',args=row.id))}}</th>
+	<td style="text-align:left"><tt>attachment:{{=row.id}}{{=row.filename[row.filename.rfind('.'):]}}</tt></td>
+	<td style="text-align:left">{{=row.created_on}}</td>
+      </tr>
+      {{pass}}
+  </body>
+</html>

@@ -1,0 +1,8 @@
+{{extend 'layout.html'}}
+<h1>Products</h1>
+<ul>
+{{for product in products:}}
+<li><a href="{{=URL('edit_product',args=product.id)}}">{{=product.name}}</a></li>
+{{pass}}
+<li>...<a href="{{=URL('edit_product')}}">add product</a></li>
+</ul>

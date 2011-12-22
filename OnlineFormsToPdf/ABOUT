@@ -1,0 +1,3 @@
+<h3>Description</h3>
+<p><p>Allows users to register, login and create pdf forms using markmin. Each Form  gets a UUID URL. People with the URL can fill the form online and convert it to PDF for printing. This is useful in those cases when a web form is not acceptable and a printed form is necessary.</p><p>Attention: requires web2py trunk from google code. Also requires pdflatex.</p><p>License: BSD</p>
+

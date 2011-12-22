@@ -1,0 +1,62 @@
+{{extend 'layout.html'}}
+{{import cPickle}}
+
+<script><!--
+$(document).ready(function(){
+  $("table.sortable tbody tr").mouseover( function() {
+     $(this).addClass("highlight"); }).mouseout( function() {
+     $(this).removeClass("highlight"); });
+  $('table.sortable tbody tr:odd').addClass('odd');
+  $('table.sortable tbody tr:even').addClass('even');
+
+});
+//--></script>
+
+<h1>Report for Survey: {{=survey.title}}</h1>
+{{if len(rows)==0:}}
+<p>No data available!</p>
+{{pass}}
+
+{{if len(sas):}}
+  <h2 onclick="collapse('persons');">Users</h2>
+  <table id="persons" class="sortable">
+  <tr><td>User</td><td>Completion timestamp</td><td>Points</td><td></td></tr>
+  {{for row in sas:}}
+    {{link=A(row.auth_user.name,_href=URL(r=request,args=[survey.id,row.auth_user.id])) if not row.sa.anonymous else 'Anonymous'}}
+  <tr><td>{{=link}}</td>
+      <td>{{=row.sa.timestamp or survey.stop}}</td>
+      <td>{{=total_points[row.sa.owner]}}</td>
+      <td>{{if row.auth_user.id!=survey.owner:}}[{{=A('delete',_href=URL('delete_sa',args=[survey.id,row.auth_user.id]))}}]{{pass}}</td></tr>
+  {{pass}}
+  </table>
+{{pass}}
+
+{{question_id=0}}
+{{for i,row in enumerate(rows):}}
+  {{if row.question.id!=question_id:}}
+    {{question_id=row.question.id}}
+    {{if question_id:}}</table><br/><br/>{{pass}}
+    <h2 onclick="collapse('{{=question_id}}');">{{=i+1}}) {{=row.question.title}}</h2>
+    <table id="{{=question_id}}">
+  {{pass}}
+  {{value=cPickle.loads(row.answer.value)}}
+  {{link=A(row.auth_user.name,_href=URL(r=request,args=[survey.id,row.auth_user.id])) if not row.sa.anonymous else 'Anonymous'}}
+  <tr><td>{{=link}}:</td><td>
+  {{if row.question.type[:8]=='upload':}}
+    [{{=A('file',_href=URL('dowloadn_attachement',args=[row.sa.id,row.answer.file])) if row.answer.file else 'None'}}]
+  {{elif row.question.type[:8]=='multiple':}}
+    {{value=', '.join([chr(ord('A')+int(c)) for c in value])}}
+    <b>{{=value}}</b>
+  {{elif row.question.type=='long text':}}
+    {{=XML(value)}}
+  {{elif row.question.type[-8:]=='verbatim':}}
+    <pre>{{=value}}</pre>
+  {{else:}}
+    <b>{{=value}}</b>
+  {{pass}}
+  </td><td>{{=points[row.auth_user.id][row.question.id]}}</td></tr>
+  {{if row.answer.comment:}}
+  <tr><td style="text-align:right;">Comment:</td><td>{{=XML(row.answer.comment)}}</td><td></td></tr>
+  {{pass}}
+{{pass}}
+{{if question_id:}}</table>{{pass}}

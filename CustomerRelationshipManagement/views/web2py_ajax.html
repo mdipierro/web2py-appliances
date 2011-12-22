@@ -1,0 +1,90 @@
+{{
+response.files.insert(0,URL(r=request,c='static',f='jquery.js'))
+response.files.insert(1,URL(r=request,c='static',f='calendar.css'))
+response.files.insert(2,URL(r=request,c='static',f='calendar.js'))
+for _item in response.meta or []:}}
+     <meta name="{{=_item}}" content="{{=response.meta[_item]}}" />{{
+pass
+for _k,_file in enumerate(response.files or []):
+  if _file in response.files[:_k]:
+     continue
+  elif _file[-4:].lower()=='.css':}}
+     <link href="{{=_file}}" rel="stylesheet" type="text/css" charset="utf-8" />{{
+  elif _file[-3:].lower()=='.js':}}
+     <script src="{{=_file}}" type="text/javascript"></script>{{
+  pass
+pass
+}}
+<script type="text/javascript"><!--
+function popup(url) {
+  newwindow=window.open(url,'name','height=400,width=600');
+  if (window.focus) newwindow.focus();
+  return false;
+}
+function collapse(id) { jQuery('#'+id).slideToggle(); }
+function fade(id,value) { if(value>0) jQuery('#'+id).hide().fadeIn('slow'); else jQuery('#'+id).show().fadeOut('slow'); }
+function ajax(u,s,t) {
+  var query="";
+  for(i=0; i<s.length; i++) { 
+     if(i>0) query=query+"&";
+     query=query+encodeURIComponent(s[i])+"="+encodeURIComponent(document.getElementById(s[i]).value);
+  }
+  jQuery.ajax({type: "POST", url: u, data: query, success: function(msg) { if(t==':eval') eval(msg); else document.getElementById(t).innerHTML=msg; } });  
+}
+String.prototype.reverse = function () { return this.split('').reverse().join('');};
+function web2py_ajax_init() {
+  jQuery('.hidden').hide();
+  jQuery('.error').hide().slideDown('slow');
+  jQuery('.flash').click(function() { jQuery(this).fadeOut('slow'); return false; });
+  jQuery('input.string').attr('size',50);
+  jQuery('textarea.text').attr('cols',50).attr('rows',10);
+  jQuery('input.integer').keyup(function(){this.value=this.value.reverse().replace(/[^0-9\-]|\-(?=.)/g,'').reverse();});
+  jQuery('input.double').keyup(function(){this.value=this.value.reverse().replace(/[^0-9\-\.]|[\-](?=.)|[\.](?=[0-9]*[\.])/g,'').reverse();});
+  jQuery('input.delete').attr('onclick','if(this.checked) if(!confirm("{{=T('Sure you want to delete this object?')}}")) this.checked=false;');
+  try {jQuery("input.date").focus( function() {Calendar.setup({
+     inputField:this.id, ifFormat:"{{=T('%Y-%m-%d')}}", showsTime:false
+  }); }); } catch(e) {};
+  try { jQuery("input.datetime").focus( function() {Calendar.setup({
+     inputField:this.id, ifFormat:"{{=T('%Y-%m-%d %H:%M:%S')}}", showsTime: true,timeFormat: "24"
+  }); }); } catch(e) {};
+  try { jQuery("input.time").clockpick({
+      starthour:0, endhour:23, showminutes:true, military:true
+  }); } catch(e) {};
+};
+jQuery(document).ready(function(){
+   jQuery('.flash').hide();
+   if(jQuery('.flash').html()!='') jQuery('.flash').slideDown('slow');
+   web2py_ajax_init();});
+
+function web2py_trap_form(action,target) {
+   jQuery('#'+target+' form').each(function(i){
+      var form=jQuery(this);
+      jQuery('input[type="submit"]',this).click(function(){
+         jQuery('.flash').hide().html('');
+         web2py_ajax_page('post',action,form.serialize(),target);
+         return false;
+      });
+   });
+}
+function web2py_ajax_page(method,action,data,target) {
+  jQuery.ajax({'type':method,'url':action,'data':data,
+    'beforeSend':function(xhr){
+      xhr.setRequestHeader('web2py-component-location',document.location);
+      xhr.setRequestHeader('web2py-component-element',target);},
+    'complete':function(xhr,text){
+      command=xhr.getResponseHeader('web2py-component-command');
+      if(command) eval(command);
+      flash=xhr.getResponseHeader('web2py-component-flash');
+      if(flash) jQuery('.flash').html(flash).slideDown();
+      },
+    'success': function(text) {
+      jQuery('#'+target).html(text);
+      web2py_trap_form(action,target);
+      web2py_ajax_init();
+      }
+    });
+}
+function web2py_component(action,target) {
+    jQuery(document).ready(function(){ web2py_ajax_page('get',action,null,target); });
+}
+//--></script>

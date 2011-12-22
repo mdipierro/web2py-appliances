@@ -1,0 +1,36 @@
+<div class="subnav">
+    <a href="{{=URL(r=request, c='default', f='index')}}"
+       class="breadcrumbs"
+       title="{{=XML(T('Forums Home Page'))}}">{{=XML(T('Forums Home Page'))}}</a>
+    <span class="small">|</span>
+    <a href="{{=URL(r=request, c='zadmin', f='categories')}}"
+       class="breadcrumbs"
+       title="{{=XML(T('Categories'))}}">{{=XML(T('Categories'))}}</a>
+    <span class="small">|</span>
+    <a href="{{=URL(r=request, c='zadmin', f='forums')}}"
+       class="breadcrumbs"
+       title="{{=XML(T('Forums'))}}">{{=XML(T('Forums'))}}</a>
+    <span class="small">|</span>
+    <a href="{{=URL(r=request, c='zadmin', f='bad_topics')}}"
+       class="breadcrumbs"
+       title="{{=XML(T('Inappropriate Topics'))}}">{{=XML(T('Inappropriate Topics'))}}</a>
+    <span class="small" style="color:red;">({{=forumhelper.get_inappropriate_topics_cnt()}})</span>
+    <span class="small">|</span>
+    <a href="{{=URL(r=request, c='zadmin', f='users')}}"
+       class="breadcrumbs"
+       title="{{=XML(T('Users'))}}">{{=XML(T('Users'))}}</a>
+    <span class="small">|</span>
+    <a href="{{=URL(r=request, c='zadmin', f='admin_msgs')}}"
+       class="breadcrumbs"
+       title="{{=XML(T('Admin Messages'))}}">{{=XML(T('Admin Messages'))}}</a>
+       <span class="small" style="color:red;">({{=forumhelper.get_admin_msgs_cnt()}})</span>
+    <span class="small">|</span>
+    <a href="{{=URL(r=request, c='zadmin', f='system_config')}}"
+       class="breadcrumbs"
+       title="{{=XML(T('Configuration'))}}">{{=XML(T('Configuration'))}}</a>
+    <span class="small">|</span>
+    <a href="{{=URL(r=request, c='zadmin', f='index')}}"
+       class="breadcrumbs"
+       title="{{=XML(T('Information'))}}">{{=XML(T('Information'))}}</a>
+</div>
+

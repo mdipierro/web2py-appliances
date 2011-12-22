@@ -1,0 +1,31 @@
+<script type="text/javascript" src="/{{=request.application}}/static/jquery.js"></script>
+{{import os}}
+{{if os.access(os.path.join(request.folder,'static','ui.datepicker.js'),os.R_OK):}}
+<link rel="stylesheet" href="/{{=request.application}}/static/ui.datepicker.css" type="text/css" media="screen" title="core css file" charset="utf-8" />
+<script src="/{{=request.application}}/static/ui.datepicker.js" type="text/javascript" charset="utf-8"></script>
+{{pass}}
+<script type="text/javascript"><!--
+/* Written by Massimo Di Pierro. Here for backward compatibility. */
+function popup(url) {
+  newwindow=window.open(url,'name','height=400,width=600');
+  if (window.focus) newwindow.focus();
+  return false;
+}
+function collapse(id) { $('#'+id).slideToggle(); }
+function fade(id,value) { if(value>0) $('#'+id).hide().fadeIn('slow'); else $('#'+id).show().fadeOut('slow'); }
+function ajax(u,s,t) {
+  var query="";
+  for(i=0; i<s.length; i++) { if(i>0) query=query+"&";
+     query=query+encodeURIComponent(s[i])+"="+encodeURIComponent(document.getElementById(s[i]).value);
+  }
+  $.ajax({type: "POST", url: u, data: query, success: function(msg) { if(t!=false) document.getElementById(t).innerHTML=msg; } });
+} 
+String.prototype.reverse = function () {return this.split('').reverse().join('');};
+$(document).ready(function() {
+$('div.error').hide().slideDown('slow');
+$('#flash').hide().slideDown('slow').attr('onclick','$(this).fadeOut();');
+$('input.integer').attr('onkeyup',"this.value=this.value.reverse().replace(/[^0-9\-]|\-(?=.)/g,'').reverse();");
+$('input.double').attr('onkeyup',"this.value=this.value.reverse().replace(/[^0-9\-\.]|[\-](?=.)|[\.](?=[0-9]*[\.])/g,'').reverse();");
+try {$("input.date").datepicker({dateFormat: '{{=T('yy-mm-dd')}}'});} catch(e) {};
+});
+//--></script>

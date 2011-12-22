@@ -1,0 +1,19 @@
+{{extend 'layout.html'}}
+
+<h1>Compare pages</h1>
+
+<h2 onclick="$('#current').slideToggle()">Current page</h2>
+<div id="current">
+<b>"{{=page.page.title}}" modified on {{=page.page.modified_on}} by {{=page.auth_user.name}} (u{{=page.auth_user.id}})</b><br/><br/>{{=XML(page.page.body)}}
+<br/><br/></div>
+
+<h2 onclick="$('#old').slideToggle()">Old page</h2>
+<div id="old">
+<b>"{{=old_page.old_page.title}}" modified on {{=old_page.old_page.modified_on}} by {{=old_page.auth_user.name}} (u{{=old_page.auth_user.id}})</b><br/><br/>{{=XML(old_page.old_page.body)}}
+<br/><br/></div>
+
+<h2 onclick="$('#changes').slideToggle()">Changes</h2>
+<div id="changes">
+{{=diff}}
+</div>
+

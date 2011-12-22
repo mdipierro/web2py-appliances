@@ -1,0 +1,14 @@
+{{extend 'layout.html'}}
+<script src="/admin/static/sorttable.js"></script>
+<style>
+table.sortable thead {
+    background-color:#eee;
+    color:#666666;
+    font-weight: bold;
+    cursor: default;
+}
+</style>
+<h1>Processes</h1>
+<h2>ps aux</h2>
+{{table.attributes['_class']='sortable'}}
+{{=table}}

@@ -1,0 +1,16 @@
+{{extend 'layout.html'}}
+
+<h2>Your Posts</h2>
+
+<table width="100%">
+{{for item in items:}}
+<tr>
+<td width="50px">{{=item.request}}</td>
+<td>
+{{=item.location}}
+</td>
+<td>
+[<a href="{{=URL('update',args=item.id)}}">edit</a>]</td>
+</tr>
+{{pass}}
+</table>

@@ -1,0 +1,16 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.o\
+rg/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <style>
+      * {font-family: Arial, Helvetica; font-size: 12px;}
+      LABEL, TH {font-weight: bold;}
+      TD {text-align: left; vertical-align:top}
+    </style>
+    {{include 'web2py_ajax.html'}}
+  </head>
+  <body>
+    {{=form}}    
+    <table><tr><td>{{=form_widget}}</td><td>{{=widget_code or MARKMIN(doc)}}</td></tr></table>
+  </body>
+</html>

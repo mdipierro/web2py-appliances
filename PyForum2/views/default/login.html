@@ -1,0 +1,79 @@
+{{extend 'zlayout.html'}}
+
+{{if request.vars.get('ask'):}}
+    <div class="note">You must log in before you can post your question.</div>
+{{pass}}
+
+<h2 class="fancy">{{=XML(T('Login'))}}</h2>
+
+{{if custom_messages['errors']:}}
+    <p class="err">{{=XML(T('There was one or more messages generated while processing your request, please review the following'))}}</p>
+    <ul>
+        {{for error in custom_messages['errors']:}}
+            <li class="err">{{=XML(T(error))}}</li>
+        {{pass}}
+    </ul>
+{{pass}}
+
+{{if request.vars.get('err') is not None:}}
+    {{if request.vars.get('err', '') == 'needrole':}}
+        <p class="err">{{=XML(T('The previous operation requires you to have elevated credentials to access'))}}.</p>
+    {{else:}}
+        <p class="err">{{=XML(T('The previous operation requires the user to be logged in the system'))}}.</p>
+    {{pass}}
+{{pass}}
+
+<form id="login" method="post" action="">
+    <fieldset id="login_form_fields">
+        <input type="hidden" id="form_submitted" name="form_submitted" value="1" />
+        <input type="hidden" id="ask" name="ask" value="{{='0' if request.vars.get('ask') is None else '1'}}" />
+        <div class="paragraph">
+            <b>{{=XML(T('New Users'))}}:</b>
+            <a href="{{=URL(r=request, c='default', f='signup')}}" title="{{=XML(T('Create a New LOCAL Account Here'))}}" class="bold">{{=XML(T('Create a New LOCAL Account Here'))}}</a>
+        </div>
+        <table cellspacing="2" cellpadding="1">
+        <tbody>
+            <tr>
+                <td>{{=XML(T('Email'))}}:</td>
+                <td>
+                    <input class="formelem" type="text" id="auth_alias" name="auth_alias" value="{{=request.vars.get('auth_alias', request.post_vars.get('auth_alias', ''))}}" style="width:200px;" />
+                </td>
+            </tr>
+            <tr>
+                <td>{{=XML(T('Password'))}}:</td>
+                <td>
+                    <input class="formelem" type="password" id="passwd" name="passwd" value="" style="width:200px;" />
+                </td>
+            </tr>
+        </tbody>
+        </table>
+
+        <br />
+
+        <input type="submit" id="login_b" name="login_b" value="{{=XML(T('Login'))}}" />
+        <input type="submit" id="cancel_b" name="cancel_b" value="{{=XML(T('Cancel'))}}" />
+
+        <br />&nbsp;<br />
+
+        <div class="paragraph">{{=XML(T('If you forgot your LOCAL password, or for any other questions, please'))}}
+        <a href="{{=URL(r=request, c='default', f='contact_admin')}}"
+        title="{{=XML(T('Contact the Administrator directly'))}}">{{=XML(T('contact the administrator directly'))}}</a>.</div>
+
+    </fieldset>
+</form>
+
+<script type="text/javascript">
+    <!--
+    document.getElementById("auth_alias").focus();
+    //-->
+</script>
+
+<p>If you wish to sign in using any of the providers below, you may do so without
+having to enter your password in this website.</p>
+
+<!-- Make sure your token_url corresponds to a valid hostname defined in your janrain settings //-->
+<iframe src="http://pyforum.rpxnow.com/openid/embed?token_url={{=request.env.wsgi_url_scheme}}://{{=request.env.http_host}}{{=URL(r=request, c='default', f='login_janrain')}}"
+    scrolling="no"
+    frameBorder="no"
+    allowtransparency="true"
+    style="width:400px;height:240px"></iframe>

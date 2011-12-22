@@ -1,0 +1,41 @@
+{{extend 'layout.html'}}
+
+<h1>Create a new form</h1>
+
+{{=form}}
+
+<h2>Legend</h2>
+
+<h2>Help with syntax</h2>
+<pre>
+# title
+## subtitle
+### subsubtitle
+paragraph with **bold**, ''italic'' and ``code``
+[["a link" http://example.com]], [[a_anchor]] and [["a link to" #a_anchor]]
+[["an image" http://example.com left 200px]]
+
+- item
+- item
+
++ item 1
++ item 2
+
+-----
+blockquote
+-----
+
+-----
+1 | 2
+3 | 4
+-----
+
+To insert a small input text field: ``name``:input_text
+To insert a large input text field: ``name``:input_area
+To insert a checkbox field: ``name``:input_bool
+To insert a date field: ``name``:input_date
+
+Make sure every name appears once and only onces in the form.
+
+</pre>
+</div>

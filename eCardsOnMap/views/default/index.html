@@ -1,0 +1,59 @@
+{{extend 'layout.html'}}
+{{import urllib}}
+<script>
+jQuery(document).ready(function(){jQuery('#form').hide();});
+</script>
+{{if form:}}
+<button onclick="jQuery('#form').slideToggle()">write/edit a postcard</button>
+<div id="form">{{=form}}</div>
+{{pass}}
+
+  <script src="http://maps.google.com/maps?file=api&amp;v=2&amp;key={{=GOOGLEMAP_KEY}}" type="text/javascript"></script>
+    <script type="text/javascript">
+    //<![CDATA[
+    function load() {
+      if (GBrowserIsCompatible()) {
+        var map = new GMap2(document.getElementById("map"));
+        map.addControl(new GSmallMapControl());
+        map.addControl(new GMapTypeControl());
+        map.setCenter(new GLatLng(0,0), 1);
+        // Create a base icon for all of our markers that specifies the
+        // shadow, icon dimensions, etc.
+        var baseIcon = new GIcon();
+        baseIcon.shadow = "http://www.google.com/mapfiles/shadow50.png";
+        baseIcon.iconSize = new GSize(20, 34);
+        baseIcon.shadowSize = new GSize(37, 34);
+        baseIcon.iconAnchor = new GPoint(9, 34);
+        baseIcon.infoWindowAnchor = new GPoint(9, 2);
+        baseIcon.infoShadowAnchor = new GPoint(18, 14);
+        var blueIcon = new GIcon();
+        blueIcon.image = "http://www.google.com/intl/en_us/mapfiles/ms/micons/blue-dot.png";
+        blueIcon.shadow = "http://www.google.com/mapfiles/shadow50.png";
+        blueIcon.iconSize = new GSize(37, 34);
+        blueIcon.shadowSize = new GSize(37, 34);
+        blueIcon.iconAnchor = new GPoint(9, 34);
+        blueIcon.infoWindowAnchor = new GPoint(9, 2);
+        blueIcon.infoShadowAnchor = new GPoint(18, 14);
+
+        function createMarker(point, i, message) {
+           // Set up our GMarkerOptions object
+           if(i==0) markerOptions = { icon:blueIcon };
+           else markerOptions= {}
+           var marker = new GMarker(point, markerOptions);
+           GEvent.addListener(marker, "click", function() {
+             marker.openInfoWindowHtml(message);
+           });
+           return marker;
+        }
+        {{for row in postcards:}}{{if row.latitude and row.longitude:}}
+          var point = new GLatLng({{=row.latitude}},{{=row.longitude}});
+          map.addOverlay(createMarker(point, 0, '{{=row.from_nickname.replace("'","\\'")}} from {{=row.from_location.replace("'","\\'")}}<br/><img src="{{=URL('download',args=row.image)}}" width="200px"/><br/><i>"{{=XML((row.comment or '').replace("'","\\'").replace('\r','').replace('\n','<br/>'),sanitize=True)}}"</i>'));
+        {{pass}}{{pass}}
+     }
+    }
+    //]]>
+    </script>
+<center>
+    <div id="map" style="width: 800px; height: 400px"></div>
+    <script>load();</script>
+</center>

@@ -1,0 +1,24 @@
+{{extend 'layout.html'}}
+
+<h1>Restaurants</h1>
+<hr />
+
+<table>
+{{for list in lists:}}
+<tr><td><b>Name:</b></td>
+<td style="font-size:2.0em;">
+<a href="{{=URL('show',args=list.id)}}">{{=list.name}}</a>
+</td></tr>
+<tr><td><b>Lunch Special:</b></td><td>
+<table>
+{{specials=db(db.special.restaurant_id==list.id).select()}}
+{{for s in specials:}}
+<td><img src="{{=URL('download',args=s.image)}}" height="50px"/></td>
+<td>{{=s.name}} ${{=s.price}} </td>
+{{pass}}
+</table>
+</td></tr>
+<tr><td></td></tr>
+<tr><td></td></tr>
+{{pass}}
+</table>

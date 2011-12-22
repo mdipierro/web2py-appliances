@@ -1,0 +1,6 @@
+{{response.files.append(URL(r=request,c='static',f='processing.min.js'))}}
+{{response.files.append(URL(r=request,c='static',f='processing.init.js'))}}
+{{extend 'layout.html'}}
+<center>
+{{=XML(obj.xml())}}
+</center>

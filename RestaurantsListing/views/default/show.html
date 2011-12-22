@@ -1,0 +1,31 @@
+{{extend 'layout.html'}}
+
+{{for s in store:}}
+<h1>{{=s.name}}</h1>
+<hr />
+
+{{if auth.user:}}
+{{query=(db.favorite.restaurant_id==s.id) & (db.favorite.user==auth.user.id)}}
+{{f=db.favorite(query)}}
+{{if f == None:}}
+<a href="{{=URL('update_favorite',args=['add',auth.user.id,s.id])}}">
+<img src="{{=URL('static/images','add.jpg')}}"/>Add to my favorites</a>
+{{else:}}
+<a href="{{=URL('update_favorite',args=['remove',auth.user.id,s.id])}}">
+<img src="{{=URL('static/images','del.jpg')}}"/>Remove from my favorites</a>
+{{pass}}
+{{pass}}
+<h2>Lunch Special:</h2>
+<p style="font-size:1.5em;">{{=s.special}}</p>
+
+<h2>Address:</h2>
+<p>
+{{=s.address1}} {{=", " + s.address2}}<br />{{=s.city}}, {{=s.state}} {{=s.zip}}<br />
+{{=s.phone}}<br />
+<a href="{{=s.website}}">Hom page</a>
+{{pass}}
+</p>
+
+<p>{{=XML(s.map)}}</p>
+<h2>About</h2>
+<p>{{=s.about}}</p>

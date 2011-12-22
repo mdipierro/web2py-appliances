@@ -1,0 +1,62 @@
+{{extend 'zlayout.html'}}
+
+<h2 class="fancy">{{=XML(T('pyForum Administration - Manage Inappropriate Topics'))}}</h2>
+
+{{include 'zadmin/admin_options.html'}}
+
+{{if view_info.has_key('updated'):}}
+    <p class="warning">{{=XML(T('Parameters Updated'))}}</p>
+{{pass}}
+
+{{if topics:}}
+    <form id="inapp_form" method="post" action="">
+        <fieldset id="inapp_form_fields">
+            <input type="hidden" id="form_submitted" name="form_submitted" value="1" />
+
+            <table cellspacing="0" cellpadding="0" class="zf-table max-width">
+                <thead>
+                    <tr class="shadedarker">
+                        <th class="cell3d">&nbsp;</td>
+                        <th class="cell3d">{{=XML(T('Title'))}}</td>
+                        <th class="cell3d">{{=XML(T('Edit'))}}</th>
+                        <th class="cell3d">{{=XML(T('Type'))}}</th>
+                        <th class="cell3d">{{=XML(T('Date'))}}</th>
+                        <th class="cell3d">{{=XML(T('By'))}}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{for idx, topic in enumerate(topics):}}
+                        <tr class="{{if idx%2:}}shadedark{{else:}}shadelight{{pass}}">
+                            <td class="cell3d center-xy">
+                                <input type="checkbox" id="inapp_id_{{=topic.zf_topic_inappropriate.id}}" name="inapp_id_{{=topic.zf_topic_inappropriate.id}}" value="{{=topic.zf_topic_inappropriate.id}}" />
+                            </td>
+                            <td class="cell3d" style="vertical-align:middle;">
+                                <b>{{=XML(T('View'))}}</b>:
+                                <a href="{{=URL(r=request, c='default', f='view_topic', args=[topic.zf_topic_inappropriate.topic_id])}}"
+                                   title="{{=XML(topic.zf_topic.title)}}"
+                                   onclick="window.open(this.href);return false;"
+                                   class="linkb">{{=XML(topic.zf_topic.title)}}</a>
+                            </td>
+                            <td class="cell3d center-xy">
+                                <a href="{{=URL(r=request, c='default', f='edit_topic', args=[topic.zf_topic_inappropriate.child_id])}}"
+                                   title="{{=XML(T('Edit this Topic'))}}"
+                                   onclick="window.open(this.href);return false;"
+                                   class="linkb">{{=XML(T('Edit'))}}</a>
+                            </td>
+                            <td class="cell3d center-xy">{{if topic.zf_topic_inappropriate.topic_id==topic.zf_topic_inappropriate.child_id:}}Main Topic{{else:}}Child Of main Topic{{pass}}</td>
+                            <td class="cell3d center-xy">{{=XML(topic.zf_topic_inappropriate.creation_date.strftime(str(XML('%d/%m/%Y'))))}}</td>
+                            <td class="cell3d center-xy"><a href="{{=URL(r=request, c='pm', f='message_new', args=[topic.zf_topic_inappropriate.creation_user])}}" title="{{=XML(T('Notify User'))}}" class="linkb">{{=XML(topic.zf_topic_inappropriate.creation_user)}}</a></td>
+                        </tr>
+                    {{pass}}
+                </tbody>
+            </table>
+
+            <div class="both-separator">
+                <input type="submit" id="read_b" name="read_b" value="{{=XML(T('Remove from list'))}}" />
+            </div>
+
+        </fieldset>
+    </form>
+{{else:}}
+    <p class="warning">{{=XML(T('No inappropriate topics submitted by members found'))}}.</p>
+{{pass}}

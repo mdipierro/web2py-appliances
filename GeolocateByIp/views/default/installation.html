@@ -1,0 +1,19 @@
+{{extend "layout.html"}}
+<h1>GeoLite Country</h1>
+<div class="center">
+	<h2>Installing GeoLite Country database...</h2>
+	<h4>Approximate download size: 1.5 MB</h4>
+	<div id="dummy" style="margin: 100px">
+		<img src={{=URL(r=request, c="static", f="loader.gif")}} alt="Loading animation" />
+	</div>
+	<script type="text/javascript">
+		<!--
+		ajax("{{=URL(r=request, f="download")}}", [], "dummy")
+		//-->
+	</script>
+	<noscript>
+		<br/>
+		<br />
+		<b>JavaScript is disabled. <a href={{=URL(r=request, f="download")}}>Click here</a> to download the database</b>
+	</noscript>
+</div>

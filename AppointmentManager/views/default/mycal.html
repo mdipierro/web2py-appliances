@@ -1,0 +1,34 @@
+{{response.files.append(URL(r=request,c='static',f='js/ui.core.js'))}}
+{{response.files.append(URL(r=request,c='static',f='js/ui.draggable.js'))}}
+{{response.files.append(URL(r=request,c='static',f='js/ui.resizable.js'))}}
+{{response.files.append(URL(r=request,c='static',f='js/fullcalendar.min.js'))}}
+{{response.files.append(URL(r=request,c='static',f='css/fullcalendar.css'))}}
+{{extend 'layout.html'}}
+
+<h1>My calendar</h1>
+<script type='text/javascript'>
+  jQuery(document).ready(function() {
+
+        var date = new Date();
+        var d = date.getDate();
+        var m = date.getMonth();
+        var y = date.getFullYear();
+
+        $('#calendar').fullCalendar({
+            editable: false,
+            events: [
+            {{for i,row in enumerate(rows):}}{{if i!=0:}},{{pass}}
+                {
+                    title: '{{=row.f_title}}',
+                    allDay: false,
+                    start: new Date('{{=row.f_start_time.strftime('%B %d, %Y %H:%M:%S')}}'),
+                    end: new Date('{{=row.f_end_time.strftime('%B %d, %Y %H:%M:%S')}}'),
+                    url: '{{=URL('appointment_read',args=row.id)}}'
+                }
+            {{pass}}
+            ]
+        });
+
+    });
+</script>
+<div id='calendar'></div>

@@ -1,0 +1,20 @@
+{{extend 'layout.html'}}
+
+<div style="background-color: #d6d6d6; border: 1px solid">
+<center>
+<table width="80%"><tr><td width="200px" align="center">
+<br/><br/><br/>
+<img src="/{{=request.application}}/static/metal-lock.jpg" width="100px" style="border:0px"/>
+</td><td align="left">
+<br/><br/><br/><br/><br/>
+{{if form:}}
+{{=form}}
+{{pass}}
+{{for i in range(3):}}<br/>{{pass}}
+{{if session.service and not request.function=='login':}}
+<a href="{{=session.service}}">back to {{=session.service}}</a>
+{{pass}}
+{{for i in range(7):}}<br/>{{pass}}
+</td></tr></table>
+</center>
+</div>

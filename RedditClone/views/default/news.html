@@ -1,0 +1,16 @@
+{{extend 'layout.html'}}
+<h2>News at {{=category.name}}</h2>
+<table>
+  {{for news in news:}}
+  <tr>
+    <td>{{=A(news.title,_href=news.link)}}</td>
+    <td>({{=news.votes}} votes)</td>
+    <td>{{=A('comments',_href=URL('news_comments',args=news.id))}}</td>
+    <td>{{=A('edit',_href=URL('news_edit',args=news.id))}}</td>
+  </tr>
+  {{pass}}
+  <tr>
+    <td>{{=A('post news item',_href=URL('news_create',args=category.id))}}</td>
+    <td></td>
+  </tr>
+</table>

@@ -1,0 +1,38 @@
+
+
+
+
+
+		<script type="text/javascript" src='../jquery.js'></script>
+		<!-- custom select plugin js -->
+		<script type="text/javascript" src='cust_select_plugin.js'></script>
+		<link rel="stylesheet" type="text/css" href="style.css">
+
+		<!--[if lt IE 8]>
+			<link rel="stylesheet" type="text/css" href="ie_style.css" >
+		<![endif]-->
+
+
+
+<script>
+	$(document).ready( function() {
+		$("select").custSelectBox();
+		
+	});
+</script>
+
+
+<script>
+$(".select_field").custSelectBox();
+</script>
+
+
+<div class="select_wrap"  class="select_field">
+    <select name="sample_select">
+        <option>Sample Selection</option>
+        <option value="1">Option One</option>
+        <option value="2" selected="selected">Option Two</option>
+        <option value="3">Option Three</option>
+        <option value="4">Option Four</option>
+    </select>
+</div>

@@ -1,0 +1,71 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xml:lang="{{=T.accepted_language or 'en'}}">
+  <head>
+    <title>{{=response.title or 'response.title'}}</title>
+      <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+      <meta name="copyright" content="{{=response.copyright or ''}}" />
+      <meta name="keywords" content="{{=response.keywords or ''}}" />
+      <meta name="description" content="{{=response.description or ''}}" />
+      <meta name="robots" content="index,follow" />
+      {{include 'web2py_ajax.html'}}
+      <link rel="stylesheet" media="screen,projection" type="text/css" 
+            href="{{=URL(request.application,'static','base.css')}}" />
+  </head>
+  <body>
+    <div class="wrapper">
+      <table class="layout">
+        <tr>
+          <td colspan="3"  class="header">
+            <h1>
+            {{title=response.title or 'response.title'}}            
+            {{=A(title, _href=URL(request.application,'default','index'))}}
+            </h1>
+            
+            <h3>{{=response.subtitle or 'response.subtitle'}}</h3>
+          </td>
+        </tr>
+        <tr>
+          <td colspan="3" class="statusbar">
+            {{='/'.join(['',request.application,request.controller,request.function]+request.args)}}
+          </td>
+        </tr>
+        <tr>
+          <td class="width10em column1">
+            {{if response.menu_auth:}}
+            <h2>Authentication</h2>
+            {{=MENU(response.menu_auth)}}
+            {{pass}}
+            {{if response.menu:}}
+            <h2>Main Menu</h2>
+            {{=MENU(response.menu)}}
+            {{pass}}
+            {{if response.menu_edit:}}
+            <h2>Edit This App</h2>
+            {{=MENU(response.menu_edit)}}
+            {{pass}}
+            <br />
+          </td>
+          <td class="expandable column2">
+            <div class="flash">{{=response.flash or ''}}</div>
+            {{include}}
+          </td>
+          <!--
+               <td class="width10em column3">
+                 <h2>Right Column</h2>
+               </td>
+          //-->
+        </tr>
+        <tr>
+          <td colspan="10" class="footer">
+            <p>
+            Copyright &copy; 2009 -
+            Powered by <a href="http://www.web2py.com">web2py</a>
+            </p>
+          </td>
+        </tr>
+      </table>
+    </div>
+  </body>
+</html>

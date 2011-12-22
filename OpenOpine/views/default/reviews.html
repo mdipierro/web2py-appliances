@@ -1,0 +1,42 @@
+<!--
+#########################################################################
+## (C) Equimind Financial LLC.
+##  Written by Casey Schroeder, A Theory of Publishing
+##  MIT License
+##
+##  See www.atheoryofpublishing.com for 
+##  full licensing of OpenOpine
+##
+##  Powered by web2py, Thanks Massimo!
+#########################################################################
+-->
+
+{{extend 'layout.html'}}
+{{if 'message' in globals():}}
+
+<h1>{{=message}}</h1>
+<hr />
+<table>
+{{for i,r in enumerate(recs):}}
+{{if i==items_per_page: break}}
+<tr>
+<td>
+<a href="{{=URL(r=request, f=redirecttype, args=[r.id], vars=dict(tbl=tablename))}}"><img width='200px', height='150px', src=   "{{=URL('default', 'download', args=[r.photo])}}",  title='{{= r.title + ', '  + r.subject}}' align="left"/></a>
+</td>
+<td/>
+<td>
+<h3>{{=r.blurb}}</h3>
+</td>
+</tr>
+{{pass}}
+</table>
+{{if page:}}
+        <a href="{{=URL(r=request, args=[page-1], vars=dict(search=search_type))}}">{{=T('previous')}}</a>
+{{pass}} 
+{{if len(recs)>items_per_page:}}
+        <a href="{{=URL(r=request, args=[page+1], vars=dict(search=search_type))}}">{{=T('next')}}</a>
+{{pass}}
+
+{{else:}}
+{{=BEAUTIFY(response._vars)}}
+{{pass}}

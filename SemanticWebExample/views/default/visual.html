@@ -1,0 +1,402 @@
+{{extend 'layout.html'}}
+
+<h1>Visual Representation</h1>
+
+<div id="holder"></div>
+
+<script type="text/javascript" charset="utf-8">
+    var tables = {{=json}};
+</script>
+
+<script type="text/javascript" charset="utf-8">
+    Raphael.fn.connection = function (obj1, obj2, line, bg) {
+        if (obj1.line && obj1.from && obj1.to) {
+            line = obj1;
+            obj1 = line.from;
+            obj2 = line.to;
+        }
+        
+        var bb1 = obj1.getBBox();
+        var bb2 = obj2.getBBox();
+        var p = [ {x: bb1.x + bb1.width / 2, y: bb1.y - 1},
+                  {x: bb1.x + bb1.width / 2, y: bb1.y + bb1.height + 1},
+                  {x: bb1.x - 1, y: bb1.y + bb1.height / 2},
+                  {x: bb1.x + bb1.width + 1, y: bb1.y + bb1.height / 2},
+                  {x: bb2.x + bb2.width / 2, y: bb2.y - 1},
+                  {x: bb2.x + bb2.width / 2, y: bb2.y + bb2.height + 1},
+                  {x: bb2.x - 1, y: bb2.y + bb2.height / 2},
+                  {x: bb2.x + bb2.width + 1, y: bb2.y + bb2.height / 2}
+                ];
+
+        var d = {}, dis = [];
+        for (var i = 0; i < 4; i++) {
+            for (var j = 4; j < 8; j++) {
+                var dx = Math.abs(p[i].x - p[j].x),
+                dy = Math.abs(p[i].y - p[j].y);
+                if ((i == j - 4) || (((i != 3 && j != 6) || p[i].x < p[j].x) && ((i != 2 && j != 7) || p[i].x > p[j].x) && ((i != 0 && j != 5) || p[i].y > p[j].y) && ((i != 1 && j != 4) || p[i].y < p[j].y))) {
+                
+                    dis.push(dx + dy);
+                    d[dis[dis.length - 1]] = [i, j];
+                }
+            }
+        }
+        
+        if (dis.length == 0) {
+            var res = [0, 4];
+        } else {
+            var res = d[Math.min.apply(Math, dis)];
+        }
+                                                                                                                                                                     var x1 = p[res[0]].x,
+            y1 = p[res[0]].y,
+            x4 = p[res[1]].x,
+            y4 = p[res[1]].y,
+            dx = Math.max(Math.abs(x1 - x4) / 2, 10),
+            dy = Math.max(Math.abs(y1 - y4) / 2, 10),
+            x2 = [x1, x1, x1 - dx, x1 + dx][res[0]].toFixed(3),
+            y2 = [y1 - dy, y1 + dy, y1, y1][res[0]].toFixed(3),
+            x3 = [0, 0, 0, 0, x4, x4, x4 - dx, x4 + dx][res[1]].toFixed(3),
+            y3 = [0, 0, 0, 0, y1 + dy, y1 - dy, y4, y4][res[1]].toFixed(3);
+
+        var path = ["M", x1.toFixed(3), y1.toFixed(3), "C", x2, y2, x3, y3, x4.toFixed(3), y4.toFixed(3)].join(",");
+
+        if (line && line.line) {
+            line.bg && line.bg.attr({path: path});
+            line.line.attr({path: path});
+        } else {
+            var color = typeof line == "string" ? line : "#000";
+            return {
+                bg: bg && bg.split && this.path(path).attr({stroke: bg.split("|")[0], fill: "none", "stroke-width": bg.split("|")[1] || 3}),
+                line: this.path(path).attr({stroke: color, fill: "none"}),
+                from: obj1,
+                to: obj2
+            };
+        }
+    };
+
+
+var el;
+
+window.onload = function () {
+    var isDrag = false;
+    var dragger = function (e) {
+        this.dx = e.clientX;
+        this.dy = e.clientY;
+        isDrag = this;
+        this.animate({"fill-opacity": .2}, 500);
+        e.preventDefault && e.preventDefault();
+    };
+
+    var splitFun = function( to_be_split, splitter ) {
+        if( typeof to_be_split == 'string') {
+            var splits = to_be_split.split(splitter);
+            var new_splits = [];
+            var new_index = 0;
+            for( var i = 0, ii = splits.length; i < ii; i++ ) {
+                if( i == 0 ) { new_splits[new_index++] = splits[0]; }
+                else { new_splits[new_index++] = splitter;
+                       new_splits[new_index++] = splits[i]; }
+            }
+            return new_splits;
+        } else {
+            var newest_splits = [];
+            for( var i = 0, ii = to_be_split.length; i < ii; i++ ) {
+                var new_splits = splitFun( to_be_split[i], splitter );
+                for each( var split in new_splits ) { newest_splits.push( split ); }
+            }
+            return newest_splits;
+        }
+    }
+
+    var displayRdf = function(e) {
+        if(this.attr("fill-opacity") == '.4') {
+            for( var i = 0, ii = table_rdfs[this.index].children_rect.length; i < ii; i++) {
+                table_rdfs[this.index].children_rect[i].show();
+                table_rdfs[this.index].children_text[i].show();
+            }
+            this.attr({"fill-opacity": 0});
+            if(this.connection) {
+                this.connection.line.show();
+            } else {
+                this.connection = r.connection(table_rects[this.index], table_rdfs[this.index].children_rect[0], "#000");
+            }
+        } else {
+            for( var i = 0, ii = table_rdfs[this.index].children_rect.length; i < ii; i++) {
+                table_rdfs[this.index].children_rect[i].hide();
+                table_rdfs[this.index].children_text[i].hide();
+            }
+            this.attr({"fill-opacity": 0.4});
+            this.connection.line.hide();
+        }
+
+        e.preventDefault && e.preventDefault();
+    };
+    
+    var displayRdfColumn = function(e) {
+        if(this.attr("fill-opacity") == '.4') {
+            this.child_rect.show();
+            this.connection.line.show();
+            this.attr({"fill-opacity": 0});
+            if( this.child_text.length == undefined  ) {
+                this.child_text.show();
+            } else {
+                for each( var child in this.child_text ) {
+                    child.show();
+                }
+            }
+        } else {
+            this.attr({"fill-opacity": 0.4});
+            this.child_rect.hide();
+            this.connection.line.hide();
+            if( this.child_text.length == undefined ) {
+                this.child_text.hide();
+            } else {
+                for each( var child in this.child_text ) {
+                    child.hide();
+                }
+            }
+        }
+
+        e.preventDefault && e.preventDefault();
+    }
+
+    //var r = Raphael("holder", 640, 480);
+    var r = Raphael("holder", 800, 800);
+    var connections = [];
+    var table_rects = [];
+    var table_texts = [];
+    var table_rdfs = [];
+    var foreign_keys = [];
+    var foreign_connections = [];
+
+    for( var i = 0, ii = tables.length; i < ii; i++) {
+        var left_indices = [ 50, 200, 350, 500, 650 ];
+        var top_indices = [ 50, 200, 350, 500 ];
+        var color = Raphael.getColor();
+
+        var index_helper = Math.floor(i/4);
+
+        //table_texts.push ( r.text(left_indices[(i+5)%5]+50, top_indices[(i+4)%4]+15, tables[i][0]) );
+        table_texts.push ( r.text(left_indices[(i+5)%5]+50, top_indices[index_helper]+15, tables[i][0]) );
+
+        table_rects.push( r.rect( left_indices[(i+5)%5], top_indices[index_helper], 100, 30, 2) );
+        table_rects[i].attr({fill: color, stroke: color, "fill-opacity": 0, "stroke-width": 2});
+        table_rects[i].index = i;
+        table_rects[i].translate_type = "table";
+        table_rects[i].node.style.cursor = "move";
+        table_rects[i].table_name = tables[i][0];
+        table_rects[i].mousedown( dragger );
+
+        table_rdfs.push( r.circle( left_indices[(i+5)%5]+90, top_indices[index_helper]+15, 6) );
+        table_rdfs[i].attr({fill: color, stroke: color, "fill-opacity": .4, "stroke-width": 1 } );
+        table_rdfs[i].index = i;
+        table_rdfs[i].mousedown( displayRdf );
+        table_rdfs[i].children_rect = [];
+        table_rdfs[i].children_text = [];
+
+        var index = 0;
+        for( var j in tables[i][1] ) {
+            table_rdfs[i].children_rect.push( r.rect( left_indices[(i+5)%5]+120, top_indices[index_helper]+((index)*30), 100, 30, 2) );
+            table_rdfs[i].children_rect[index].attr( { fill: color, stroke: color, "fill-opacity": 0, "stroke-width": 2});
+            table_rdfs[i].children_rect[index].index = index;
+            table_rdfs[i].children_rect[index].translate_type = "rdf";
+            table_rdfs[i].children_rect[index].parent = i;
+            table_rdfs[i].children_rect[index].node.style.cursor = "move";
+            table_rdfs[i].children_rect[index].mousedown( dragger );
+
+            table_rdfs[i].children_text.push( r.text( left_indices[(i+5)%5]+170, top_indices[index_helper]+((index)*30)+15, j + " -> " + tables[i][1][j] ) );
+
+            table_rdfs[i].children_rect[index].hide();
+            table_rdfs[i].children_text[index].hide();
+
+            index++;
+        }
+
+        table_rects[i].column_rects = [];
+        table_rects[i].column_texts = [];
+
+        for( var j = 0, jj = tables[i][2].length; j < jj; j++) {
+            table_rects[i].column_rects.push( r.rect( left_indices[(i+5)%5], top_indices[index_helper]+((j+1)*30), 100, 30, 2) );
+            table_rects[i].column_rects[j].attr({fill: color, stroke: color, "fill-opacity": 0, "stroke-width": 1});
+            table_rects[i].column_rects[j].index = j;
+            table_rects[i].column_rects[j].parent = i;
+            table_rects[i].column_rects[j].translate_type = "column";
+            table_rects[i].column_rects[j].node.style.cursor = "move";
+            table_rects[i].column_rects[j].mousedown( dragger );
+        
+            table_rects[i].column_texts.push ( r.text(left_indices[(i+5)%5]+50, top_indices[index_helper]+(((j+1)*30)+15), tables[i][2][j]) );
+            
+            if(tables[i][3][j][0].indexOf('reference') > -1) {
+                table_rects[i].column_rects[j].foreign_key = tables[i][3][j][0].split(' ')[1];
+                foreign_keys.push ( [i,j] );
+            }
+           
+            if(tables[i][3][j][1]) { 
+
+                table_rects[i].column_rects[j].rdf = r.circle( left_indices[(i+5)%5]+90, top_indices[index_helper]+(((j+1)*30)+15), 4);
+                table_rects[i].column_rects[j].rdf.attr({fill: color, stroke: color, "fill-opacity": .4, "stroke-width": 1 } );
+                table_rects[i].column_rects[j].rdf.mousedown( displayRdfColumn );
+            
+                table_rects[i].column_rects[j].rdf.child_rect = r.rect( left_indices[(i+5)%5]+120, top_indices[index_helper+1]+(j*45), 100, 30, 2);
+                table_rects[i].column_rects[j].rdf.child_rect.attr( { fill: color, stroke: color, "fill-opacity": 0, "stroke-width": 2});
+                table_rects[i].column_rects[j].rdf.child_rect.translate_type = "rdf_column";
+                table_rects[i].column_rects[j].rdf.child_rect.index = j;
+                table_rects[i].column_rects[j].rdf.child_rect.parent = i;
+                table_rects[i].column_rects[j].rdf.child_rect.node.style.cursor = "move";
+                table_rects[i].column_rects[j].rdf.child_rect.mousedown( dragger );
+
+                var rdf_column_text = JSON.stringify(tables[i][3][j][1], null, '');
+                
+                if( typeof tables[i][3][j][1] == 'object' ) {
+
+                    var comma_list = [];
+
+                    for each( var commaed in rdf_column_text.split(",") ) {
+                        comma_list.push( commaed + "," );
+                    } 
+
+                    comma_list[comma_list.length-1] = comma_list[comma_list.length-1].replace(/,/,"");
+
+                    var child_split = splitFun( comma_list, "[{" );
+                    
+                    var child_split = splitFun( child_split, "}]" );
+
+                    child_split[0] = child_split[0].replace("{","");
+                    child_split.unshift("{");
+
+                    var yoff = 0;
+                    var indent = 0;
+                    table_rects[i].column_rects[j].rdf.child_text = [];
+                    for each( var pretty in child_split ) {
+                        if(pretty != "" ) {
+                            if((pretty.match(/\[{/) == '[{')) { indent = indent + 10; }
+
+                            if((pretty.match(/\}]/) == '}]')) { indent = indent - 10;
+                            } else if(pretty.match(/}/)) { indent = indent - 10; }
+                            table_rects[i].column_rects[j].rdf.child_text.push( r.text( left_indices[(i+5)%5]+130+indent,
+                                                                                        top_indices[index_helper+2]+((index)*30)+yoff,
+                                                                                        pretty ).attr({ "text-anchor": "start" }) );
+                            yoff=yoff+10;
+                            if(pretty.match(/{/)) { indent = indent + 10; }
+                            if((pretty.match(/\}]/) == '}]')) { indent = indent - 10; }
+                        }
+                    }
+
+                    var length = table_rects[i].column_rects[j].rdf.child_text.length;
+                    var leftmost = table_rects[i].column_rects[j].rdf.child_text[0].getBBox().x;
+                    var rightmost = 0;
+
+                    for each( var line in table_rects[i].column_rects[j].rdf.child_text ) {
+                        var temp = line.getBBox().width + line.getBBox().x;
+                        if( temp > rightmost ) {
+                            rightmost = temp;
+                        }
+                        line.hide();
+                    }
+                    var width = rightmost - leftmost;
+                    var height =  table_rects[i].column_rects[j].rdf.child_text[length-1].getBBox().y -
+                                  table_rects[i].column_rects[j].rdf.child_text[0].getBBox().y;
+                   
+                    table_rects[i].column_rects[j].rdf.child_rect.attr( { "width": width+20, "height": height+30,
+                                                                          "y": top_indices[index_helper+2]+45 } );
+
+                } else {
+                    //table_rects[i].column_rects[j].rdf.child_text = r.text( left_indices[(i+5)%5]+170,
+                                                                            //top_indices[(i+4)%4]+((index)*30)+15,
+                                                                            //rdf_column_text );
+                    
+                    table_rects[i].column_rects[j].rdf.child_text = r.text( left_indices[(i+5)%5]+170,
+                                                                            top_indices[index_helper+1]+(j*45)+15,
+                                                                            rdf_column_text );
+
+                    table_rects[i].column_rects[j].rdf.child_text.hide();
+                }
+
+                table_rects[i].column_rects[j].rdf.connection = r.connection( table_rects[i].column_rects[j],
+                                                                              table_rects[i].column_rects[j].rdf.child_rect,
+                                                                              "#000" ); 
+
+                table_rects[i].column_rects[j].rdf.child_rect.hide();
+                table_rects[i].column_rects[j].rdf.connection.line.hide();
+            }
+        }
+    }
+        
+    for each( var i in foreign_keys ) {
+        table_rects[i[0]].column_rects[i[1]].connections = [];
+        for( var j = 0, jj = tables.length; j < ii; j++) {
+            if(table_rects[j].table_name == table_rects[i[0]].column_rects[i[1]].foreign_key) {
+                foreign_connections.push( r.connection( table_rects[i[0]].column_rects[i[1]], table_rects[j].column_rects[0], "#000") );
+            }
+        }
+    }
+
+
+
+    //connections.push(r.connection(shapes[0], shapes[1], "#fff"));
+    //connections.push(r.connection(shapes[1], shapes[2], "#fff", "#fff|5"));
+    //connections.push(r.connection(shapes[1], shapes[3], "#000", "#fff"));
+
+    document.onmousemove = function (e) {
+        e = e || window.event;
+        if (isDrag) {
+            
+            //isDrag.translate(e.clientX - isDrag.dx, e.clientY - isDrag.dy);
+
+            if( isDrag.translate_type == 'table' || isDrag.translate_type == 'column' ) {
+                var index = ( isDrag.translate_type == 'table' ) ? isDrag.index : isDrag.parent;
+                table_rects[index].translate(e.clientX - isDrag.dx, e.clientY - isDrag.dy);
+                table_texts[index].translate(e.clientX - isDrag.dx, e.clientY - isDrag.dy);
+                table_rdfs[index].translate(e.clientX - isDrag.dx, e.clientY - isDrag.dy);
+
+                if(table_rdfs[index].connection) {
+                    r.connection(table_rdfs[index].connection);
+                }
+
+                for( var i = 0, ii = table_rects[index].column_rects.length; i < ii; i++) {
+                    table_rects[index].column_rects[i].translate(e.clientX - isDrag.dx, e.clientY - isDrag.dy);
+                    table_rects[index].column_texts[i].translate(e.clientX - isDrag.dx, e.clientY - isDrag.dy);
+                    if( table_rects[index].column_rects[i].rdf ) {
+                        table_rects[index].column_rects[i].rdf.translate(e.clientX - isDrag.dx, e.clientY - isDrag.dy);
+                        r.connection( table_rects[index].column_rects[i].rdf.connection );
+                    }
+                }
+
+                for each ( var connection in foreign_connections ) {
+                    r.connection( connection );
+                }
+            }
+            
+            if( isDrag.translate_type == 'rdf' ) {
+                for( var i = 0, ii = table_rdfs[isDrag.parent].children_rect.length; i < ii; i++) {
+                    table_rdfs[isDrag.parent].children_rect[i].translate(e.clientX - isDrag.dx, e.clientY - isDrag.dy);
+                    table_rdfs[isDrag.parent].children_text[i].translate(e.clientX - isDrag.dx, e.clientY - isDrag.dy);
+                    r.connection(table_rdfs[isDrag.parent].connection);
+                }
+            }
+            
+            if( isDrag.translate_type == 'rdf_column' ) {
+                isDrag.translate(e.clientX - isDrag.dx, e.clientY - isDrag.dy);
+                if(table_rects[isDrag.parent].column_rects[isDrag.index].rdf.child_text.length == undefined) {
+                    table_rects[isDrag.parent].column_rects[isDrag.index].rdf.child_text.translate(e.clientX - isDrag.dx, e.clientY - isDrag.dy);
+                } else {
+                    for each( var child in table_rects[isDrag.parent].column_rects[isDrag.index].rdf.child_text ) {
+                        child.translate(e.clientX - isDrag.dx, e.clientY - isDrag.dy);
+                    }
+                }
+                r.connection( table_rects[isDrag.parent].column_rects[isDrag.index].rdf.connection );
+            }
+
+            r.safari();
+            isDrag.dx = e.clientX;
+            isDrag.dy = e.clientY;
+        }
+    };
+
+    document.onmouseup = function () {
+        isDrag && isDrag.animate({"fill-opacity": 0}, 500);
+        isDrag = false;
+    };
+
+};
+
+</script>

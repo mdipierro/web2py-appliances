@@ -1,0 +1,192 @@
+@import url("bar.css");
+/* ---------------------------------- spolecne deklarace ------------------------------- */
+
+body {
+	font-family: bitstream vera sans mono, monospace, courier new, verdana, sans serif;
+	font-size: small;
+	padding: 0px;
+	margin: 0px;
+	_font-size: x-small;
+	background: url('foo') fixed; /* ie hack */
+}
+
+#root {
+	background-image: url("../images/back.gif");
+}
+
+#bar {
+	background-color: #ccc;
+	position: fixed;
+	_position: absolute;
+	_top:expression(eval(document.body.scrollTop));
+	_left:expression(eval(document.body.scrollLeft));
+}
+
+#shadow {
+	background-image: url("../images/shadow.png");
+	width: 100%;
+	height: 8px;
+	position: relative;
+	_background-image: none;
+}
+
+#map {
+	position: fixed;
+	right: 0px;
+	bottom: 0px;
+	_position:absolute;
+    _left:expression(eval(document.body.scrollLeft)+eval(document.body.clientWidth)-map.offsetWidth);
+    _top:expression(eval(document.body.scrollTop)+eval(document.body.clientHeight)-map.offsetHeight);
+	background-color: #fff;
+	border: 1px solid #000;
+}
+
+#map_ {
+	border: 2px solid #f00;
+	width: 0px;
+	height: 0px;
+	font-size: 1px;
+	position: absolute;
+}
+
+/* ---------------------------------- elementy na plose ------------------------------- */
+
+.table {
+	position: absolute;
+	_height: 20px;
+	min-height: 20px;
+	border: 1px solid #000;
+	background-color: #ddd;
+}
+
+.table_selected {
+	border: 2px solid #000;
+}
+
+.table_title {
+	text-align: center;
+	position: absolute;
+	left: 0px;
+	top: 1px;
+	width: 100%;
+	background-color: #ddd;
+}
+
+.rows {
+	margin-top: 20px;
+}
+
+.row {
+	padding-left: 3px;
+	padding-top: 2px;
+/*	height: 20px; */
+	border-top: 1px dotted #888;
+	overflow: hidden;
+}
+
+.row .sipka {
+	display: none;
+	float: left;
+	color: #f00;
+	font-weight: bold;
+}
+
+.row_selected {
+}
+
+.row_selected .sipka {
+	display: inline;
+}
+
+.row_title {
+	text-align: left;
+}
+
+.row .special {
+	float: right;
+	margin-right: 2px;
+}
+
+.mini {
+	border: 1px solid #000;
+	background-color: #eea;
+	position: absolute;
+	font-size: 1px
+}
+
+.shadow_right {
+	background-image: url("../images/shadow_right.png");
+	width: 8px;
+	height: 100%;
+	position: absolute;
+	right: -9px;
+	top: 1px;
+	_background-image: none;
+}
+
+.shadow_bottom {
+	background-image: url("../images/shadow_bottom.png");
+	width: 100%;
+	height: 8px;
+	position: absolute;
+	bottom: -9px;
+	left: 1px;
+	_background-image: none;
+}
+
+.shadow_corner {
+	background-image: url("../images/shadow_corner.png");
+	width: 8px;
+	height: 8px;
+	position: absolute;
+	right: -9px;
+	bottom: -9px;
+	_background-image: none;
+}
+
+.relation div {
+	background-color: #000;
+	position: absolute;
+	font-size: 1px;
+	line-height: 0px;
+}
+
+
+#io {
+	display: none;
+	position: fixed;
+	left: 20px;
+	top: 20px;
+	width: 600px;
+	height: 400px;
+	z-index: 100;
+	background-color: #fff;
+	border: 2px solid #000;
+
+	_position: absolute;
+	_top:expression(eval(document.body.scrollTop)+20);
+	_left:expression(eval(document.body.scrollLeft)+20);
+}
+
+#area {
+	position: absolute;
+	left: 20px;
+	top: 8px;
+	width: 560px;
+	height: 360px;
+	margin: auto;
+	font-size: xx-small;
+}
+
+#io #close {
+	position: absolute;
+	left: 300px;
+	top: 370px;
+}
+
+#io #import {
+	position: absolute;
+	display: none;
+	left: 40px;
+	top: 270px;
+}

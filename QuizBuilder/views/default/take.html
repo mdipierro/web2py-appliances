@@ -1,0 +1,35 @@
+{{extend 'layout.html'}}
+
+{{if not request.vars:}}
+<script>
+jQuery(function(){jQuery('#content a').attr('target','_blank');});
+String.prototype.format = function() {
+    var formatted = this;
+    for(arg in arguments) {
+        if(arguments[arg]<=9)
+           formatted = formatted.replace("{" + arg + "}", '0'+arguments[arg]);
+        else
+           formatted = formatted.replace("{" + arg + "}", arguments[arg]);
+    }
+    return formatted;
+};
+var t0 = {{=quiz.duration or 3*3600}};
+countdown();
+function countdown() {
+  t1 = (t0>0)?t0:-t0;;
+  var h = (t1/3600).toFixed(0);
+  var m = ((t1/60) % 60).toFixed(0);
+  var s = (t1 % 60);
+  var dateStr = "{0}:{1}:{2}".format(h,m,s);
+  if(t0<0) jQuery('#countdown').html('-'+dateStr).css('color','red');
+  else if(t0<5*60 && t0 % 2==0) jQuery('#countdown').html(dateStr).css('color','black');
+  else jQuery('#countdown').html(dateStr).css('color','green');
+  t0 = t0 - 1;
+  setTimeout ("countdown()", 1000);
+}
+</script>
+<div style="width:870px;text-align:right;font-size:4em;position:absolute;" id="countdown"></div>
+{{pass}}
+
+
+{{=form}}

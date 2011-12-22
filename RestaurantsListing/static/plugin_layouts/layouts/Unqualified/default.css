@@ -1,0 +1,247 @@
+/*
+Design by Free CSS Templates
+http://www.freecsstemplates.org
+Released for free under a Creative Commons Attribution 2.5 License
+*/
+
+body {
+	margin: 0;
+	padding: 0;
+	background:  #FFFFFF url(images/bg01.jpg) repeat-x top left;
+	font-size: 13px;
+	color: #7F7F7F;
+}
+
+body, th, td, input, textarea, select, option {
+	font-weight: normal;
+	font-family: "Trebuchet MS", Arial, Helvetica, sans-serif;
+}
+
+h1, h2, h3 {
+	font-weight: normal;
+	color: #484848;
+}
+
+h1 {
+	letter-spacing: -1px;
+	font-size: 24px;
+}
+
+h2 {
+	letter-spacing: -1px;
+	font-size: 24px;
+}
+
+h3 {
+	font-size: 1em;
+}
+
+p, ul, ol {
+	line-height: 200%;
+}
+
+blockquote {
+	padding-left: 1em;
+}
+
+blockquote p, blockquote ul, blockquote ol {
+	line-height: normal;
+	font-style: italic;
+}
+
+a {
+	color: #0094ff;
+}
+
+a:hover {
+	text-decoration: none;
+	color: #7ACE11;
+}
+
+th {
+	border-bottom:1px solid Black;
+}
+
+td {
+	padding-right: 10px;
+}
+
+input.decimal, input.integer, input.double {
+    text-align: right;
+}
+
+/* Header */
+
+#header {
+	width: 890px;
+	height: 190px;
+	margin: 0px auto;
+}
+
+/* Logo */
+
+#logo {
+	float: left;
+	padding: 40px 0 0 0;
+}
+
+#logo h1 {
+	margin: 0;
+	letter-spacing: -2px;
+	font-size: 3.6em;
+	font-weight: normal;
+	color: #FFFFFF;
+}
+
+#logo h1 a {
+	padding-right: 20px;
+	text-decoration: none;
+	color: #FFFFFF;
+}
+
+#logo p {
+	margin: -5px 0 0 0;
+	text-transform: uppercase;
+	font-size: 1.22em;
+	letter-spacing: -1px;
+}
+
+#logo a {
+	text-decoration: none;
+	color: #FFFFFF;
+}
+
+/* Menu */
+
+#menu {
+	float: right;
+}
+
+#menu ul {
+	margin: 0px;
+	padding: 93px 0px 0px 0px;
+	list-style: none;
+}
+
+#menu li {
+	display: inline;
+}
+
+#menu a {
+	display: block;
+	float: left;
+	margin-left: 20px;
+	text-decoration: none;
+	font-size: 1.36em;
+	color: #FFFFFF;
+}
+
+#menu a:hover, .active a {
+	border-bottom: 3px solid #FFFFFF;
+}
+
+
+/* Page */
+
+#page {
+	width: 890px;
+	margin: 0 auto;
+}
+
+/* Content */
+
+#content {
+	float: left;
+	width: 100%;
+}
+
+.post {
+	padding: 20px 20px;
+	background: url(images/bg04.jpg) no-repeat top left;
+}
+
+.title {
+	margin: 0;
+	border-bottom: 2px solid #484848;
+	color: #484848;
+}
+
+.byline {
+	margin: 0;
+	color: #D79B00;
+}
+
+.meta {
+	text-align: left;
+	color: #646464;
+}
+
+.meta .more {
+	padding-left: 20px;
+	background: url(images/img03.gif) no-repeat left center;
+}
+
+.meta .comments {
+	padding-left: 20px;
+	background: url(images/img04.gif) no-repeat left center;
+}
+
+/* Sidebar */
+
+#sidebar {
+	float: right;
+	width: 240px;
+}
+
+#sidebar ul {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+#sidebar li {
+}
+
+#sidebar li ul {
+	padding: 15px 0;
+}
+
+#sidebar li li {
+	padding-left: 20px;
+	border-bottom: 1px dotted #7B9418;
+}
+
+#sidebar h2 {
+	margin: 0;
+	padding: 5px 0 0 20px;
+	background: url(images/img06.jpg) no-repeat left 80%;
+}
+
+#sidebar a {
+	text-decoration: none;
+}
+
+#sidebar a:hover {
+}
+
+/* Footer */
+
+#footer {
+	clear: both;
+	margin: 0px;
+	height: 80px;
+	background: #F2F2F2 url(images/bg02.jpg) repeat-x left top;
+}
+
+#footer p {
+	padding: 20px 0;
+	text-align: center;
+	font-size: smaller;
+	color: #717171;
+}
+
+.web2py_grid a{
+padding-right: 10px;
+}
+
+

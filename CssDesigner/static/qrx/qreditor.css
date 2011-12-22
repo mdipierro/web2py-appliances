@@ -1,0 +1,204 @@
+/*
+	Designed by J.Tabuchi <jun@jun.email.ne.jp>
+	
+	This software is distributed under "Common Public License".
+	(see <http://www.eclipse.org/legal/cpl-v10.html> for detail infomation)
+	
+	http://www.qrone.org/
+ */
+ 
+.QrEditor .QrEditBox {
+	background-color:#FFC;
+	margin-top:10px;
+	padding:5px;
+	border:solid 1px #CC8;
+	width:350px;
+}
+
+
+
+.QrEditor .QrEditSwitchHover {
+	background-color:#DDD;
+	width:10px;
+	border:solid 1px #33A;
+	cursor:pointer;
+}
+
+.QrEditor .QrEditSwitch {
+	background-color:#DDD;
+	width:10px;
+	border:solid 1px #FFF;
+	cursor:pointer;
+}
+
+.QrEditor .QrEditSwitchSelected {
+	background-color:#DAA;
+	width:10px;
+	border:solid 1px #A33;
+	cursor:pointer;
+}
+
+.QrEditor .QrToolBar {
+	text-align: right;
+	font-size:10pt;
+	padding:5px;
+	/*
+	background-color:#FFC;
+	border:solid 1px #CC8;
+	position:absolute;
+	*/
+}
+
+.QrEditor .QrStyleBox {
+	float:right;
+	width:150px;
+	line-height:150%;
+}
+
+.QrEditor .QrAddStyleBox {
+	font-size:10pt;
+	padding:5px;
+	width:300px;
+	border:solid 1px pink;
+	background-color:#EDD;
+	clear:both;
+}
+.QrEditor .QrAddBox {
+	font-size:10pt;
+	padding:5px;
+	width:150px;
+	border:solid 1px pink;
+	background-color:#EDD;
+	clear:both;
+}
+
+.QrEditor .QrInline{
+	padding-top:3px;
+	padding-bottom:3px;
+}
+
+.QrEditor .QrBlock{
+	padding-top:3px;
+	padding-bottom:3px;
+}
+
+.QrEditor {
+	width:98%;
+}
+
+
+.QrEditorArea{
+	font-family	:sans-serif;
+	
+	background-color:white;
+	border-collapse: collapse;
+}
+
+.QrEditorArea .QrTab{
+	border-color	:	white;
+	border-style	:	solid;
+	border-top-width:	1px;
+	border-bottom-width:	1px;
+	border-left-width:	1px;
+	border-right-width:	1px;
+	
+	font-size	:	10pt;
+	text-align	:	center;
+	padding		:	3px;
+	
+	width:100px;
+	height:20px;
+}
+
+.QrEditorArea .QrTabSelected{
+	background-color	:	white;
+	
+	border-color	:	white;
+	border-style	:	solid;
+	border-top-width:	1px;
+	border-bottom-width:	0px;
+	border-left-width:	1px;
+	border-right-width:	1px;
+	
+	font-size	:	10pt;
+	text-align	:	center;
+	padding		:	3px;
+	
+	width:100px;
+	height:20px;
+}
+
+
+.QrEditorArea .QrTabDivider{
+	border-color	:	white;
+	border-style	:	solid;
+	border-top-width:	0px;
+	border-bottom-width:	1px;
+	border-left-width:	0px;
+	border-right-width:	0px;
+	
+	width:1px;
+	height:20px;
+}
+
+.QrEditorArea .QrTabSpacer{
+	border-color	:	white;
+	border-style	:	solid;
+	border-top-width:	0px;
+	border-bottom-width:	1px;
+	border-left-width:	0px;
+	border-right-width:	0px;
+	
+	height:20px;
+	width:50%;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+/* */
+
+.QrEditorArea .QrMain {
+	width:700px;
+	padding:7px;
+	font-size:10pt;
+}
+
+
+.QrEditorArea .QrLabel {
+	background-color:#EEDDDD;
+	
+	width:700px;
+	padding:3px;
+	padding-left:5px;
+	font-size:10pt;
+}
+
+
+.QrEditorArea .QrLoading {
+	text-align:center;
+	color: #555;
+}
+
+.QrEditorArea .QrAnotation {
+	color: #555;
+}
+
+
+
+.QrTitle {
+	font-family:Impact;
+	font-size:18pt;
+}
+
+.QrDescription {
+	font-size:14pt;
+}

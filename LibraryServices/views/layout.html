@@ -1,0 +1,95 @@
+<!doctype html public "-//w3c//dtd html 4.01 transitional//en" "http://www.w3.org/tr/html4/loose.dtd">
+  <html>
+    <head>
+      <title>
+        home
+      </title>
+      <meta http-equiv="content-type" content="text/html; charset=iso-8859-1" />
+      {{response.files.append(URL(r=request,c='static',f='style.css'))}}
+      {{include 'web2py_ajax.html'}}
+    </head>
+    <body>
+      <div>
+        <img src="{{=URL(r=request,c='static',f='images')}}/title.jpg" alt="" width="636" height="87" /><br />
+        <ul class="menu">
+          <li>
+            <a href="/library">
+              <img src="{{=URL(r=request,c='static',f='images')}}/but1.jpg" alt="" width="126" height="40" />
+            </a>
+          </li>
+          <li>
+            <a href="/library">
+              <img src="{{=URL(r=request,c='static',f='images')}}/but2.jpg" alt="" width="127" height="40" />
+            </a>
+          </li>
+          <li>
+            <a href="http://depaul.edu">
+              <img src="{{=URL(r=request,c='static',f='images')}}/but3.jpg" alt="" width="127" height="40" />
+            </a>
+          </li>
+          <li>
+            <a href="http://cdm.depaul.edu">
+              <img src="{{=URL(r=request,c='static',f='images')}}/but4.jpg" alt="" width="127" height="40" />
+            </a>
+          </li>
+          <li>
+            <a href="http://web2py.com">
+              <img src="{{=URL(r=request,c='static',f='images')}}/but5.jpg" alt="" width="125" height="40" />
+            </a>
+          </li>
+        </ul>
+      </div>
+      <div id="content">
+        <div class="column">
+	  <div class="flash">{{=response.flash}}</div>
+	  {{include}}
+        </div>
+        <div class="column2">
+	  {{ if 'auth' in globals():}}
+            {{if not auth.user:}}
+            <a href="{{=URL('user/login')}}">{{=T('login')}}</a><br/>
+            <a href="{{=URL('user/register')}}">{{=T('register')}}</a><br/>
+            <a href="{{=URL('user/request_reset_password')}}">{{=T('lost password')}}</a>
+            {{else:}}
+            {{=auth.user.first_name}}<br/>
+            <a href="{{=URL('user/logout')}}">{{=T('logout')}}</a><br/>
+            <a href="{{=URL('user/change_password')}}">{{=T('change password')}}</a><br/>
+            <a href="{{=URL('user/profile')}}">{{=T('edit profile')}}</a>
+            {{pass}}
+	    {{pass}}
+        </div>
+      </div>
+      <div id="learning">
+        <img src="{{=URL(r=request,c='static',f='images')}}/book.jpg" alt="" width="316" height="128" />
+        <img src="{{=URL(r=request,c='static',f='images')}}/title4.gif" alt="" width="184" height="17" class="title" />
+        <p>
+          <strong>
+            magna aliquam
+          </strong>
+          suscipit lobortis nisl adipiscing elit sed diam nonummy nibh euismod tincidunt ut laoreet dolore magna.
+        </p>
+      </div>
+      <div id="footer">
+        <div>
+          copyright &copy; 2007 education center. all rights reserved<br />
+	  powered by <a href="http://web2py.com">web2py</a>
+        </div>
+        <div class="centeral-block">
+          <strong>
+            new-york, usa
+          </strong>
+          11 some street second floor<br />
+          new york wa 02020
+        </div>
+        <div>
+          tel/fax : 1(800)123-4567<br />
+          &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 1(800)123-1234<br />
+          e-mail :
+          <a href="#" id="mail">
+            info@yourcompany.com
+          </a>
+        </div>
+      </div>
+    </body>
+  </html>
+  

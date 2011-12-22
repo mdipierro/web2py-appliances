@@ -1,0 +1,286 @@
+{{extend 'layout.html'}}
+<script language="Javascript" type="text/javascript" src="{{=URL('static','edit_area/edit_area_full.js')}}"></script>
+
+<table>
+  <tr>
+    <td width="50%">
+      {{=form}}
+    </td>
+    <td width="50%">
+
+
+<script type="text/javascript">
+//<![CDATA[
+//global variables
+
+var mouseIsDown = false;
+var balls = [];
+var ballEmitterX=100;
+var ballEmitterY=100;
+var ticks = 0;
+var ballDropRate = 100;
+var gravity = 0.3;
+
+//-------------------------------------------------------------
+
+//class
+function V3(newx,newy,newz){
+    
+    this.x=newx;
+    this.y=newy;
+    this.z=newz;
+    
+    this.dot = function(vec){
+return ((this.x*vec.x)+(this.y*vec.y)+(this.z*vec.z));
+    }
+    
+    this.copyFrom = function(that){
+this.x=that.x;
+this.y=that.y;
+this.z=that.z;
+    }
+    
+    this.copyFrom = function(xx,yy,zz){
+this.x=xx;
+this.y=yy;
+this.z=zz;
+    }
+    
+    this.getRightNormal = function(){
+return new V3(this.y , -this.x , 0);
+    }
+    
+    this.getLeftNormal = function(){
+return new V3(-this.y , this.x , 0);
+    }
+    
+    this.normalize = function(){
+var norm = this.getLength(); 
+this.x /= norm;
+this.y /= norm;
+this.z /= norm;
+    }
+    
+    this.getLength = function(){
+return Math.sqrt( this.x*this.x + this.y*this.y + this.z*this.z );
+    }
+    
+    this.scaleVec = function(scalar){
+this.x*=scalar;
+this.y*=scalar;
+this.z*=scalar; 
+    }
+    
+    this.minVecNew = function(vec){
+return new V3(this.x - vec.x, this.y - vec.y , this.z - vec.z);
+    }
+    
+    
+    this.selfMul = function(a){
+this.x*=a;
+this.y*=a;
+this.z*=a;
+    }
+    
+    this.selfPlus = function(v){
+this.x+=v.x;
+this.y+=v.y;
+this.z+=v.z;
+    }
+    
+    this.lerpSelfTo = function(that,scale){
+this.x+=(that.x-this.x) * scale;
+this.y+=(that.y-this.y) * scale;
+this.z+=(that.z-this.z) * scale;
+    }
+    
+}//end class
+
+//-------------------------------------------------------------
+
+//class
+function EditLine(){
+    this.x1 = 0;
+    this.y1 = 0;
+    this.x2 = 0;
+    this.y2 = 0;
+    
+    this.diffSign = function(v1,v2){
+if( (v1 >= 0 && v2 < 0 ) || (v2 >= 0 && v1 < 0 ) )return true;
+else return false;
+    }
+
+    
+    this.checkAngle = function(  point_x,  point_y, line_x,  line_y,  lineVec){
+var vec = new V3(line_x - point_x, line_y - point_y, 0);
+var vecline = new V3(0,0,0);
+vecline.copyFrom(lineVec.x,lineVec.y,lineVec.z);
+
+vecline = vecline.getRightNormal();
+
+vec.normalize();
+vecline.normalize();
+return vec.dot(vecline);
+
+    }
+    
+    this.checkBallCollide = function(ball){
+
+var lineLocalVec = new V3(this.x2-this.x1, this.y2-this.y1, 0);
+
+//get the angle between the ball and one end of the wall
+var angleCurrent1 = this.checkAngle(ball.x , ball.y , this.x1,this.y1, lineLocalVec);  
+var angleCurrent2 = this.checkAngle(ball.x , ball.y , this.x2,this.y2, lineLocalVec);  
+
+//lets get the angle between the ball and one end of the wall
+var angleFuture1 = this.checkAngle(ball.x+ball.forceX, ball.y+ball.forceY
+   ,this.x1,this.y1, lineLocalVec);
+var angleFuture2 = this.checkAngle(ball.x+ball.forceX, ball.y+ball.forceY
+   ,this.x2,this.y2, lineLocalVec);
+
+if(this.diffSign(angleCurrent1,angleFuture1) && this.diffSign(angleCurrent2,angleFuture2)){
+    var d1x = ball.x - this.x1;
+    var d1y = ball.y - this.y1;
+    var d2x = ball.x - this.x2;
+    var d2y = ball.y - this.y2;
+    var wallLength = lineLocalVec.getLength();
+    if( (Math.sqrt(d1x*d1x + d1y*d1y) < wallLength) && (Math.sqrt(d2x*d2x + d2y*d2y) < wallLength)){
+return true;
+    }
+    else return false;
+}
+else return false;
+    }
+    
+    
+}//end class
+
+
+//-------------------------------------------------------------
+
+
+//class
+function Ball(){
+    
+    this.x = 0;
+    this.y = 0;
+    this.forceX = 0;
+    this.forceY = 0;
+    this.rad = 3;
+    this.destRad = 3;
+    
+    this.step = function(){
+this.x += this.forceX;
+this.y += this.forceY;
+this.forceY+=gravity;
+this.rad += (this.destRad - this.rad) * 0.1;
+    }
+    
+    this.bounce = function( x1, y1, x2, y2){
+
+//Thank you to Theo Watson for helping me out here.
+//V
+var v = new V3(this.forceX,this.forceY,0);
+
+//N
+var n = new V3(x2-x1,y2-y1,0);
+n = n.getLeftNormal();
+n.normalize();
+
+//2 * V [dot] N
+var dotVec = v.dot(n) * 2;
+
+// ( 2 * V [dot] N ) N
+n.scaleVec(dotVec);
+
+//V - ( 2 * V [dot] N ) N
+//change direction
+var mvn = v.minVecNew(n);
+this.forceX = mvn.x;
+this.forceY = mvn.y;
+
+// enlarge the ball
+
+this.rad = Math.sqrt(this.forceX*this.forceX + 
+     this.forceY*this.forceY);
+
+//play a sound
+var vel = this.rad;
+
+if(vel>39)vel=39;//don't blow the array
+if(vel<0)vel=0;
+
+    }
+}//end class
+
+
+//-------------------------------------------------------------
+
+
+window.onload = function (){    
+    //make a Processing.js instance
+    var p = Processing("canvasElement");        
+    p.setup = function(){ };
+    p.mousePressed = function (){ };
+    p.mouseReleased = function (){ };
+    p.draw = function () {
+
+//step balls
+for(var i=0;i<balls.length;i++){
+    balls[i].step();
+}
+
+//new balls
+if(ticks%ballDropRate==0){
+    var newball = new Ball();
+    newball.x = ballEmitterX;
+    newball.y = ballEmitterY;
+    balls.push(newball);
+}
+
+//DRAW
+this.background(255);
+
+//draw balls
+this.fill(0);
+this.noStroke();
+for(var i=0;i<balls.length;i++){
+    this.ellipse(balls[i].x,balls[i].y,
+ balls[i].rad*2, balls[i].rad*2);
+}
+ticks++;    
+};
+
+    //start processing.js
+    p.init();    
+};
+
+window.onresize = function(){
+    this.resize();
+}
+
+
+//-------------------------------------------------------------
+
+//reset button
+function reset(){
+    balls = [];
+    ballDropRate = 100;
+    gravity = 0.1;
+}
+//]]>
+</script>
+
+<canvas id="canvasElement" width="400px" height="400px" style="border:1px black solid"></canvas>
+
+    </td>
+  </tr>
+</table>
+
+<script language="Javascript" type="text/javascript">
+jQuery(function(){
+  jQuery('#code_source').css('width','400px').css('height','500px');
+
+  editAreaLoader.init({id: "code_source",start_highlight: true,allow_resize: "both", language: "en",syntax: "js"});
+});
+</script>

@@ -1,0 +1,26 @@
+Wecome to OpenOpine
+This is an application buildt on web2py for the purpose of reviewing, well, things.  It comes prebuilt for use with the review of products.  There are three primary views:
+
+1. home and reviewer/review/profile search (layout.html)
+2. reviewer/company/product/event profile (two-column.html)
+3. company/product/event review (basiclayout.html)
+
+Each view can be customized based on what it is for; namely, the profile data can be changed based on the underlying data that is important, and the search features may be tailored to the search type, but the layouts are consistent among the three views.  When changing css styles, it is important to swap out the references to the css in all three files.  It is also important that elements #column and #column2 as well as #content and #content2 are "suitably" defined. 
+
+1. column and column2 are used with two-column layout
+2. content2 is used with two-column layout and basic layout; where, in either case, the sidebar is removed.
+3. it is important to include the .grid css also, as defined within web2py itself and included in the given template.
+
+Users navigation: 
+There is a standard landing page, and it includes the site wide four menu items: <home name>, reviewers, profiles, and reviews.  reviewers, profiles, and reviews all lead the user to the search pages for the relevant entities.  Reviewers have one listing, of all the reviewers,  profiles and reviews have quick search by company, product, and event.  As the primary focus is on products, clicking the reviews or profile menu items takes people to products listings.
+Navigation from there is entirely image based.  On the search pages, users click a photo - with tooltip and text indicators - to take them to the reviewer, the profile, or the review, respectively.  Reviewers profiles have further images to take them to the reviews they have written.  Profiles have images to take them to reviews, and in the case of Companies, to their product profiles as well.  And Reviews have images which link back to the entity being reviewed and the reviewer as well.
+
+Administration:
+The app comes with a preinstalled admin user: inquiry@example.com, password: admin.  This user is also listed as a reviewer.  Adding a new admin necessitates using the appadmin to add a user who is already registered as a member of the 'admin' group.  To add a new 'reviewer', go to the manage tab when logged in as an admin and add a reviewer.  This is where you manage reviewers and their presentation to the user (their photo and content of their profile).  To remove a user as admin, simply go to the appadmin and remove the user from the 'admin' group.  To remove a reviewer, delete the user on the manages tab *and* remove them from the reviewer group manually through the appadmin.  As of this writing, an error prevents us from doing this automatially upon delete of the user from the table.  Signing in with the premade admin you will see all of the admin and reviewer functionality, though admins don't automatically have reviewer priveledges.
+
+Reviewing:
+Reviewers have two additional menu items for the creation of profiles and the creation of reviews.  The most important thing to know is that every product or event profile needs a company profile, and every product or event review needs a corresponding product or event profile.  So users do not jump on the system and write the content of the review first.  Rather, they add the company profile - if it doesn't exist - and then the product/event profile - if it doesn't exist - and then add the review.  The process is not long and users can of course write the content of their review before entering everything on the system, if this is less inhibiting - though it must be said the profile information is very basic and short.
+Finally, formatting of reviews is done using markmin in the markmin editor supplied.  The syntax is not complicated what so ever.  (My experience is just to be careful about providing a space between the list indicators and the list items.)  And allows for the integration of photos, links, and certain technical formats (though the technical formats - e.g. latex - are not included in the app without minor adjustments.)
+
+Additions
+At atheoryofpublishing.com we provide additional services and extensions to this application.  Users should contact cs@atheoryof.com for support.  

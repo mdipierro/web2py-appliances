@@ -1,0 +1,10 @@
+{{extend 'layout.html'}}
+<h2>Profile</h2>
+{{=crud.read(db.auth_user,user)}}
+<h2>Messages</h2>
+{{for post in posts:}}
+<div style="background: #f0f0f0; margin-bottom: 5px; padding: 8px;">
+ <h3>{{=name_of(post.posted_by)}} on {{=post.posted_on}}:</h3>
+  {{=MARKMIN(post.body)}}
+</div>
+{{pass}}

@@ -1,0 +1,49 @@
+{{extend 'layout.html'}}
+
+{{=DIV(menu)}}
+
+<form>
+    <input type="hidden" id="id" name="id" value="" />
+</form>
+
+{{=DIV(H1(page.title))}}
+{{=DIV(OBJECT(TAG.param(_name = 'src', 
+                        _value = URL('download', 
+                                     args = page.video)), 
+              TAG.param(_name = 'loop', 
+                        _value = 'false'), 
+              TAG.param(_name = 'autoplay', 
+                        _value = 'true'),
+              TAG.param(_name = 'controller', 
+                        _value = 'true'),
+              EMBED(_src = URL('download', 
+                               args = page.video), 
+                    _title = page.title, 
+                    _width = '550', 
+                    _height = '400', 
+                    _loop = 'false', 
+                    _autostart = 'true'), 
+              _width = '550', 
+              _height = '400'))}}
+{{=DIV(page.description)}}
+{{=DIV(db.video_category[page.category_id].category)}}
+    
+{{=SPAN(page.like, 
+        _id = 'video_like_%s' % page.id)}}
+{{=SPAN(T('People Like This'))}}
+    
+<span onclick="jQuery('#id').val('{{=page.id}}');
+               ajax('{{=URL('video_like.load')}}', ['id'], 'video_like_{{=page.id}}');">
+{{=A(T('Like'), 
+     _href = '#')}}
+</span>
+
+{{=LOAD('default', 
+        'video_comment_show.load', 
+        args = page.id, 
+        ajax = True)}}
+
+{{=LOAD('default', 
+        'video_comment_add.load', 
+        args = page.id, 
+        ajax = True)}}

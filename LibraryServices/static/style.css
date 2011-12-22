@@ -1,0 +1,262 @@
+*{
+margin:0px;
+padding:0px;
+}
+img{border:0px}
+html{
+width:100%;
+background-image:url(images/bg.jpg);
+background-position:top left;
+background-repeat:repeat-x;
+background-color:#1c2630
+}
+body{
+width:636px;
+margin:0 auto;
+padding:35px 0;
+}
+.menu{
+background-image:url(images/menu-bg.gif);
+background-position:top left;
+background-repeat:repeat-x;
+border-left:2px solid #f7f5e9;
+border-right:2px solid #f7f5e9;
+width:632px;
+list-style-type:none;
+float:left;
+padding:8px 0;
+}
+.menu li, .menu img{
+float:left
+}
+#content{
+background-color:#f7f5e9;
+float:left;
+padding:0 0 0 20px;
+font-family:Tahoma;
+font-size:11px;
+color:#6c6c6c;
+background-image:url(images/gray.gif);
+background-position:381px 16px;
+background-repeat:no-repeat
+}
+.column{
+width:341px;
+float:left;
+padding:20px 20px 20px 20px;
+margin:0 20px 0 0;
+}
+.title{
+padding:11px 0 15px 0;
+float:left;
+}
+.info{
+width:341px;
+float:left;
+padding:0 0 15px 0
+}
+.column p, .column ul{
+display:block;
+float:left;
+width:237px;
+margin:0 0 0 15px;
+}
+.column img{
+float:left
+}
+.info a{
+text-decoration:none;
+color:#2c61a9
+}
+#content .more{
+background-image:url(images/arrows.gif);
+background-position:right 5px;
+background-repeat:no-repeat;
+color:#2c61a9;
+font-size:10px;
+margin:7px 0 0 0;
+display:block;
+width:65px;
+font-weight:bold;
+text-decoration:none;
+}
+.border{
+border-bottom:1px solid #d8d8d8
+}
+.column li{
+list-style-position:inside;
+color:#2c61a9
+}
+#content .column li a{
+text-decoration:underline
+}
+#content .column li a:visited{text-decoration:underline}
+#content .column li a:hover{text-decoration:none}
+.column2{
+width:185px;
+float:left;
+padding: 20px 10px 20px 20px;
+}
+.column2 p{
+display:block;
+float:left;
+width:215px;
+}
+.column2 span {
+font-weight:bold;
+color:#2c61a9;
+display:block;
+padding:0 0 7px 0
+}
+.subscribe{
+background-image:url(images/subscribe.gif);
+background-position:top left;
+background-repeat:no-repeat;
+width:215px;
+height:101px;
+float:left;
+margin:15px 0 0 0
+}
+.subscribe input{
+width:123px;
+float:left;
+margin:46px 6px 0 12px;
+font-weight:bold;
+font-size:11px;
+color:#41505c;
+border:3px solid #FFFFFF;
+}
+.subscribe button{
+width:56px;
+height:21px;
+float:left;
+margin:45px 0 0 0;
+border:0px;
+background:none;
+cursor:pointer;
+cursor:hand;
+}
+.subscribe a{
+display:block;
+text-decoration:underline;
+color:#313e4b;
+font-weight:bold;
+margin:9px 0 0 12px;
+float:left;
+display:inline
+}
+.subscribe a:visited{text-decoration:underline}
+.subscribe a:hover{text-decoration:none}
+#learning{
+width:635px;
+background-image:url(images/bg2.gif);
+background-position:top left;
+background-repeat:repeat-x;
+padding:4px 0;
+float:left;
+font-family:Tahoma;
+font-size:11px;
+color:#b0b0b0
+}
+#learning img{
+float:left
+}
+#learning p{
+display:block;
+width:293px;
+float:left
+}
+#learning ul{
+width:290px;
+float:left;
+padding:7px 0;
+}
+#learning li{
+width:137px;
+color:#598dc6;
+font-weight:bold;
+list-style-type:none;
+background-image:url(images/disc.gif);
+background-position:0px 5px;
+background-repeat:no-repeat;
+padding:0 0 0 8px;
+float:left
+}
+#learning li a{
+color:#598dc6;
+text-decoration:underline
+}
+#learning li a:visited{text-decoration:underline}
+#learning li a:hover{text-decoration:none}
+#footer{
+background-image:url(images/end.gif);
+background-position:bottom left;
+background-repeat:no-repeat;
+background-color:#f7f5e9;
+width:622px;
+float:left;
+padding:12px 0 10px 13px;
+font-family:Verdana, Arial, Helvetica, sans-serif;
+font-size:10px;
+color:#222e39
+}
+#footer div{
+width:205px;
+float:left;
+padding:0 5px
+}
+#footer a{
+color:#222e39;
+text-decoration:underline;
+line-height:25px;
+}
+#footer a:visited{text-decoration:underline}
+#footer a:hover{text-decoration:none}
+#footer strong{
+display:block;
+padding:0 0 7px 0
+}
+#footer .centeral-block{
+background-image:url(images/dots.gif);
+background-position:top left;
+background-repeat:repeat-y;
+padding:0 0 0 10px;
+width:182px;
+}
+#footer #mail{
+font-size:11px
+}
+
+
+
+div.flash {
+    position: absolute;
+    float: right;
+    padding: 10px;
+    top: 0px;
+    right: 0px;
+    opacity: 0.75;
+    margin: 10px 10px 10px 10px;
+    text-align: center;
+    clear: both;
+    color: #fff;
+    font-size: 11pt;
+    text-align: center;
+    vertical-align: middle;
+    cursor: pointer;
+    background: black;
+    border: 2px solid #fff; 
+    -moz-border-radius: 5px;
+    -webkit-border-radius: 5px;
+    z-index: 2;
+}
+
+div.error {
+    -moz-border-radius: 5px;
+    -webkit-border-radius: 5px;
+    background-color: red;
+    color: white;
+    padding: 3px;
+    border: 1px solid #666;
+}
+

@@ -1,0 +1,98 @@
+{{extend 'layout.html'}}
+
+<script type="text/javascript" src="{{=URL('static','plugin_wiki/markitup/jquery.markitup.pack.js')}}"></script>
+<script type="text/javascript" src="{{=URL('static','plugin_wiki/markitup/sets/markmin/set.js')}}"></script>
+<link rel="stylesheet" type="text/css" href="{{=URL('static','plugin_wiki/markitup/skins/markitup/style.css')}}" />
+<link rel="stylesheet" type="text/css" href="{{=URL('static','plugin_wiki/markitup/sets/markmin/style.css')}}" />
+<script src="{{=URL('static','plugin_wiki/elrte-1.0rc4/js/elrte.min.js')}}" type="text/javascript" charset="utf-8"></script>
+<link rel="stylesheet" href="{{=URL('static','plugin_wiki/elrte-1.0rc4/css/elrte.full.css')}}" type="text/css" media="screen" charset="utf-8">
+
+<div id="plugin_wiki_form">
+{{=form.custom.begin}}
+<b>Page:</b> {{=form.custom.widget.slug}}
+<b>Title:</b> {{=form.custom.widget.title}}<br/>
+<b>Active:</b> {{=form.custom.widget.is_active}}
+<b>Public:</b> {{=form.custom.widget.is_public}}
+[{{=plugin_wiki.attachments('page',page.id)}}]
+{{if plugin_wiki_level>1:}}[{{=plugin_wiki.widget_builder()}}]{{pass}}<br/>
+{{=form.custom.widget.body}}<br/>
+<b>Role:</b> {{=form.custom.widget.role}} 
+<b>Changelog:</b> {{=form.custom.widget.changelog}} 
+<b>Delete?</b> {{=form.custom.deletable}} {{=form.custom.submit}}
+{{=form.custom.end}}
+</div>
+
+{{if request.extension=='html' and not page.slug.startswith('meta-'):}}
+<script>
+jQuery(document).ready(function() {
+{{if plugin_wiki_mode=='html':}}
+  elRTE.prototype.options.panels.web2pyPanel = [
+     'bold', 'italic', 'underline', 'forecolor', 'justifyleft', 'justifyright',
+     'justifycenter', 'justifyfull', 'formatblock', 'insertorderedlist', 'insertunorderedlist',
+     'link', 'image', 'flash'];
+  elRTE.prototype.options.toolbars.web2pyToolbar = ['web2pyPanel', 'tables'];
+  var opts = { toolbar  : 'web2pyToolbar' }
+  jQuery('#plugin_wiki_page_body').elrte(opts);
+{{else:}}
+  jQuery('#plugin_wiki_page_body').css('width','700px').css('height','400px').markItUp(mySettings);
+{{pass}}
+});
+</script>
+
+<a href="#" onclick="jQuery('#plugin_wiki_help').slideToggle(); return false;">help</a>
+<div id="plugin_wiki_help" class="hidden">
+<h2>Help with syntax</h2>
+<pre>
+# title
+## subtitle
+### subsubtitle
+paragraph with **bold**, ''italic'' and ``code``
+[["a link" http://example.com]], [[a_anchor]] and [["a link to" #a_anchor]]
+[["an image" http://example.com left 200px]]
+
+- item
+- item
+
++ item 1
++ item 2
+
+-----
+blockquote
+-----
+
+-----
+1 | 2
+3 | 4
+-----
+
+``
+def index():
+    return 'hello'
+``:code_python
+
+``
+name: create
+``:widget
+
+``
+name: youtube
+code: x1w8hKTJ2Co
+``:widget
+
+Here is a list of widget names
+
+- read, create, update, search, select, jqgrid
+- youtube, vimeo, mediaplayer
+- comments, tags, tag_cloud
+
+Consult models/plugin_wiki.py for a list of parameters
+</pre>
+</div>
+{{else:}}
+<script>
+jQuery(document).ready(function() {
+jQuery('#plugin_wiki_page_body').css('width','700px').css('height','400px');
+});
+{{pass}}
+</script>
+{{pass}}

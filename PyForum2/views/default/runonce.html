@@ -1,0 +1,39 @@
+{{extend 'zlayout.html'}}
+
+<h2 class="fancy">{{=XML(T('Welcome to th Forums'))}}</h2>
+
+<div class="paragraph">
+
+<div class="error2" style="margin-bottom:20px;">
+    IMPORTANT NOTICE!!!! - PLEASE READ. DO NOT CLOSE THIS PAGE.
+</div>
+
+<p>It appears that you have just finished installing pyForum for the first
+time, this page contains important information that you should read carefully.
+This page will not be shown again under normal circumstances, unless you
+decide to wipe-out the database containing this information.</p>
+
+<p>Users:</p>
+
+<p>A New user has been created in the system, this user automatically has the
+'zAdministrator' role, the highest role any user can have in the system, this
+user has administrative privileges on the system, please write down the
+user information below and use it to access the system:</p>
+
+<p>Username: <b class="err">{{=tmp_username}}</b><br />
+Password: <b class="err">{{=tmp_passwd}}</b></p>
+
+<p>Please log in with the user's credentials above and immediately change
+the password to your choice, you will need this user to give other users access
+to the system, or perform administrative tasks in the system, once you create
+your own account in the system, you can use this user to grant your own
+account SysAdmin privileges, and then you may remove this username from
+the system permanently.</p>
+
+<p>In addition, several other storage tables have been automatically populated
+for this system to function properly.</p>
+
+<p><a href="{{=URL(r=request, c='default', f='login')}}" title="Login Now"
+onclick="return confirm('Please confirm that you have written the username and password and are ready to continue.');">Login Now</a></p>
+
+</div>

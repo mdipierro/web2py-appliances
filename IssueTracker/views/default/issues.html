@@ -1,0 +1,10 @@
+{{extend 'layout.html'}}
+
+<h1>{{=project.name}}</h1>
+
+{{if project.description:}}
+<h2>Project Info</h2>
+{{=MARKMIN(project.description)}}
+{{pass}}
+
+{{=grid}}

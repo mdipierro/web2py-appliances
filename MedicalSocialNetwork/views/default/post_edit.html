@@ -1,0 +1,17 @@
+{{extend 'layout.html'}}
+
+<script type="text/javascript" src="{{=URL(r=request,c='static',f='plugin_wiki')}}/markitup/jquery.markitup.pack.js"></script>
+<script type="text/javascript" src="{{=URL(r=request,c='static',f='plugin_wiki')}}/markitup/sets/markmin/set.js"></script>
+<link rel="stylesheet" type="text/css" href="{{=URL(r=request,c='static',f='plugin_wiki')}}/markitup/skins/markitup/style.css" />
+<link rel="stylesheet" type="text/css" href="{{=URL(r=request,c='static',f='plugin_wiki')}}/markitup/sets/markmin/style.css" />
+
+<h1>Edit post</h1>
+
+[{{=A('back to patient',_href=URL('backlog',args=form.record.patient))}}]
+[{{=plugin_wiki.attachments('auth_user',form.record.patient)}}]
+{{=form}}
+<script>
+jQuery(document).ready(function(){jQuery('textarea').css('width','700px').css('height','400px').markItUp(mySettings);});
+</script>
+
+{{=PluginWikiWidgets.comments(db.post,form.record.id)}}

@@ -1,0 +1,306 @@
+@charset "UTF-8";
+
+/* This file is contains the following sections:
+
+- ez.css (http://www.ez-css.org/layouts)
+- reset common tags
+- choose default fonts
+- choose link style
+- add bottom line to table rows
+- labels bold and occasionally centered
+- make all input fields the same size
+- add proper separation between h1-h6 and text
+- always indent the first line and add space below paragraphs
+- bullets and numbers style and indent
+- form and table padding
+- code blocks
+- left and right padding to quoted text
+- page layout alignment, width and padding (change this for spaces)
+- column widths (change this to use left_sidebar and right_sidebar)
+- backrgound images and colors (change this for colors)
+- menu style (for superfish.js)
+- web2py specific (.flash, .error)
+
+Notice:
+- even if you use a different layout/css you may need classes .flash and .error
+- this is all color neutral except for #349C01 (header, links, lines)
+- there are two backrgound images: images/background.png and images/header.png
+
+License: This file is released under BSD and MIT
+
+*/
+
+/*********** layout info (ez.css) ***********/
+/* 2009 -2010 (c) | ez-css.org
+ * ez-plug-min.css :: version 1.1 :: 01182010
+ */
+.ez-wr:after,.ez-box:after{content:".";display:block;height:0;clear:both;visibility:hidden}.ez-wr,.ez-box,.ez-last{display:inline-block;min-height:0}/* \*/ * html .ez-wr,* html .ez-box,* html .ez-last{height:1%}.ez-wr,.ez-box,.ez-last{display:block}/* */.ez-oh{overflow:hidden}* html .ez-oh{overflow:visible}.ez-oa{overflow:auto}.ez-dt{display:table}.ez-it{display:inline-table}.ez-tc{display:table-cell}.ez-ib{display:inline-block}.ez-fl{float:left}* html .ez-fl{margin-right:-3px}.ez-fr{float:right}* html .ez-fr{margin-left:-3px}.ez-25{width:25%}.ez-33{width:33.33%}.ez-50{width:50%}.ez-66{width:66.66%}.ez-75{width:75%}.ez-negmr{margin-right:-1px}* html .ez-negmr{margin-right:-4px}.ez-negmx{margin-right:-1px}.ez-negml{margin-left:-1px}* html .ez-negml{margin-left:-4px}
+
+
+/*********** reset common tags ***********/
+html,div,h1,h2,h3,h4,h5,h6p,ul,li,table,thead,tbody,tfoot,th,tr,td {
+    border: 0; margin: 0; outline: 0; padding: 0;
+    color: inherit;
+    font-family: inherit;
+    font-weight: inherit;
+    font-style: inherit; 
+    line-height: 1.2em;
+    text-align: left; vertical-align: top; 
+}
+
+/*********** choose default fonts ***********/
+body {
+    font-family: Helvetica Narrow, sans-serif;
+    font-size: 11pt;
+    text-align: center;
+}
+
+/*********** choose link style ***********/
+a {
+    text-decoration: none;
+}
+a:hover {
+    text-decoration: underline;
+}
+
+/*********** add bottom line to table rows ***********/
+th, td {
+    padding: 0.1em 0.5em 0.1em 0.5em;
+    border-bottom: 1px solid #ddd;
+}
+
+/*********** labels bold and occasionally centered ***********/
+label {
+    white-space: nowrap;
+}
+label, b, th {
+    font-weight: bold;
+}
+thead th {
+    text-align: center;
+}
+
+/*********** make all input fields the same size ***********/
+input[type=text], input[type=password], textarea {
+    width: 300px;  
+}
+select {
+    min-width: 200px;
+}
+
+/*********** add proper separation between h1-h6 and text ***********/
+h1, h2, h3, h4, h5, h6 {
+    font-weight: bold;
+    padding: 5px 0 5px 0;
+}
+
+/*********** always indent the first line and add space below paragraphs ***********/
+p {
+    text-indent:30px;
+    text-align: justify;
+    padding-bottom: 5px;
+}
+
+/*********** bullets and numbers style and indent***********/
+ul, ol {
+   border-left: 30px transparent;
+}
+ul {
+   padding-left: 35px;
+   list-style-type: square;
+}
+
+/*********** forms and table padding ***********/
+form, table {
+   padding: 5px 10px 5px 10px;
+}
+
+/*********** code blocks ***********/
+code {
+   padding: 3px 5px;
+   font-family: Andale Mono, monospace;
+   font-size: 0.9em;
+}
+
+/*********** left and right padding to quoted text ***********/
+blockquote {
+   background: #cccccc;
+   border-left: 30px transparent;
+   border-right: 30px transparent;
+   padding: 5px;
+}
+
+/*********** page layout alignment, width and padding ***********/
+#layout {
+   position: absolute; top: 20px; left: 20px;
+   border: 20px;
+   z-index: 1;
+   width: 900px;
+}
+#header { font-size: 0.9em; padding-left: 20px; }
+#footer { font-size: 0.8em; }
+#left_sidebar { padding: 10px; }
+#content { padding: 10px; }
+#right_sidebar { padding: 10px; }
+#footer { padding: 10px; }
+
+/*********** column widths ***********/
+#left_sidebar { width: 0px; }
+#content { width: 840px; }
+#right_sidebar { width: 0px; }
+
+/*********** backrgound images and colors ***********/
+body { background: url('images/background.png') repeat-x #3A3A3A; }
+
+a { color: #349C01; }
+.auth_navbar {
+   top: 0px;
+   float: right;
+   padding: 3px 10px 3px 10px;
+   font-size: 0.9em;
+}
+code { color: green; background: black; }
+input:focus, textarea:focus { background: #ccffcc; }
+#layout { background: white; }
+#header, #footer { color: white; background: url('images/header.png') repeat #111111;}
+#header h1 { color: #349C01; }
+#header h2 { color: white; font-style: italic; font-size: 14px;}
+#statusbar { background: #333333; border-bottom: 5px #349C01 solid; }
+#statusbar a { color: white; }
+#footer { border-top: 5px #349C01 solid; }
+
+/*********** menu style ***********/
+/*** ESSENTIAL STYLES ***/
+.sf-menu, .sf-menu * {
+	margin:	0;
+	padding: 0;
+	list-style: none;
+        text-decoration: none;
+}
+.sf-menu { line-height: 12px; }
+.sf-menu ul {
+	position: absolute;
+	top: -999em;
+	width: 10em; /* left offset of submenus need to match (see below) */
+}
+.sf-menu ul li {
+	width:	100%;
+}
+.sf-menu li:hover { visibility: inherit; /* fixes IE7 'sticky bug' */ }
+.sf-menu li { float: left; position: relative; }
+.sf-menu a {
+	display: block;
+	position: relative;
+}
+.sf-menu li:hover ul, .sf-menu li.sfHover ul {
+	left: 0;
+	top: 28px; /* match top ul list item height */
+	z-index: 99;
+}
+ul.sf-menu li:hover li ul, ul.sf-menu li.sfHover li ul { top: -999em; }
+ul.sf-menu li li:hover ul,
+ul.sf-menu li li.sfHover ul {
+	left: 10em; /* match ul width */
+	top: 0;
+}
+ul.sf-menu li li:hover li ul,
+ul.sf-menu li li.sfHover li ul {
+	top: -999em;
+}
+ul.sf-menu li li li:hover ul,
+ul.sf-menu li li li.sfHover ul {
+	left: 10em; /* match ul width */
+	top: 0;
+}
+
+.sf-menu {
+	float:	left;
+}
+.sf-menu a {
+	padding: 5px 15px;
+}
+.sf-menu li {
+	background: #333333;
+}
+.sf-menu li li {
+        border-left: 10px solid #000;
+        border-bottom: 2px solid #000;
+}
+.sf-menu li:hover, .sf-menu li.sfHover,
+.sf-menu a:focus, .sf-menu a:hover, .sf-menu a:active {
+	background: #000000;
+	outline: 0;
+}
+
+/*** arrows **/
+.sf-menu a.sf-with-ul {
+	padding-right: 	2.25em;
+	min-width: 1px; /* trigger IE7 hasLayout so spans position accurately */
+}
+.sf-sub-indicator {
+	position: absolute;
+	display: block;
+	right:	.75em;
+	top: 1.05em; /* IE6 only */
+	width: 10px;
+	height: 10px;
+	text-indent: -999em;
+	overflow: hidden;
+}
+a > .sf-sub-indicator {  /* give all except IE6 the correct values */
+	top:			.8em;
+	background-position: 0 -100px; /* use translucent arrow for modern browsers*/
+}
+/* apply hovers to modern browsers */
+a:focus > .sf-sub-indicator,
+a:hover > .sf-sub-indicator,
+a:active > .sf-sub-indicator,
+li:hover > a > .sf-sub-indicator,
+li.sfHover > a > .sf-sub-indicator {
+	background-position: -10px -100px; /* arrow hovers for modern browsers*/
+}
+
+/* point right for anchors in subs */
+.sf-menu ul .sf-sub-indicator { background-position:  -10px 0; }
+.sf-menu ul a > .sf-sub-indicator { background-position:  0 0; }
+/* apply hovers to modern browsers */
+.sf-menu ul a:focus > .sf-sub-indicator,
+.sf-menu ul a:hover > .sf-sub-indicator,
+.sf-menu ul a:active > .sf-sub-indicator,
+.sf-menu ul li:hover > a > .sf-sub-indicator,
+.sf-menu ul li.sfHover > a > .sf-sub-indicator {
+	background-position: -10px 0; /* arrow hovers for modern browsers*/
+}
+
+/*********** web2py specific ***********/
+div.flash {
+    position: fixed;
+    float: right;
+    padding: 10px;
+    top: 0px;
+    right: 0px;
+    opacity: 0.75;
+    margin: 10px 10px 10px 10px;
+    text-align: center;
+    clear: both;
+    color: #fff;
+    font-size: 11pt;
+    text-align: center;
+    vertical-align: middle;
+    cursor: pointer;
+    background: black;
+    border: 2px solid #fff;
+    -moz-border-radius: 5px;
+    -webkit-border-radius: 5px;
+    z-index: 2;
+}
+
+div.error {
+/*   -moz-border-radius: 5px;     */
+/*    -webkit-border-radius: 5px; */
+/*    border: 1px solid #666;     */
+    background-color: red;
+    color: white;
+    padding: 3px;
+
+}

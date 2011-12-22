@@ -1,0 +1,39 @@
+{{extend 'layout.html'}}
+[ {{=A('Home', _href=URL('index'))}} ]
+[ {{=A('Projects', _href=URL('allprojects'))}} ]
+[ {{=A('Edit Project', _href=URL('editproject',  args=project.id))}} ]
+
+<h2>{{=project.name}}</h2>
+
+<h4>Due Date</h4>
+<p>
+{{=project.due_date }}
+{{pass}}
+</p>
+<h4>Description</h4>
+<p>
+{{=project.description }}
+{{pass}}
+</p>
+
+<h4>Project Assest</h4>
+{{for assest in assests:}}
+<p> 
+  {{=(A('Download', _href=URL('assest', args=assest.id)))}}
+  {{=assest.name}}, Posted by: {{=db.auth_user[assest.created_by].first_name}}
+  on {{=assest.created_on}}
+{{pass}}
+</p>
+
+<h4>Add an Assest</h4>
+{{=formast}}</ br>
+
+
+<h4>Project Posts</h4>
+{{for post in posts:}}
+  <p>{{=db.auth_user[post.created_by].first_name}} on {{=post.created_on}}
+          says <I>{{=post.post}}</i></p>
+{{pass}}
+<h4>Write a Post</h4>
+{{=form}}</ br>
+

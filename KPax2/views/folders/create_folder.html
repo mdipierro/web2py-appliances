@@ -1,0 +1,11 @@
+{{extend 'layout.html'}}
+<script src="/{{=request.application}}/static/nicEdit.js" type="text/javascript"></script>
+<script>
+$(document).ready(function(){
+new nicEditor({fullPanel : true, iconsPath : '/{{=request.application}}/static/nicEditorIcons.gif'}).panelInstance('folder_description');
+});
+</script>
+
+<h1>Create Folder</h1>
+
+{{=form}}

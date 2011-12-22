@@ -1,0 +1,612 @@
+@charset "UTF-8";
+
+body, table, tr, td, th, thead, tfoot, label, h1, h2, h3, h4, h5, h6, p, ul, li, ol, pre, textarea {
+    background: transparent;
+    border: 0;
+    margin: 0;
+    outline: 0;
+    padding: 0;
+    color: inherit;
+    font-weight: inherit;
+    font-style: inherit;
+    font-family: inherit;
+    vertical-align: baseline;
+    font-size: 100%;
+}
+
+body {
+    background: transparent;
+    width:100%;
+    min-width: 600px;
+}
+
+table {
+    border-spacing: 0;
+    border-collapse: collapse;
+}
+
+label,
+th,
+td {
+    text-align: left;
+    vertical-align: top;
+    padding-left: 0.5em;
+    padding-right: 0.5em;
+    padding-top: 0.3em;
+    padding-bottom: 0.2em;
+}
+
+th,
+thead td,
+tfoot td {
+    font-weight: bold;
+    text-align: center;
+}
+
+b {
+  font-weight: bold;
+}
+
+i {
+  font-style: italic;
+}
+
+pre {
+    font-size: 0.8em;
+    font-family: monospace,
+courier;
+    padding-left: 2em;
+    padding-top: 1em;
+}
+
+tt {
+    font-size: 0.8em;
+    font-family: monospace,
+courier;
+}
+
+h1 {
+    padding-top: 0.5em;
+    font-size: 2em;
+}
+
+h2 {
+    padding-top: 0.4em;
+    font-size: 1.3em;
+}
+
+h3 {
+    padding-top: 0.3em;
+    font-size: 1em;
+}
+
+p {
+    padding-top: 0.2em;
+    text-align: justify;
+}
+
+ol,
+ul {
+    padding-top: 0.3em;
+    padding-left: 1.5em;
+}
+
+label {
+    font-weight: bold;
+}
+
+a {
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+input,
+textarea {
+    border: 1px #666666 solid;
+}
+
+button {
+    background: url('menu.jpg');
+}
+
+input:focus,
+textarea:focus {
+    background: #ffcccc;
+}
+
+html {
+    font-size: 10pt;
+    font-family: Arial,Helvetica;
+    color: #333333;
+    background: url('background.gif') repeat-x #3A3A3A;
+}
+
+a {
+    color: #FF5C1F;
+}
+
+div.flash {
+    position: absolute;
+    float: right;
+    padding: 10px;
+    top: 0px;
+    right: 0px;
+    opacity: 0.75;
+    margin: 10px 10px 10px 10px;
+    text-align: center;
+    clear: both;
+    color: #fff;
+    font-size: 11pt;
+    text-align: center;
+    vertical-align: middle;
+    cursor: pointer;
+    background: black;
+    border: 2px solid #fff; 
+    -moz-border-radius: 5px;
+    -webkit-border-radius: 5px;
+    z-index: 2;
+}
+
+div.error {
+    -moz-border-radius: 5px;
+    -webkit-border-radius: 5px;
+    background-color: red;
+    color: white;
+    padding: 3px;
+    border: 1px solid #666;
+}
+
+.warn {
+    background-color: yellow;
+    color: black;
+    padding: 5px;
+}
+
+.info {
+    background-color: #E5FFE5;
+    color: black;
+    padding: 5px;
+}
+
+.error {
+    background-color: red;
+    color: white; padding: 5px;
+}
+
+.wrapper {
+    padding-top: 20px;
+    padding-left: 20px;
+}
+
+.layout {
+    width: 95%;
+    padding: 0;
+    border: 1px #99f solid;
+    border-spacing: 0;
+    background: #fff;
+    z-index: 1;
+}
+
+.header {
+    background: url('header.gif');
+    color: white;
+    border-bottom: 1px #99f solid;
+}
+
+.statusbar {
+    background: url('menu.gif');
+    border-bottom: 1px #99f solid;
+}
+
+.footer {
+    background: url('header.gif');
+    color: white;
+    border-top: 1px #99f solid;
+}
+
+.column1 {
+    border-right: 1px #99f solid;
+}
+
+.width10em {
+    width: 10em;
+    background: transparent;
+}
+
+.expandable {
+    background: transparent;
+}
+
+ul.web2py-menu,
+ul.web2py-menu ul,
+ul.web2py-menu li,
+ul.web2py-menu a
+{
+    -moz-border-radius: 5px;
+    -webkit-border-radius: 5px;
+    display: block;
+    margin: 0;
+    padding: 0;
+}
+
+ul.web2py-menu {
+    background: transparent;
+}
+
+ul.web2py-menu,
+ul.web2py-menu li,
+ul.web2py-menu ul
+{
+    list-style: none;
+}
+
+ul.web2py-menu ul
+{
+    display: none;
+}
+
+ul.web2py-menu li
+{
+    position: relative;
+    z-index: 1;
+}
+
+ul.web2py-menu li:hover
+{
+    z-index: 999;
+}
+
+ul.web2py-menu li:hover > ul
+{
+    display: block;
+    position: absolute;
+}
+
+ul.web2py-menu-horizontal li
+{
+    float: left;
+    width: auto;
+}
+
+ul.web2py-menu-hRight li
+{
+    float: right;
+}
+
+ul.web2py-menu-vertical li
+{
+    float: none;
+}
+
+ul.web2py-menu-vertical,
+ul.web2py-menu-vertical ul
+{
+    width: 10em;
+}
+
+ul.web2py-menu-wide
+{
+    width: 100%;
+}
+
+ul.web2py-menu-vRight
+{
+    float: right;
+}
+
+ul.web2py-menu-lFloat
+{
+    float: left;
+}
+
+ul.web2py-menu-noFloat
+{
+    float: none;
+}
+
+div.web2py-menu-center ul.web2py-menu
+{
+    float: left;
+    position: relative;
+    left: 50%;
+}
+
+div.web2py-menu-center ul.web2py-menu li
+{
+    position: relative;
+    left: -50%;
+}
+
+div.web2py-menu-center ul.web2py-menu li li
+{
+    left: auto;
+}
+
+ul.web2py-menu-horizontal ul
+{
+    top: auto;
+    right: auto;
+    left: auto;
+    margin-top: -1px;
+}
+
+ul.web2py-menu-vertical ul
+{
+    left: 60%;
+    right: auto;
+    top: auto;
+    margin-top: -0.5em;
+}
+
+ul.web2py-menu-vRight ul,
+ul.web2py-menu-hRight ul.web2py-menu-vertical ul,
+ul.web2py-menu-dRight,
+ul.web2py-menu-dRight ul
+{
+    left: -60%;
+    right: auto;
+    top: auto;
+    margin-top: -0.5em;
+}
+
+ul.web2py-menu-hRight ul
+{
+    left: auto;
+    right: 0;
+    top: auto;
+    margin-top: -1px;
+}
+
+ul.web2py-menu li a
+{
+    border: solid 1px #99f
+}
+
+ul.web2py-menu-horizontal li
+{
+    margin-bottom: -1px;
+    margin-left: -1px;
+}
+
+ul.web2py-menu-horizontal
+{
+    padding-left: 1px ;
+}
+
+ul.web2py-menu-vertical li
+{
+    margin-left: 0;
+    margin-top: -1px;
+}
+
+ul.web2py-menu-vertical
+{
+    border-top: solid 1px #fff;
+}
+
+ul.web2py-menu li a
+{
+    padding: 2px 5px 3px;
+}
+
+ul.web2py-menu li a:link,
+ul.web2py-menu li a:hover,
+ul.web2py-menu li a:visited,
+ul.web2py-menu li a:active
+{
+    text-decoration: none;
+}
+
+ul.web2py-menu li.sfhover a:active,
+ul.web2py-menu li:hover a:active
+{
+    color: #fff;
+    background-color: #c00;
+}
+
+ul.web2py-menu li
+{
+    background: url('menu.gif');
+}
+
+ul.web2py-menu li:hover,
+ul.web2py-menu li.sfhover
+{
+    background-color: #eda;
+}
+
+ul.web2py-menu li a:hover
+{
+    background-color: #ffc;
+}
+
+ul.web2py-menu li.web2py-menu-expand a,
+ul.web2py-menu li.web2py-menu-expand li.web2py-menu-expand a,
+ul.web2py-menu li.web2py-menu-expand li.web2py-menu-expand li.web2py-menu-expand a
+{
+    padding-right: 25px;
+    /*
+    background-image: url("expand-right.gif");
+    background-repeat: no-repeat;
+    background-position: 100% 50%;
+    */
+}
+
+ul.web2py-menu-vRight li.web2py-menu-expand a,
+ul.web2py-menu-vRight li.web2py-menu-expand li.web2py-menu-expand a,
+ul.web2py-menu-vRight li.web2py-menu-expand li.web2py-menu-expand li.web2py-menu-expand a,
+ul.web2py-menu-hRight li.web2py-menu-expand a,
+ul.web2py-menu-hRight li.web2py-menu-expand li.web2py-menu-expand a,
+ul.web2py-menu-hRight li.web2py-menu-expand li.web2py-menu-expand li.web2py-menu-expand a
+{
+    padding-right: 5px;
+    padding-left: 20px;
+    /*
+    background-image: url("expand-left.gif");
+    background-repeat: no-repeat;
+    background-position: -5px 50%;
+    */
+}
+
+ul.web2py-menu-horizontal li.web2py-menu-expand a
+{
+    padding-left: 5px;
+    padding-right: 15px;
+    /*
+    background-image: url("expand-down.gif");
+    background-position: 100% 50%;
+    */
+}
+
+ul.web2py-menu li.web2py-menu-expand li a,
+ul.web2py-menu li.web2py-menu-expand li.web2py-menu-expand li a,
+ul.web2py-menu li.web2py-menu-expand li.web2py-menu-expand li.web2py-menu-expand li a
+{
+    background-image: none;
+    padding-right: 5px;
+    padding-left: 5px;
+}
+
+* html ul.web2py-menu
+{
+    display: inline-block;
+    display: block;
+    position: relative;
+    position: static;
+}
+
+* html ul.web2py-menu ul
+{
+    float: left;
+    float: none;
+}
+
+ul.web2py-menu ul
+{
+    background-color: #fff;
+}
+
+* html ul.web2py-menu-vertical li,
+* html ul.web2py-menu-horizontal li ul.web2py-menu-vertical li
+{
+    
+    width: 100%;
+    float: left;
+    clear: left;
+}
+
+*:first-child+html ul.web2py-menu-vertical > li:hover ul
+{
+    min-width: 0;
+}
+
+ul.web2py-menu li a
+{
+    position: relative;
+    min-width: 0;
+}
+
+* html ul.web2py-menu-horizontal li
+{
+    width: 6em;
+    width: auto;
+}
+
+* html div.web2py-menu-center
+{
+    position: relative;
+    z-index: 1;
+}
+
+html:not([lang*=""]) div.web2py-menu-center ul.web2py-menu li a:hover {
+    height: 100%;
+}
+
+html:not([lang*=""])  div.web2py-menu-center ul.web2py-menu li a:hover {
+    height: auto;
+}
+
+* html ul.web2py-menu ul
+{
+    display: block;
+    position: absolute;
+}
+
+* html ul.web2py-menu ul,
+* html ul.web2py-menu-horizontal ul,
+* html ul.web2py-menu-vertical ul,
+* html ul.web2py-menu-vRight ul,
+* html ul.web2py-menu-hRight ul.web2py-menu-vertical ul,
+* html ul.web2py-menu-hRight ul
+{
+    left: -10000px;
+}
+
+* html ul.web2py-menu li.sfhover
+{
+    z-index: 999;
+}
+
+* html ul.web2py-menu li.sfhover ul
+{
+    left: auto;
+}
+
+* html ul.web2py-menu li.sfhover ul ul,
+* html ul.web2py-menu li.sfhover ul ul ul
+{
+    display: none;
+}
+
+* html ul.web2py-menu li.sfhover ul,
+* html ul.web2py-menu li li.sfhover ul,
+* html ul.web2py-menu li li li.sfhover ul
+{
+    display: block;
+}
+
+* html ul.web2py-menu-vertical li.sfhover ul
+{
+    left: 60%;
+}
+
+* html ul.web2py-menu-vRight li.sfhover ul,
+* html ul.web2py-menu-hRight ul.web2py-menu-vertical li.sfhover ul
+{
+    left: -60%;
+}
+
+* html ul.web2py-menu iframe
+{
+    
+    
+    position: absolute;
+    left: 0;
+    top: 0;
+    z-index: -1;
+}
+
+.clearfix:after
+{
+    content: ".";
+    display: block;
+    height: 0;
+    clear: both;
+    visibility: hidden;
+}
+
+.clearfix
+{
+    min-width: 0;
+    display: inline-block;
+    display: block;
+}
+
+* html .clearfix
+{
+    height: 1%;
+}
+

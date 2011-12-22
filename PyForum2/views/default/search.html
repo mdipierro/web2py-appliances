@@ -1,0 +1,40 @@
+{{extend 'zlayout.html'}}
+
+<h2 class="fancy">{{=XML(T('Search Results'))}}</h2>
+
+<p><a href="{{=URL(r=request, c='default', f='index')}}" title="{{=XML(T('Forum Home Page'))}}">{{=XML(T('Forum Home Page'))}}</a></p>
+
+{{if results:}}
+    <p>{{=XML(T('Your search results for'))}}: <b>{{=search_str}}</b></p>
+
+    <table cellspacing="0" cellpadding="0" class="zf-table" style="width:100%;">
+        <thead>
+            <tr class="shadedarker">
+                <th class="cell3d">&nbsp;</th>
+                <th class="cell3d">{{=XML(T('Forum'))}}</th>
+                <th class="cell3d">{{=XML(T('Topic'))}}</th>
+                <th class="cell3d">{{=XML(T('Type'))}}</th>
+                <th class="cell3d">{{=XML(T('Created'))}}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{for idx, topic in enumerate(results):}}
+                <tr class="{{if idx%2:}}shadedark{{else:}}shadelight{{pass}}">
+                    <td class="cell3d" style="text-align:center;">{{=idx+1}}</td>
+                    <td class="cell3d"><a href="{{=URL(r=request, c='default', f='view_forum', args=[topic.zf_topic.forum_id])}}" title="">{{=topic.zf_forum.forum_title}}</a></td>
+                    <td class="cell3d"><a href="{{=URL(r=request, c='default', f='view_topic', anchor=topic.zf_topic.id, args=[topic.zf_topic.parent_id or topic.zf_topic.id])}}" title="" class="linkb">{{=topic.zf_topic.title}}</a></td>
+                    <td class="cell3d" style="text-align:center;">{{if topic.zf_topic.parent_flag:}}{{=XML(T('Parent'))}}{{else:}}{{=XML(T('Response'))}}{{pass}}</td>
+                    <td class="cell3d" style="text-align:center;">{{=topic.zf_topic.modifying_date.strftime(str(T('%b %d, %Y - %I:%M %p')))}}</td>
+                </tr>
+            {{pass}}
+        </tbody>
+    </table>
+{{else:}}
+    {{if len(view_info['errors']):}}
+        <p class="error">{{=XML(T(view_info['errors'][0]))}}</p>
+
+    {{else:}}
+        <p class="warning">{{=XML(T('No results found for your search'))}}: <b>{{=search_str}}</b></p>
+    {{pass}}
+{{pass}}
+

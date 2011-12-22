@@ -1,0 +1,43 @@
+<script type="text/javascript" src="../../static/jquery.js"></script>
+<script type="text/javascript" src="../../static/jquery-impromptu.3.0.min.js"></script>
+
+
+<style type="text/css">         
+            body,img,p,h1,h2,h3,h4,h5,h6,fieldset,form,table,td,ul,li,pre,blockquote,code{ margin:0; padding:0; border:0; }
+            body{ font: 100% Georgia, "Times New Roman", serif; background-color: #ffffff; color: #565656; text-align: center; }
+            div.wrapper{ position: relative; margin: 0  auto 30px auto; width: 500px; text-align: left; border: solid 1px #aaaaaa; }
+            #users{  }
+            #users .user{ border: solid 1px #bbbbbb; background-color: #dddddd; padding: 10px; margin: 5px; }
+            #users .user .controls{ float: right; }
+            
+            /*-------------impromptu---------- */
+            .jqifade{ position: absolute; background-color: #aaaaaa; }
+            div.jqi{ width: 400px; font-family: Verdana, Geneva, Arial, Helvetica, sans-serif; position: absolute; background-color: #ffffff; font-size: 11px; text-align: left; border: solid 1px #eeeeee; -moz-border-radius: 10px; -webkit-border-radius: 10px; padding: 7px; }
+            div.jqi .jqicontainer{ font-weight: bold; }
+            div.jqi .jqiclose{ position: absolute; top: 4px; right: -2px; width: 18px; cursor: default; color: #bbbbbb; font-weight: bold; }
+            div.jqi .jqimessage{ padding: 10px; line-height: 20px; color: #444444; }
+            div.jqi .jqibuttons{ text-align: right; padding: 5px 0 5px 0; border: solid 1px #eeeeee; background-color: #f4f4f4; }
+            div.jqi button{ padding: 3px 10px; margin: 0 10px; background-color: #2F6073; border: solid 1px #f4f4f4; color: #ffffff; font-weight: bold; font-size: 12px; }
+            div.jqi button:hover{ background-color: #728A8C; }
+            div.jqi button.jqidefaultbutton{ background-color: #BF5E26; }
+            .jqiwarning .jqi .jqibuttons{ background-color: #BF5E26; }
+            
+            div.jqi .jqimessage .field{ padding: 5px 0; }
+            div.jqi .jqimessage .field label{ display: block; clear: left; float: left; width: 100px; }
+            div.jqi .jqimessage .field input{ width: 150px; border: solid 1px #777777; }
+            div.jqi .jqimessage .field input.error{ width: 150px; border: solid 1px #ff0000; }
+            /*-------------------------------- */
+        </style>
+
+<script type="text/javascript">            
+            $(document).ready(function() {
+                
+                var txt = '<h1>{{=server.name}}</h1><br/>{{=crud.read(systemd.server,server)}}';
+                $.prompt(txt, { 
+                    buttons:{Back:true},    
+                    submit: function(){
+                    window.location = "../list_server"
+                    }                                                 
+                });
+            });            
+</script>

@@ -1,0 +1,31 @@
+{{
+def image_mapper(name):
+    import re, os
+    if name.startswith('attachment:'):
+        name=re.compile('\d+').search(name).group()
+        name=db.plugin_wiki_attachment(name).file
+    else:
+        name=name.split('/')[-1]
+        pass
+    fullname=os.path.join(request.folder,'uploads',name)    
+    if not os.path.exists(fullname):
+    items=name.split('.')
+	fullname=os.path.join(request.folder,'uploads',
+                              items[0]+'.'+items[1],items[2][:2],name)
+    pass
+    return fullname
+try:
+    from gluon.contrib import markmin2pdf
+    data,warnings,errors = markmin2pdf.markmin2pdf(page.body,image_mapper=image_mapper)
+    errors=[e for e in errors if not e.lower().startswith(' undefined control')]
+    if not errors:
+        response.headers['Content-Type']='application/pdf'
+        response.write(data,escape=False)
+    else:
+        response.headers['Content-Type']='text/html'
+        response.write(HTML(BODY(UL(*(errors+warnings)))))
+    pass
+except Exception, e:
+    raise HTTP(405,str(e))
+pass
+}}

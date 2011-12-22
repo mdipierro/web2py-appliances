@@ -1,0 +1,15 @@
+{{extend 'layout.html'}}
+[ {{=A('Home', _href=URL('index'))}} ]
+[ {{=A('admin', _href=URL('admin'))}} ]
+
+
+<h2>Add Department</h2>
+{{=formdept}}
+<br/>
+
+<ul>{{for department in departments:}}
+     <li>
+   		  {{=(A(department.name, _href=URL('showdept', args=department.id)))}}
+     </li>
+{{pass}}</ul>
+

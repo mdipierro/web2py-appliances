@@ -1,0 +1,28 @@
+{{extend 'layout.html'}}
+{{include 'td_product.html'}}
+
+{{if len(categories)>1:}}
+<h2 class="post">Product Categories:
+{{for category in categories:}}
+{{=A(category.name,_href=URL('category/%s'%category.id))}}
+{{pass}}
+</h2><br/><br/>
+{{pass}}
+
+<h1 class="post">Products in {{=category_name}}</h1>
+
+{{if featured:}}
+<p class="post"><center><table width="80%">
+{{for product in featured: show(product)}}
+</table></center></p>
+{{pass}}
+
+{{if favourites:}}
+<p class="post"><center><table width="80%">
+{{for product in favourites: show(product)}}
+</table></center></p>
+{{pass}}
+
+{{if not featured and not favourites:}}
+<h2><center>No products in category {{=category_name}}<center></h2>
+{{pass}}

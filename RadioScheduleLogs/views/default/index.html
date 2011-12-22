@@ -1,0 +1,6 @@
+{{extend 'layout.html'}}
+
+{{try:}}{{=H2(message)}}{{except:}}{{=BEAUTIFY(response._vars)}}{{pass}}
+
+{{=P(A(T("click here for the administrative interface"), _href=URL('admin','default','index')),_style="padding-top:1em;")}}
+{{=P(A(T("click here for online examples"), _href=URL('examples','default','index')))}}

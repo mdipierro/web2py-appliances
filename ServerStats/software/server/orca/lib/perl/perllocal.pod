@@ -1,0 +1,22 @@
+=head2 Mon Apr  5 13:49:40 2010: C<Module> L<Math::Interpolate|Math::Interpolate>
+
+=over 4
+
+=item *
+
+C<installed into: /home/jose/Downloads/orca/lib/perl>
+
+=item *
+
+C<LINKTYPE: dynamic>
+
+=item *
+
+C<VERSION: 1.05>
+
+=item *
+
+C<EXE_FILES: >
+
+=back
+

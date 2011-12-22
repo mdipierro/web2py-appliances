@@ -1,0 +1,37 @@
+{{extend 'layout.html'}}
+
+<h1>Chat Lines</h1>
+
+<img src="{{=URL(r=request,c='static',f='chat/chat.png')}}" align="right"/>
+
+<table><tr><td class="gsearch">{{include 'gsearch.html'}}
+
+</td><td>
+
+<h2>You have access to these chat lines</h2>
+[<a href="{{=URL('create_chat')}}">create chat</a>]<br/>
+{{if len(chats):}}
+<table>
+{{for k,a in enumerate(chats):}}
+<tr class="myitems" id="{{=a.chat_line.name}}"><td>[A{{=a.chat_line.id}}]</td><td><a onclick="$('#box{{=a.chat_line.id}}').slideToggle();">{{=a.chat_line.name}}</a> created by <a href="mailto:{{=a.auth_user.email}}">{{=a.auth_user.name}}</a>
+<div id="box{{=a.chat_line.id}}" class="box">
+<span style="visibility:hidden">{{=''.join(['[G%s]'%i for i in a.accessible_to])}}</span>
+{{=XML(a.chat_line.description)}}
+<br/>
+[<a href="{{=URL('open_chat',args=str(a.chat_line.id))}}">go chat</a>]
+{{if a.chat_line.owner==auth.user_id:}}
+[<a href="{{=URL(r=request,c='access',f='change',args=['chat_line',a.chat_line.id],vars=dict(forward=URL(r=request)))}}">change permissions</a>]
+[<a href="{{=URL('edit_chat',args=[a.chat_line.id])}}">edit info</a>]
+[<a href="{{=URL('clear',args=[a.chat_line.id])}}">reset</a>]
+{{pass}}
+</div>
+{{if k>0:}}
+<script><!--
+$('#box{{=a.chat_line.id}}').hide();
+//--></script>
+{{pass}}
+</td></tr>
+{{pass}}
+</table>
+{{pass}}
+</td></tr></table>

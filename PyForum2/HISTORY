@@ -1,0 +1,102 @@
+The "Release Number" is located at the bottom-right of the UI
+
+Release 1.1 Beta
+================
+- Released TBD
+- Revamped core (security assertions) to address perceived secutiry flaws
+  by some entities (credible and otherwise)
+- Removed old google authentication and replaced with multiple sign-in
+  options (Janrain).
+
+Release 1.0.3
+=============
+- Released Oct 13, 2009
+- Anonymous postings now require captcha-like authorization for replying to posts
+- Few CSS changes to make the UI a little bit more consistent
+
+Release 1.0.2
+=============
+- Released Sep 13, 2009
+- Authentication via Google Account login enabled
+- Style Sheet overhaul, smaller font size overall
+- New Logo
+
+Release 1.0.1
+=============
+- Released May 27, 2009
+- Fixed several UI elements (font sizes and such)
+- Changed Logo (again) for a more subtle one.
+
+Release 1.0.0
+=============
+- Released May 25, 2009
+- Require "captcha"-style humanity verification challenge when sending messages as anonymous users or
+  when forum administrators allow anonymous users to add/reply to posts.
+- Fixed bug in Forum Administration when setting up access properties for a forum.
+- "Administrator" user is automatically created when the forum system is installed for the first time
+- New application logo.
+- Added "Purge" functionality to allow remove old administrator messages
+
+Release Candidate 4
+===================
+- Released May 13, 2009
+- Added CSS class to properly handle code snippets
+- replaced soon-to-be-deprecated python library sha in favor of hashlib
+- Administration - User list now displays join in date and table columns are sortable
+- Spanish language enabled
+- German language enabled
+- Allow contact users via PM system can be now triggered properly via user's preferences
+
+Release Candidate 3
+===================
+- Released April 22, 2009
+- Fixed bug that allowed anonymous users access to (their "own") personal messages
+- Removed links in member names when forum is viewed by anonymous users
+- Administrators can change the roles of any users from the user edit page
+
+Release Candidate 2
+===================
+- Released April 19, 2009
+- Changed Distribution License from ZPL 2.1 to GPL 3.0
+- Changed footer information to allow modification by users for other parts of the program
+- Changed several references to "zforum" (original name) to "pyforum", including several CSS classes
+
+Release Candidate 1
+===================
+- Released April 18, 2008
+- Personal Messages functionality completed
+- Broken image placeholder for users without avatar selected fixed
+
+Beta Release 6
+==============
+- Released Apr 16, 2009
+- Fixed RSS feeds, broken since Beta 3
+- Added partial PM functionality, users still cannot pm other users
+
+Beta Release 5
+==============
+- Released Apr 15, 2009
+- Added Pagination widget
+- Fixed "Reply w/Quote" capabilities
+
+Beta release 4
+==============
+- Released Apr 14 2009
+- Enhanced Emoticon handling
+- Added pseudo-html code and parsing capabilities
+- Added "Reply w/Quote" capabilities (introduced a bug)
+
+Beta Release 3
+==============
+- Released Apr 13 2009
+- Added Emoticons
+
+Beta Release 2
+==============
+- Released Apr 11 2009
+- Bug Fixes
+
+Beta Release 1
+==============
+- Released April 7, 2009
+- Initial Release

@@ -1,0 +1,24 @@
+{{extend 'layout.html'}}
+<html>
+<head>
+</head>
+<body>
+
+<h1> Movie reviews </h1>
+
+{{for movie in db(db.movie.id>0).select():}}
+Movie name: {{=movie.name}}</br></br>
+Director: {{=movie.director}}</br></br>
+Catagory: {{=movie.category.name}}</br></br>
+Country of Origin: {{=movie.country.name}}</br></br>
+Movie format: {{=movie.format.name}}</br></br>
+Description: {{=movie.description}}</br></br>
+Review: {{=movie.Review}}</br></br>
+<hr/>
+{{pass}}
+
+</br>
+<a href="{{=URL("newmovie")}}">New Movie</a></br>
+<a href="{{=URL("userlogin")}}">Login</a></br>
+</body>
+</html>

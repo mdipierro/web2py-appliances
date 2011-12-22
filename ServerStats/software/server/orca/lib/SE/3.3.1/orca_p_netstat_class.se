@@ -1,0 +1,247 @@
+//
+// Copyright (c) 1993-2001 by Richard Pettit. All rights reserved.
+//
+// Some of this work was derived from include files containing the following
+// copyrights.
+//
+//   Copyright (c) 1986-1994 by Sun Microsystems, Inc.
+//   Copyright (c) 1983-1989 by AT&T
+//   Copyright (c) 1980-1993 by The Regents of the University of California.
+//
+// The work as a whole represents unique intellectual property and is
+// copyright by Richard Pettit as shown on the first line.
+//
+
+#ifndef _P_NETSTAT_CLASS_SE_
+#define _P_NETSTAT_CLASS_SE_
+
+#include <unistd.se>
+#include <time.se>
+#include <string.se>
+#include <kstat.se>
+#include <sysdepend.se>
+#include <netif.se>
+
+#define NANODOUBLE 0.000000001	/* converts gethrtime to seconds */
+
+/* robust difference generator for wrapping 32bit counters */
+/* unsigned to double difference */
+
+#define UD_DIFF(now, then) (((double) now) >= ((double) then) ? \
+                             (now - then) :  \
+                            ((double) now) + 4294967296.0 - ((double) then))
+
+// All this crap must be global 'cause I can't fix the interpreter bug.
+
+double pnetGLOB_net_ipackets[]; /* these are rates */
+double pnetGLOB_net_idtsize[];
+double pnetGLOB_net_ihdrovhd[];
+double pnetGLOB_net_ierrors[];
+double pnetGLOB_net_opackets[];
+double pnetGLOB_net_odtsize[];
+double pnetGLOB_net_ohdrovhd[];
+double pnetGLOB_net_oerrors[];
+double pnetGLOB_net_collisions[];
+double pnetGLOB_net_defer[];
+double pnetGLOB_net_nocanput[];
+double pnetGLOB_net_ioctets[];
+double pnetGLOB_net_ooctets[];
+netif  pnetGLOB_save_nets[];    /* these are absolute values */
+double pnetGLOB_save_et[];
+
+int    pnetGLOB_net_size = MAX_IF;
+
+pnetGLOB_realloc()
+{
+  pnetGLOB_net_ipackets = renew pnetGLOB_net_ipackets[pnetGLOB_net_size];
+  pnetGLOB_net_idtsize = renew pnetGLOB_net_idtsize[pnetGLOB_net_size];
+  pnetGLOB_net_ihdrovhd = renew pnetGLOB_net_ihdrovhd[pnetGLOB_net_size];
+  pnetGLOB_net_ierrors = renew pnetGLOB_net_ierrors[pnetGLOB_net_size];
+  pnetGLOB_net_opackets = renew pnetGLOB_net_opackets[pnetGLOB_net_size];
+  pnetGLOB_net_odtsize = renew pnetGLOB_net_odtsize[pnetGLOB_net_size];
+  pnetGLOB_net_ohdrovhd = renew pnetGLOB_net_ohdrovhd[pnetGLOB_net_size];
+  pnetGLOB_net_oerrors = renew pnetGLOB_net_oerrors[pnetGLOB_net_size];
+  pnetGLOB_net_collisions = renew pnetGLOB_net_collisions[pnetGLOB_net_size];
+  pnetGLOB_net_defer = renew pnetGLOB_net_defer[pnetGLOB_net_size];
+  pnetGLOB_net_nocanput = renew pnetGLOB_net_nocanput[pnetGLOB_net_size];
+  pnetGLOB_net_ioctets = renew pnetGLOB_net_ioctets[pnetGLOB_net_size];
+  pnetGLOB_net_ooctets = renew pnetGLOB_net_ooctets[pnetGLOB_net_size];
+  pnetGLOB_save_nets = renew pnetGLOB_save_nets[pnetGLOB_net_size];
+  pnetGLOB_save_et = renew pnetGLOB_save_et[pnetGLOB_net_size];
+}
+
+class p_netstat {
+
+  int number$;
+  char name$[12];
+
+  int     net_count;
+  double  ipackets;
+  double  ierrors;
+  double  idtsize;
+  double  ihdrovhd;
+  double  opackets;
+  double  oerrors;
+  double  odtsize;
+  double  ohdrovhd;
+  double  collisions;
+  double  collpercent;
+  double  nocanput;
+  double  defer;
+  double  ioctets;
+  double  ooctets;
+  ulong_t ifspeed;
+  int     iftype;
+  double  utilization;
+
+  p_netstat$()
+  {
+    int i;
+    int initialized = 0;
+    netif interface;
+    double et;
+    double now;
+
+    /* do initialization code */
+    if (initialized == 0) {
+
+      pnetGLOB_net_ipackets = new double[pnetGLOB_net_size];
+      pnetGLOB_net_idtsize = new double[pnetGLOB_net_size];
+      pnetGLOB_net_ihdrovhd = new double[pnetGLOB_net_size];
+      pnetGLOB_net_ierrors = new double[pnetGLOB_net_size];
+      pnetGLOB_net_opackets = new double[pnetGLOB_net_size];
+      pnetGLOB_net_odtsize = new double[pnetGLOB_net_size];
+      pnetGLOB_net_ohdrovhd = new double[pnetGLOB_net_size];
+      pnetGLOB_net_oerrors = new double[pnetGLOB_net_size];
+      pnetGLOB_net_collisions = new double[pnetGLOB_net_size];
+      pnetGLOB_net_defer = new double[pnetGLOB_net_size];
+      pnetGLOB_net_nocanput = new double[pnetGLOB_net_size];
+      pnetGLOB_net_ioctets = new double[pnetGLOB_net_size];
+      pnetGLOB_net_ooctets = new double[pnetGLOB_net_size];
+      pnetGLOB_save_nets = new netif[pnetGLOB_net_size];
+      pnetGLOB_save_et = new double[pnetGLOB_net_size];
+
+      /* grab initial info from netif class */
+      for(refresh$(interface), i=0; i<interface.if_count;
+          i++, interface.number$ = i, refresh$(interface)) {
+        if (interface.number$ == pnetGLOB_net_size) {
+          pnetGLOB_net_size += 4;
+          pnetGLOB_realloc();
+        }
+        pnetGLOB_save_et[interface.number$] = gethrtime() * NANODOUBLE;
+        pnetGLOB_save_nets[interface.number$] = interface;
+        net_count++;
+      }
+      ipackets = pnetGLOB_save_nets[i].ipackets;
+      ierrors = pnetGLOB_save_nets[i].ierrors;
+      opackets = pnetGLOB_save_nets[i].opackets;
+      oerrors = pnetGLOB_save_nets[i].oerrors;
+      collisions = pnetGLOB_save_nets[i].collisions;
+      if (opackets != 0) {
+        collpercent = (collisions * 100.0) / opackets;
+      } else {
+        collpercent = 0.0;
+      }
+      nocanput = pnetGLOB_save_nets[i].nocanput;
+      defer = pnetGLOB_save_nets[i].defer;
+      ioctets = pnetGLOB_save_nets[i].ioctets;
+      ooctets = pnetGLOB_save_nets[i].ooctets;
+      idtsize = 0.0;
+      ihdrovhd = 0.0;
+      odtsize = 0.0;
+      ohdrovhd = 0.0;
+      ifspeed = pnetGLOB_save_nets[i].ifspeed;
+      iftype  = pnetGLOB_save_nets[i].iftype;
+      utilization = 0.0; // this will always be around 0.000000000000000001
+      initialized = 1;
+      return;
+    }
+
+    /* bounds check */
+    i = number$;
+    if ((i < 0) || (i >= net_count)) {
+      number$ = -1;
+      return;
+    }
+
+    /* find out how many seconds have elapsed */
+    now = gethrtime() * NANODOUBLE;
+    et = (now - pnetGLOB_save_et[i]);
+
+    /* do computes if at least a second has gone by */
+    if (et > 1.0) {
+      /* save the time */
+      pnetGLOB_save_et[i] = now;
+
+      /* grab the info for this net */
+      interface.number$ = i;
+      refresh$(interface);
+
+      /* compute new values */
+      pnetGLOB_net_ipackets[i]   =
+        UD_DIFF(interface.ipackets,   pnetGLOB_save_nets[i].ipackets) / et;
+      pnetGLOB_net_ierrors[i]    =
+        UD_DIFF(interface.ierrors,    pnetGLOB_save_nets[i].ierrors)  / et;
+      pnetGLOB_net_opackets[i]   =
+        UD_DIFF(interface.opackets,   pnetGLOB_save_nets[i].opackets) / et;
+      pnetGLOB_net_oerrors[i]    =
+        UD_DIFF(interface.oerrors,    pnetGLOB_save_nets[i].oerrors)  / et;
+      pnetGLOB_net_collisions[i] =
+        UD_DIFF(interface.collisions, pnetGLOB_save_nets[i].collisions) / et;
+      pnetGLOB_net_nocanput[i] =
+        UD_DIFF(interface.nocanput,   pnetGLOB_save_nets[i].nocanput) / et;
+      pnetGLOB_net_defer[i] =
+        UD_DIFF(interface.defer,      pnetGLOB_save_nets[i].defer)   / et;
+      pnetGLOB_net_ioctets[i] =
+        UD_DIFF(interface.ioctets,    pnetGLOB_save_nets[i].ioctets) / et;
+      pnetGLOB_net_ooctets[i] =
+        UD_DIFF(interface.ooctets,    pnetGLOB_save_nets[i].ooctets) / et;
+      if ( pnetGLOB_net_ipackets[i] == 0.0 ) {
+         pnetGLOB_net_idtsize[i] = 0.0;
+         pnetGLOB_net_ihdrovhd[i] = 0.0;
+      } else {
+         pnetGLOB_net_idtsize[i] = pnetGLOB_net_ioctets[i] / pnetGLOB_net_ipackets[i];
+         pnetGLOB_net_ihdrovhd[i] = 100 * (40 * pnetGLOB_net_ipackets[i] / ( 40 * pnetGLOB_net_ipackets[i] + pnetGLOB_net_ioctets[i] ));
+      }
+      if ( pnetGLOB_net_opackets[i] == 0.0 ) {
+         pnetGLOB_net_odtsize[i] = 0.0;
+         pnetGLOB_net_ohdrovhd[i] = 0.0;
+      } else {
+         pnetGLOB_net_odtsize[i] = pnetGLOB_net_ooctets[i] / pnetGLOB_net_opackets[i];
+         pnetGLOB_net_ohdrovhd[i] = 100 * (40 * pnetGLOB_net_opackets[i] / ( 40 * pnetGLOB_net_opackets[i] + pnetGLOB_net_ooctets[i] ));
+      }
+      /* save old */
+      pnetGLOB_save_nets[i] = interface;
+    }
+
+    /* update and return */
+    strncpy(name$, pnetGLOB_save_nets[i].name$, 12);
+    ipackets    = pnetGLOB_net_ipackets[i];
+    ierrors     = pnetGLOB_net_ierrors[i];
+    opackets    = pnetGLOB_net_opackets[i];
+    oerrors     = pnetGLOB_net_oerrors[i];
+    collisions  = pnetGLOB_net_collisions[i];
+    if (opackets > 0.0) {
+      collpercent = collisions * 100.0 / opackets;
+    } else {
+      collpercent = 0.0;
+    }
+    nocanput	= pnetGLOB_net_nocanput[i];
+    defer       = pnetGLOB_net_defer[i];
+    ioctets     = pnetGLOB_net_ioctets[i];
+    ooctets     = pnetGLOB_net_ooctets[i];
+    idtsize     = pnetGLOB_net_idtsize[i];
+    ihdrovhd    = pnetGLOB_net_ihdrovhd[i];
+    odtsize     = pnetGLOB_net_odtsize[i];
+    ohdrovhd    = pnetGLOB_net_ohdrovhd[i];
+    ifspeed     = pnetGLOB_save_nets[i].ifspeed;
+    iftype      = pnetGLOB_save_nets[i].iftype;
+    if (ifspeed != 0) {
+      utilization = (((ioctets + ooctets) * 8) * 100.0) / ifspeed;
+    } else {
+      utilization = 0.0;
+    }
+  }
+};
+
+#endif _P_NETSTAT_CLASS_SE_

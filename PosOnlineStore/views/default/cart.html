@@ -1,0 +1,13 @@
+{{extend 'layout.html'}}
+<h1>Your Shopping Cart</h1>
+<table width="100%">
+  {{for id, qty in cart.items():}}{{p=db.product(id)}}
+  <tr>
+    <td>{{=p.name}}</td>
+    <td>${{=p.price}}</td>
+    <td><span id="{{='item%s'%p.id}}">{{=qty}}</span>
+    {{=A('add',callback=URL('cart_callback',vars=dict(id=p.id,action='add')),target='item%s'%p.id,_class='button pill')}}{{=A('sub',callback=URL('cart_callback',vars=dict(id=p.id,action='sub')),target='item%s'%p.id,_class='button pill')}}</td>
+  </tr>
+  {{pass}}
+</table>
+<a href="{{=URL('buy')}}">checkout</a>

@@ -1,0 +1,16 @@
+{{extend 'layout.html'}}
+<form id="myform">
+   summary: <input name="summary" id="summary" /></br>
+   description: <input name="description" id="description" /></br>
+   owner <input name="owner" id="owner" /></br>
+<input type="submit" />
+</form>
+
+<div id="target">target</div>
+
+<script>
+jQuery('#myform').submit(function() {
+    ajax('{{=URL('postnew')}}',['summary','description','owner'], 'target');
+    return false;
+});
+</script>

@@ -1,0 +1,76 @@
+{{extend 'layout.html'}}
+
+<h1>Surveys</h1>
+
+<img src="{{=URL(r=request,c='static',f='surveys/survey.png')}}" align="right"/>
+
+<table><tr><td bgcolor="#dddddd">{{include 'gsearch.html'}}</td><td>
+
+<h2 onclick="collapse('owned');">Surveys you created</h2>
+[{{=A('create survey',_href=URL(r=request,f='create_survey'))}}]
+[{{=A('upload survey',_href=URL(r=request,f='upload_survey'))}}]
+<br/>
+{{if len(owned_surveys):}}
+<table id='owned'>
+ {{for row in owned_surveys:}}
+  <tr class="myitems" id="{{=row.title}}"><td>[S{{=row.id}}]</td><td>
+   <a href="#" onclick="$('#box{{=row.id}}').slideToggle();">{{=row.title}}</a>
+   active since {{=row.start}} until {{=row.stop}}<br/>
+   <div id="box{{=row.id}}" class="box">
+   {{=XML(row.description)}}
+   <br/>
+   [{{=A('take',_href=URL(r=request,f='survey',args=[row.id]))}}]
+   {{if row.owner==user_id:}}
+   [{{=A('change permissons',_href=URL(r=request,c='access',f='change',args=['folder',row.id],vars=dict(forward=URL(r=request))))}}]
+   [{{=A('edit cover',_href=URL(r=request,f='edit_survey',args=[row.id]))}}] 
+   [{{=A('edit questions',_href=URL(r=request,f='edit_questions',args=[row.id]))}}] 
+   [{{=A('report',_href=URL(r=request,f='report',args=[row.id]))}}]
+   [{{=A('stats',_href=URL(r=request,f='stats',args=[row.id]))}}]
+   [{{=A('save',_href=URL(r=request,f='save',args=[row.id,'survey_%i.pickle'%row.id]))}}]
+   {{pass}}
+  </div>
+  </td></tr>
+  <script>
+  $("#box{{=row.id}}").hide();
+  </script>
+ {{pass}}
+</table>
+{{else:}}
+You did not create any survey
+{{pass}}
+
+<br/><br/>
+
+{{if len(todo_surveys):}}
+<h2 onclick="collapse('todo');">Surveys you have not completed</h2>
+<table id='todo'>
+ {{for row in todo_surveys:}}
+  <tr><td>[S{{=row.survey.id}}]</td><td>
+   {{=A(row.survey.title,_href=URL(r=request,f='survey',args=[row.survey.id]))}}
+   </td><td>developed by <a href="mailto:{{=row.user.email}}">{{=row.user.name}}</a></td>
+   <td>active since {{=row.survey.start}} until {{=row.survey.stop}}</td>
+  </tr>
+ {{pass}}
+</table>
+{{else:}}
+There are no incomplete surveys
+{{pass}}
+
+<br/><br/>
+
+{{if len(done_surveys):}}
+<h2 onclick="collapse('done');">Surveys you have completed</h2>
+<table id='done'>
+ {{for row in done_surveys:}}
+  <tr><td>[S{{=row.survey.id}}]</td><td>
+   {{=A(row.survey.title,_href=URL(r=request,f='survey',args=[row.survey.id]))}}
+   </td><td>developed by <a href="mailto:{{=row.user.email}}">{{=row.user.name}}</a></td>
+   <td>active since {{=row.survey.start}} until {{=row.survey.stop}}</td>
+  </tr>
+ {{pass}}
+</table>
+{{else:}}
+There are no completed surveys
+{{pass}}
+
+</td></tr></table>

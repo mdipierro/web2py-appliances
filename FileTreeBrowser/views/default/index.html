@@ -1,0 +1,137 @@
+{{response.files.append(URL(r=request,c='static/Filetree',f='jqueryFileTree.css'))}}
+{{response.files.append(URL(r=request,c='static/Filetree',f='jqueryFileTree.js'))}}
+{{extend 'layout.html'}}
+
+
+
+		<script type="text/javascript">
+			
+$(document).ready( function() {
+    $('#FileTree').fileTree({
+        root: '/pictures',
+        script: 'dirlist',
+        expandSpeed: 1000,
+        collapseSpeed: 1000,
+        multiFolder: false
+    }, function(file) {
+        openFile(file);
+    });
+});
+
+
+function openFile(file) {
+
+  $(function () {
+    var img = new Image();
+ 
+    $(img).load(function () {
+	$(this).hide();
+	$('#content').empty();
+	$('#content').removeClass('loading').append(this);
+	$(this).fadeIn();
+      }).error(function () {
+	// notify the user that the image could not be loaded
+      }).attr('src', '/pictures/static'+file);
+  });
+
+}
+ 
+
+</script>
+
+<style type="text/css" media="screen">
+
+
+DIV#content {
+	width: 600px;
+	height: 400px;
+	border-top: solid 1px #BBB;
+	border-left: solid 1px #BBB;
+	border-bottom: solid 1px #BBB;
+	border-right: solid 1px #BBB;
+	background: #FFF;
+	padding: 5px;
+}
+
+
+DIV#content.loading {
+  background: url(/pictures/static/loading.gif) no-repeat center center;
+}
+
+.frame
+{
+	width: 300px;
+	height: 400px;
+	border-top: solid 1px #BBB;
+	border-left: solid 1px #BBB;
+	border-bottom: solid 1px #BBB;
+	border-right: solid 1px #BBB;
+	background: #FFF;
+	padding: 5px;
+}
+
+
+.picture
+{
+	width: 300px;
+	height: 400px;
+	border-top: solid 1px #BBB;
+	border-left: solid 1px #BBB;
+	border-bottom: solid 1px #BBB;
+	border-right: solid 1px #BBB;
+	background: #FFF;
+	padding: 5px;
+}
+
+table.sample {
+	border-width: 0px;
+	border-spacing: 0px;
+	border-style: none;
+	border-color: white;
+	border-collapse: separate;
+	background-color: white;
+}
+table.sample th {
+	border-width: 4px;
+	padding: 4px;
+	border-style: none;
+	border-color: white;
+	background-color: white;
+	-moz-border-radius: 0px 0px 0px 0px;
+}
+table.sample td {
+	border-width: 4px;
+	padding: 4px;
+	border-style: none;
+	border-color: white;
+	background-color: white;
+	-moz-border-radius: 0px 0px 0px 0px;
+}
+</style>
+
+
+
+
+
+<table class="sample">
+
+<tr>
+	
+	<td><div id="FileTree" class="frame"></div></td>
+	
+	<td><div id="content" class="loading"></div></td>
+</tr>
+</table>
+
+</style>
+
+[<a href="{{=URL(r=request,c='static',f='user_manual_license.pdf')}}">download manual</a>]
+
+
+
+
+
+
+
+
+

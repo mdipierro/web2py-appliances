@@ -1,0 +1,47 @@
+{{extend 'zlayout.html'}}
+
+<h2 class="fancy">{{=XML(T('pyForum Administration'))}}</h2>
+
+{{include 'zadmin/admin_options.html'}}
+
+<div style="margin-top:40px;margin-left:30px;">
+    <table cellspacing="0" cellpadding="0" class="zf-table">
+        <thead>
+            <tr class="shadedarker">
+                <th class="cell3d" colspan="2">pyForum Information</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{for key, value in pyforum_info.items():}}
+                <tr class="shadedark">
+                    <td class="cell3d">{{if key=='is_beta':}}Beta{{else:}}{{=key}}{{pass}}</td>
+                    <td class="cell3d" style="text-align:right;">{{=XML(value)}}</b></td>
+                </tr>
+            {{pass}}
+            <tr class="shadedark">
+                <td class="cell3d">Number of Categories</td>
+                <td class="cell3d" style="text-align:right;">{{=categories}}</td>
+            </tr>
+            <tr class="shadedark">
+                <td class="cell3d">Number of Forums</td>
+                <td class="cell3d" style="text-align:right;">{{=forums}}</td>
+            </tr>
+            <tr class="shadedark">
+                <td class="cell3d">Number of Topics</td>
+                <td class="cell3d" style="text-align:right;">{{=topics}}</td>
+            </tr>
+            <tr class="shadedark">
+                <td class="cell3d">Number of Responses</td>
+                <td class="cell3d" style="text-align:right;">{{=responses}}</td>
+            </tr>
+            <tr class="shadedark">
+                <td class="cell3d">Number of Topic Views</td>
+                <td class="cell3d" style="text-align:right;">{{=views}}</td>
+            </tr>
+            <tr class="shadedark">
+                <td class="cell3d">Registered Members</td>
+                <td class="cell3d" style="text-align:right;">{{=members}}</td>
+            </tr>        
+        </tbody>
+    </table>
+</div>

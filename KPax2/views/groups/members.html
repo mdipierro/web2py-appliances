@@ -1,0 +1,12 @@
+{{extend 'layout.html'}}
+<h1>Group Members</h1>
+[{{=A('email all',_href='mailto:'+','.join([a.auth_user.email for a in members]))}}]
+<br/><br/>
+<form method="post">
+{{for a in members:}}
+<!--input type="checkbox" name="{{=a.auth_user.id}}"/-->
+{{=a.auth_user.name}} &lt;{{=A(a.auth_user.email,_href="mailto:"+a.auth_user.email)}}&gt;
+<br/>
+{{pass}}
+<br/>
+</form>

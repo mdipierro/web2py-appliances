@@ -1,0 +1,11 @@
+<div class="plugin_tagging">
+{{=form.custom.begin}}
+{{for link in links:}}
+<span>{{=A(link.tag.name,_href=URL(r=request,c='plugin_wiki',f='page',args=('tag',link.tag)))}}</span>
+<input type="checkbox" name="delete{{=link.id}}" />
+{{pass}}
+{{if links:}}<input type="submit" value="del"/>{{pass}}
+<input name="tag_name" value="" size="5" />
+<input type="submit" value="tag" />
+{{=form.custom.end}}
+</div>

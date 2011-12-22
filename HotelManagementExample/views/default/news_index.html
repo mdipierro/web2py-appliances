@@ -1,0 +1,54 @@
+{{extend 'layout.html'}}
+
+{{=DIV(menu)}}
+
+{{=DIV(H1(title))}}
+
+<form>
+    <input type="hidden" id="id" name="id" value="" />
+</form>
+
+{{for i, row in enumerate(rows):}}
+    {{if i == items_per_page: break}}
+    
+    {{=DIV(A(row.title, 
+             _href = URL(show_link, 
+                         args = row.id), 
+           _title = row.title))}}
+    {{=DIV(row.content)}}
+    {{=DIV(db.news_category[row.category_id].category)}}
+    
+    {{=SPAN(row.like, 
+            _id = 'news_like_%s' % row.id)}}
+    {{=SPAN(T('People Like This'))}}
+    
+    <span onclick="jQuery('#id').val('{{=row.id}}');
+                   ajax('{{=URL('news_like.load')}}', ['id'], 'news_like_{{=row.id}}');">
+    {{=A(T('Like'), 
+         _href = '#')}}
+    </span>
+
+    {{=LOAD('default', 
+            'news_comment_show.load', 
+            args = row.id, 
+            ajax = True)}}
+
+    {{=LOAD('default', 
+            'news_comment_add.load', 
+            args = row.id, 
+            ajax = True)}}
+            
+    {{=BR()}}
+{{pass}}
+
+{{if page:}}
+    {{=A(T('Previous'), 
+         _href = URL(args = [page - 1]), 
+         _title = T('Previous'))}}
+{{pass}}
+
+{{if len(rows) > items_per_page:}}
+    {{=A(T('Next'), 
+         _href = URL(args = [page + 1]), 
+         _title = T('Next'))}}
+{{pass}}

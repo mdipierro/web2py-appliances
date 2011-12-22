@@ -1,0 +1,10 @@
+{{response.files.append(URL(r=request,c='static',f='processing.min.js'))}}
+{{response.files.append(URL(r=request,c='static',f='processing.init.js'))}}
+{{extend 'layout.html'}}
+<center>
+{{=XML(obj.xml())}}
+</center>
+The angular size of the slices represnts the trading volume over the last year.
+The width of the slice represents the return compared with 0 return (the white circle).
+The color of the small circles represents risk (more red, more risk).
+The lines connecting the circle indicate correlations (more red more correlation, more blue more anti-correlation)

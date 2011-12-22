@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+    <rdf:RDF xmlns:rdf ="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+             xmlns:owl ="http://www.w3.org/2002/07/owl#">
+
+{{if request.function=='index':}}
+    {{for table in db.tables:}}
+        {{if hasattr(db[table],"rdf_id"):}}
+        <rdf:Class rdf:ID="{{=db[table].rdf_id}}"
+                   rdf:resource="{{=URL(r=request,c='default',f='rdf_class',args=table)}}.rdf"/>
+        {{pass}}
+    {{pass}}
+{{pass}}
+
+<!--
+{{elif request.function=='rdf_class':}}
+    <rdf blah="{{=[request.args[0]}}"/>
+    {{if hasattr(db[request.args[0]],"rdf_id"):}}
+        {{for row in db().select(db[request.args[0]].ALL):}}
+            <rdf:Individual rdf:name="{{=request.args[0]}}"
+                            rdf:resource="{{=URL(r=request,c='default',f=table,args=row.id)}}.rdf"/>
+        {{pass}}
+    {{pass}}
+-->
+
+    </rdf:RDF>

@@ -1,0 +1,62 @@
+{{extend 'zlayout.html'}}
+
+<h2 class="fancy">{{=XML(T('pyForum - Manage Categories'))}}</h2>
+
+{{include 'zadmin/admin_options.html'}}
+
+{{if view_info.has_key('sort_saved'):}}<p class="information">{{=XML(T('Categories have been re-sorted'))}}</p>{{pass}}
+
+{{if view_info['errors']:}}
+    <p class="error">{{=XML(T('There were some errors while processing your request, please correct the following'))}}:</p>
+    <ul>
+        {{for err in view_info['errors']:}}
+            <li class="error">{{=err}}</li>
+        {{pass}}
+    </ul>
+{{pass}}
+
+{{if categories:}}
+    <form id="cat_handling_form" method="post" action="">
+    <fieldset id="cat_handling_form_fields">
+        <input type="hidden" id="form_submitted" name="form_submitted" value="1" />
+        <table cellspacing="0" cellpadding="0" class="zf-table max-width">
+        <thead>
+            <tr class="shadedarker">
+                <th class="cell3d">{{=XML(T('Order'))}}</th>
+                <th class="cell3d">{{=XML(T('Title'))}}</th>
+                <th class="cell3d">{{=XML(T('Description'))}}</th>
+                <th class="cell3d">{{=XML(T('Visible To'))}}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{for idx, cat in enumerate(categories):}}
+                <tr class="{{if idx%2:}}shadedark{{else:}}shadelight{{pass}}">
+                    <td class="cell3d">
+                        <input type="text" id="cat_id_{{=cat.id}}" name="cat_id_{{=cat.id}}" value="{{=cat.cat_sort}}" style="width:50px;" />
+                    </td>
+                    <td class="cell3d">
+                        <a href="{{=URL(r=request, c='zadmin', f='edit_category', args=[cat.id])}}" title="{{=XML(T('Edit This Category'))}}">{{=cat.cat_name}}</a></td>
+                    <td class="cell3d">{{=cat.cat_desc}}</td>
+                    <td class="cell3d">{{if cat.cat_visible_to:}}{{=cat.cat_visible_to}}{{else:}}<b class="warning">{{=XML(T('Publicly Visible'))}}</b>{{pass}}</td>
+                </tr>
+            {{pass}}
+        </tbody>
+        </table>
+
+        <div class="top-separator">
+            <input type="submit" id="save_sort" name="save_sort" value="{{=XML(T('Save Sort Order'))}}" />
+            <input type="submit" id="add_cat" name="add_cat" value="{{=XML(T('Add New Category'))}}" />
+        </div>
+    </fieldset>
+    </form>
+{{else:}}
+    <p>{{=XML(T('No categories Found'))}}.</p>
+    <form id="cat_handling_form" method="post" action="">
+        <fieldset id="cat_handling_form_fields">
+            <input type="hidden" id="form_submitted" name="form_submitted" value="1" />
+            <div class="top-separator">
+                <input type="submit" id="add_cat" name="add_cat" value="{{=XML(T('Add New Category'))}}" />
+            </div>
+        </fieldset>
+    </form>
+{{pass}}

@@ -1,0 +1,36 @@
+{{extend 'layout.html'}}
+<script src="/{{=request.application}}/static/nicEdit.js" type="text/javascript"></script>
+<script><!--
+$(document).ready(function(){
+{{if question.type=='long text':}}
+new nicEditor({fullPanel : true, iconsPath : '/{{=request.application}}/static/nicEditorIcons.gif'}).panelInstance('answer_long_text');
+{{pass}}
+$('#question').hide().fadeIn('slow');
+$('#comment_slide').slideUp();
+});
+//--></script>
+<table width="100%"><tr><td>
+{{k=0}}
+{{for i,q in enumerate(questions):
+  if q.id==question.id: k=i
+pass}}
+</td></tr></table>
+<table width="100%">
+<tr><td width="300px">
+<ul class="myQuestions" id="myQuestions">
+{{for i,q in enumerate(questions):}}
+{{=LI(A('%i) %s'%(i+1,q.title),_href=URL(r=request,args=[request.args[0],q.id])),_class='myQuestionOn' if q.id==question.id else 'myQuestion')}}
+{{pass}}
+</ul>
+</td><td><div id="question">
+<h2>{{=k+1}}) {{=question.title}}</h2>
+<p>{{=XML(question.body)}}</p>
+<div>
+{{=form}}
+</div>
+</td></tr>
+</table>
+
+
+
+

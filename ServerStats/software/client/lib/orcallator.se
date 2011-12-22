@@ -1,0 +1,2490 @@
+//
+// Orcallator.se, a log generating performance monitor.
+//
+// This program logs many different system quantities to a log file
+// for later processing.
+//
+// Author: Blair Zajac <blair@orcaware.com>.
+//
+// Portions copied from percollator.se written by Adrian Cockroft.
+//
+// $HeadURL: file:///var/www/svn/repositories-public/orcaware-public/orca/trunk/data_gatherers/orcallator/orcallator.se $
+// $LastChangedDate: 2008-05-01 13:06:58 -0700 (Thu, 01 May 2008) $
+// $LastChangedBy: dam@baltic-online.de $
+// $LastChangedRevision: 535 $
+//
+// Revision history for this file can be retrieved by running svn log
+// on the HeadURL listed above.
+//
+
+// The default sampling interval in seconds.
+#define SAMPLE_INTERVAL         300
+
+// The maximum number of columns of data.
+#define MAX_COLUMNS             2048
+
+// Enable kstat io measuring code.
+#ifndef NO_KSTAT_IO
+#define USE_KSTAT_IO            1
+#endif
+
+// If WATCH_OS is defined, then measure every part of the operating
+// system.
+#ifdef WATCH_OS
+#define WATCH_CPU               1
+#define WATCH_MUTEX             1
+#define WATCH_NET               1
+#define WATCH_TCP               1
+#define WATCH_UDP               1
+#define WATCH_NFS_CLIENT        1
+#define WATCH_NFS_SERVER        1
+#define WATCH_MOUNTS            1
+#define WATCH_IO                1
+#define WATCH_DNLC              1
+#define WATCH_INODE             1
+#define WATCH_RAM               1
+#define WATCH_PAGES             1
+#endif
+
+#ifdef WATCH_IO
+#define WATCH_DISK              1
+#define WATCH_TAPE              1
+#endif
+
+#ifdef WATCH_IO_ALL
+#define WATCH_IO_EXTENDED        1
+#define WATCH_IO_EXTENDED_TOTALS 1
+#endif
+
+#ifdef WATCH_IO_EXTENDED
+#define WATCH_DISK_EXTENDED     1
+#define WATCH_TAPE_EXTENDED     1
+#endif
+
+#ifdef WATCH_IO_EXTENDED_TOTALS
+#define WATCH_DISK_EXTENDED_TOTALS 1
+#define WATCH_TAPE_EXTENDED_TOTALS 1
+#endif
+
+// Keep backwards compatibility with WATCH_HTTPD.
+#ifdef WATCH_HTTPD
+#define WATCH_WEB               1
+#endif
+
+// Keep backwards compatibility with WATCH_NFS.
+#ifdef WATCH_NFS
+#ifndef WATCH_NFS_CLIENT
+#define WATCH_NFS_CLIENT        1
+#endif
+#endif
+
+#include <stdio.se>
+#include <stdlib.se>
+#include <unistd.se>
+#include <string.se>
+#include <time.se>
+#include <kstat.se>
+#include <stat.se>
+#include <utsname.se>
+
+#include <p_iostat_class.se>
+//#include <p_netstat_class.se>
+#include <orca_p_netstat_class.se>
+//#include <p_vmstat_class.se>
+#include <orca_p_vmstat_class.se>
+#include <pure_rules.se>
+#include <live_rules.se>
+#include <mib.se>
+#include <tcp_class.se>
+#include <tcp_rules.se>
+
+#ifdef WATCH_WORKLOAD
+#include <workinfo_class.se>
+#endif
+
+#ifdef WATCH_MOUNTS
+#include <mnt_class.se>
+#include <statvfs.se>
+#endif
+
+#if WATCH_CPU || WATCH_WEB
+#include <proc.se>
+
+#ifdef WATCH_CPU
+// This is the maximum pid on Solaris hosts.
+#define DEFAULT_MAXPID 30000
+#include <fcntl.se>
+#endif
+
+#ifdef WATCH_WEB
+
+// Define this macro which returns the size index for a file of a
+// particular size.  This saves the overhead of a function call.
+#define WWW_SIZE_INDEX(size, size_index)                        \
+  if (size < 1024) {                                            \
+    size_index=0;               /* Under 1KB   */               \
+  } else {                                                      \
+    if (size < 10240) {                                         \
+      size_index=1;             /* Under 10K   */               \
+    } else {                                                    \
+      if (size < 102400) {                                      \
+        size_index=2;           /* Under 100KB */               \
+      } else {                                                  \
+        if (size < 1048576) {                                   \
+          size_index=3;         /* Under 1MB   */               \
+        } else {                                                \
+          size_index=4;         /* Over 1MB    */               \
+        }                                                       \
+      }                                                         \
+    }                                                           \
+  }                                                             \
+  dwnld_size[size_index]++;
+
+// Handle the reply code from the server.
+#define WWW_REPLY_CODE(word)                                    \
+  if (word == "304") {                                          \
+    httpop_condgets++;                                          \
+  }                                                             \
+  else {                                                        \
+    first_byte = word;                                          \
+    if (first_byte[0] == '4' || first_byte[0] == '5') {         \
+      httpop_errors++;                                          \
+    }                                                           \
+  }                                                             \
+
+// Handle the method of the object served.  This define only works
+// with non-proxy servers.
+#define WWW_METHOD1(word)                                       \
+  switch (word) {                                               \
+    case "get":                                                 \
+    case "GET":                                                 \
+      httpop_gets++;                                            \
+      break;                                                    \
+    case "post":                                                \
+    case "POST":                                                \
+      httpop_posts++;                                           \
+      break;                                                    \
+    case "head":                                                \
+    case "HEAD":                                                \
+      ishead = 1;                                               \
+      httpop_condgets++;                                        \
+      break;
+
+#ifdef WATCH_SQUID
+#define WWW_METHOD2                                             \
+    case "icp_query":                                           \
+    case "ICP_QUERY":                                           \
+      squid_icp_queries++;                                      \
+      break;
+#else
+#define WWW_METHOD2
+#endif
+
+#define WWW_METHOD_END                                          \
+    default:                                                    \
+      break;                                                    \
+  }
+#define WWW_METHOD(word) WWW_METHOD1(word) WWW_METHOD2 WWW_METHOD_END
+#endif
+#endif
+
+// Put all rules here so they can be accessed by the handle functions.
+lr_cpu_t        lr_cpu$cpu;
+lr_cpu_t        tmp_lr_cpu;
+lr_mutex_t      lr_mutex$m;
+lr_mutex_t      tmp_lr_mutex;
+lr_net_t        lr_net$nr;
+lr_net_t        tmp_lr_net;
+lr_tcp_t        lr_tcp$tcp;
+lr_tcp_t        tmp_lr_tcp;
+lr_rpcclient_t  lr_rpcclient$r;
+lr_rpcclient_t  tmp_lr_rpcclient;
+lr_disk_t       lr_disk$dr;
+lr_disk_t       tmp_lr_disk;
+lr_dnlc_t       lr_dnlc$dnlc;
+lr_dnlc_t       tmp_lr_dnlc;
+lr_inode_t      lr_inode$inode;
+lr_inode_t      tmp_lr_inode;
+lr_ram_t        lr_ram$ram;
+lr_ram_t        tmp_lr_ram;
+lr_swapspace_t  lr_swapspace$s;
+lr_swapspace_t  tmp_lr_swapspace;
+lr_kmem_t       lr_kmem$kmem;
+lr_kmem_t       tmp_lr_kmem;
+
+ks_system_misc  kstat$misc;
+ks_system_misc  tmp_kstat_misc;
+#ifdef WATCH_TCP
+tcp             tcp$tcp;
+tcp             tmp_tcp;
+#endif
+#ifdef WATCH_UDP
+mib2_ip_t       mib$ip;
+mib2_ip_t       tmp_mib_ip;
+mib2_udp_t      mib$udp;
+mib2_udp_t      tmp_mib_udp;
+#endif
+#ifdef WATCH_PAGES
+ks_system_pages kstat$pages;
+ks_system_pages tmp_kstat_pages;
+#endif
+
+// Put application globals here.
+string          nodename;                   // Name of this machine.
+string          program_name;               // Name of this program.
+int             hz;                         // Clock tick rate.
+int             page_size;                  // Page size in bytes.
+long            boot_time;                  // Boot time of the system.
+long            interval = SAMPLE_INTERVAL; // Sampling interval.
+
+#ifdef WATCH_CPU
+int             can_read_kernel = 0;        // If the kernel can be read.
+int             kvm$mpid;                   // The last created PID.
+
+// These variables store the mpid before and after the standard interval.
+int             mpid_previous;
+int             mpid_current;
+ulonglong       mpid_then;
+ulonglong       mpid_now;
+
+// These variables store the mpid before and after 5 second intervals.
+int             mpid5_previous;
+int             mpid5_current;
+ulonglong       mpid5_then;
+ulonglong       mpid5_now;
+double          mpid5_rate;
+#endif
+
+#ifdef WATCH_MOUNTS
+mnttab_t        mnt$mnt;
+mnttab_t        tmp_mnt;
+#endif
+
+#ifdef WATCH_NFS_SERVER
+ks_nfs_server   kstat$nfs;
+ks_nfs_server   tmp_nfs;
+ks_rfs_proc_v2  kstat$rfsproccnt_v2;
+ks_rfs_proc_v2  tmp_rfsproccnt_v2;
+ks_rfs_proc_v3  kstat$rfsproccnt_v3;
+ks_rfs_proc_v3  tmp_rfsproccnt_v3;
+#endif
+
+// Variables for handling the httpd access log.
+#ifdef WATCH_WEB
+string          www_search_url              = getenv("SEARCHURL");
+string          www_server_proc_name        = getenv("WEB_SERVER");
+string          www_server_secure_proc_name = getenv("WEB_SERVER_SECURE");
+string          www_log_filename            = getenv("WEB_LOG");
+string          www_gateway                 = getenv("GATEWAY");
+ulong           www_log_fp;
+uint            www_gatelen;
+stat_t          www_log_stat[1];
+ulong           www_log_ino;
+long            www_log_size;
+
+double          www_interval;               // Hi-res interval time.
+ulonglong       www_then;
+ulonglong       www_now;
+
+double          www5_interval;              // Actual hi-res 5 second interval.
+ulonglong       www5_then;
+ulonglong       www5_now;
+
+double          httpops;
+double          httpops5;
+double          gateops;
+double          dtmp;
+
+long            httpop_gets;
+long            httpop_condgets;  // HEAD or code = 304 conditional get no data.
+long            httpop_posts;
+long            httpop_cgi_bins;
+long            httpop_searches;
+long            httpop_errors;
+long            dwnld_size[5];    // [0]<1K, [1]<10K, [2]<100K, [3]<1M, [4]>=1M
+long            dwnld_totalz;     // Total size counted from log.
+
+#if WATCH_PROXY || WATCH_SQUID || WATCH_YAHOO
+// If we're watching a Yahoo log, then take the transfer time to be the
+// processing time.
+double          www_dwnld_time_sum;        // Transfer time.
+double          www_dwnld_time_by_size[5]; // Mean transfer time by size bin.
+#endif
+#if WATCH_PROXY || WATCH_SQUID
+long            prxy_squid_indirect;   // # hits that go via PROXY,SOCKS,parent
+long            prxy_squid_cache_hits; // # hits returned from cache.
+#endif
+
+#ifdef WATCH_PROXY
+long            prxy_cache_writes; // Number of writes and updates to cache.
+long            prxy_uncacheable;  // Number of explicitly uncacheable httpops.
+                                   // Any extra is errors or incomplete ops.
+#endif
+
+#ifdef WATCH_SQUID
+long            squid_cache_misses;
+long            squid_icp_requests;
+long            squid_icp_queries;
+long            squid_client_http;
+#endif
+
+#endif
+
+#ifdef USE_KSTAT_IO
+#include <sys_kstat.se>
+#include <tapeinfo.se>
+// The following code collects performance data for disk and/or tape devices
+// by accessing kstat interface directly. It was originally developed to
+// overcome limitation of GLOBAL_disk[] array populated in live_rules.se.
+struct io_dev_info_t {
+  // Exposed interface that matches kstat.
+  string        long_name;      // Long device name (cXtXdX, /dev/rmtXX)
+  string        short_name;     // Short device name (sdXX, stXX)
+  string        dev_class;      // Device class (disk, tape)
+  double        reads;
+  double        kreads;
+  double        writes;
+  double        kwrites;
+  double        avg_wait;       // Wait queue length
+  double        avg_run;        // Active queue length
+  double        avg_wait_time;  // Wait time in ms
+  double        avg_serv_time;  // Active service time in ms
+  double        service;        // Response time (avg_wait_time+avg_serv_time)
+  double        wait_percent;
+  double        run_percent;    // a.k.a utilization
+
+  // Hidden internal registers to track sys_kstats counters.
+  int           _number;        // kstat disk #
+  ulonglong     _nread;         // Number of bytes read
+  ulonglong     _nwritten;      // Number of bytes written
+  uint          _reads;         // Number of read operations
+  uint          _writes;        // Number of write operations
+  longlong      _wtime;         // Cumulative wait (pre-service) time
+  longlong      _wlentime;      // Cumulative wait length*time product
+  longlong      _wlastupdate;   // Last time wait queue changed
+  longlong      _rtime;         // Cumulative run (service) time
+  longlong      _rlentime;      // Cumulative run length*time product
+  longlong      _rlastupdate;   // Last time run queue changed
+  uint          _wcnt;          // Count of elements in wait state
+  uint          _rcnt;          // Count of elements in run state
+};
+
+// SE appears to have a bug - occasionally kio.nread is erroneously set to 0.
+// This function is used to re-read data for a given kstat.
+ulong get_new_kstat_data(kstat_t okp[1]) {
+  ulong         ul;
+  kstat_ctl_t   kc[1];
+  kstat_t       nkp[1];
+  kstat_t       rkp[1];
+
+  // Return old data if no match found
+  rkp = okp;
+  // Initialize kstat control structure
+  kc[0] = kstat_open();
+  // Traverse the chain looking for matching kstat
+  for (ul=kc[0].kc_chain; ul!=0; ul=nkp[0].ks_next) {
+    nkp[0] = *((kstat_t *) ul);
+    if (nkp[0].ks_type     == okp[0].ks_type &&
+        nkp[0].ks_class    == okp[0].ks_class &&
+        nkp[0].ks_name     == okp[0].ks_name &&
+        nkp[0].ks_instance == okp[0].ks_instance ) {
+      if (kstat_read(kc, nkp, 0) == -1) {
+        perror("get_new_kstat_data:kstat_read error");
+        exit(1);
+      }
+      rkp = nkp;
+      break;
+    }
+  }
+  kstat_close(kc);
+  return  rkp[0].ks_data;
+}
+
+// Define globals for tracking kstat io data.
+io_dev_info_t   ORCA_io_dev_info[];
+int             ORCA_io_dev_count=0;
+int             ORCA_max_io_dev_count=0;
+
+orca_io_info_update() {
+  int           iodev;
+  int           index;
+  ulong         ul;
+  kstat_ctl_t   kc[1];
+  kstat_t       nkp[1];
+  kstat_io_t    kio;
+
+  double        read_writes;
+  double        big_etime;
+  double        elapsed_etime;
+  double        hz_etime;
+
+  // Initialize kstat control structure
+  kc[0] = kstat_open();
+  // Traverse the chain looking for IO events for disk and tape devices
+  for (ul=kc[0].kc_chain; ul!=0; ul=nkp[0].ks_next) {
+    nkp[0] = *((kstat_t *) ul);
+    if (nkp[0].ks_type == KSTAT_TYPE_IO &&
+#if defined (WATCH_DISK) && defined (WATCH_TAPE)
+        (nkp[0].ks_class == "disk" || nkp[0].ks_class == "tape")) {
+#elif defined (WATCH_TAPE)
+        nkp[0].ks_class == "tape") {
+#else
+        nkp[0].ks_class == "disk") {
+#endif
+      // Get data from the kernel for this kstat
+      if (kstat_read(kc, nkp, 0) == -1) {
+        perror("orca_io_info_update:kstat_read error");
+        exit(1);
+      }
+      kio = *((kstat_io_t *) nkp[0].ks_data);
+
+      // Try to locate device in our array
+      for (iodev=0; iodev < ORCA_io_dev_count; ++iodev) {
+        if (ORCA_io_dev_info[iodev].short_name == nkp[0].ks_name) {
+          break;
+        }
+      }
+
+      // It must be new. Add it!
+      if (iodev == ORCA_io_dev_count) {
+        // Grow the device array if needed
+        if (ORCA_io_dev_count == ORCA_max_io_dev_count) {
+          ORCA_max_io_dev_count += 10;
+          ORCA_io_dev_info = renew ORCA_io_dev_info[ORCA_max_io_dev_count];
+        }
+        // Lookup index into GLOBAL_disk/tape_info array
+        if (nkp[0].ks_class == "tape") {
+          index = find_tape_inst(nkp[0].ks_name);
+        } else {
+          index = find_inst(nkp[0].ks_name);
+        }
+        if (index != -1) {
+          if (nkp[0].ks_class == "tape") {
+            ORCA_io_dev_info[iodev].long_name = GLOBAL_tape_info[index].long_name;
+          } else {
+            ORCA_io_dev_info[iodev].long_name = GLOBAL_disk_info[index].long_name;
+          }
+        } else {
+          ORCA_io_dev_info[iodev].long_name = nkp[0].ks_name;
+        }
+        ORCA_io_dev_info[iodev].short_name   = nkp[0].ks_name;
+        ORCA_io_dev_info[iodev].dev_class    = nkp[0].ks_class;
+
+        // Check if kio data is valid, and re-read kstat if it is not.
+        // At this time, only kio.nread appears to have occasional problems,
+        // but we check the other three just in case.
+        // It is possible for these statistics to be 0, in such case
+        // kio data will remain the same.
+        if (kio.writes == 0 || kio.nwritten == 0 ||
+            kio.reads  == 0 || kio.nread    == 0) {
+          kio = *((kstat_io_t *) get_new_kstat_data(nkp));
+        }
+
+        ORCA_io_dev_info[iodev]._writes      = kio.writes;
+        ORCA_io_dev_info[iodev]._nwritten    = kio.nwritten;
+        ORCA_io_dev_info[iodev]._wlastupdate = kio.wlastupdate;
+        ORCA_io_dev_info[iodev]._wlentime    = kio.wlentime;
+        ORCA_io_dev_info[iodev]._wtime       = kio.wtime;
+        ORCA_io_dev_info[iodev]._wcnt        = kio.wcnt;
+        ORCA_io_dev_info[iodev]._reads       = kio.reads;
+        ORCA_io_dev_info[iodev]._nread       = kio.nread;
+        ORCA_io_dev_info[iodev]._rlastupdate = kio.rlastupdate;
+        ORCA_io_dev_info[iodev]._rlentime    = kio.rlentime;
+        ORCA_io_dev_info[iodev]._rtime       = kio.rtime;
+        ORCA_io_dev_info[iodev]._rcnt        = kio.rcnt;
+        ORCA_io_dev_count++;
+      }
+      // Check if kio data is valid, and re-read kstat if it is not.
+      // At this time, only kio.nread appears to have occasional problems,
+      // but we check the other three just in case.
+      if (kio.writes   < ORCA_io_dev_info[iodev]._writes ||
+          kio.nwritten < ORCA_io_dev_info[iodev]._nwritten ||
+          kio.reads    < ORCA_io_dev_info[iodev]._reads ||
+          kio.nread    < ORCA_io_dev_info[iodev]._nread) {
+        kio = *((kstat_io_t *) get_new_kstat_data(nkp));
+      }
+
+      elapsed_etime = (kio.wlastupdate-ORCA_io_dev_info[iodev]._wlastupdate);
+      if (elapsed_etime == 0) {
+        elapsed_etime = NANOSEC;
+      }
+      hz_etime = elapsed_etime / NANOSEC;
+      big_etime = 1024.0 * hz_etime;
+
+      ORCA_io_dev_info[iodev].reads  =(kio.reads-ORCA_io_dev_info[iodev]._reads)      /hz_etime;
+      ORCA_io_dev_info[iodev].kreads =(kio.nread-ORCA_io_dev_info[iodev]._nread)      /big_etime;
+      ORCA_io_dev_info[iodev].writes =(kio.writes-ORCA_io_dev_info[iodev]._writes)    /hz_etime;
+      ORCA_io_dev_info[iodev].kwrites=(kio.nwritten-ORCA_io_dev_info[iodev]._nwritten)/big_etime;
+
+      ORCA_io_dev_info[iodev].avg_wait=(kio.wlentime-ORCA_io_dev_info[iodev]._wlentime)/elapsed_etime;
+      ORCA_io_dev_info[iodev].avg_run =(kio.rlentime-ORCA_io_dev_info[iodev]._rlentime)/elapsed_etime;
+
+      read_writes = (ORCA_io_dev_info[iodev].reads + ORCA_io_dev_info[iodev].writes) / 1000.0;
+      if (read_writes > 0) {
+        ORCA_io_dev_info[iodev].avg_wait_time = ORCA_io_dev_info[iodev].avg_wait / read_writes;
+        ORCA_io_dev_info[iodev].avg_serv_time = ORCA_io_dev_info[iodev].avg_run  / read_writes;
+        ORCA_io_dev_info[iodev].service  = ORCA_io_dev_info[iodev].avg_wait_time + ORCA_io_dev_info[iodev].avg_serv_time;
+      } else {
+        ORCA_io_dev_info[iodev].avg_wait_time = 0.0;
+        ORCA_io_dev_info[iodev].avg_serv_time = 0.0;
+        ORCA_io_dev_info[iodev].service  = 0.0;
+      }
+
+      // Update the counters.
+      ORCA_io_dev_info[iodev].run_percent  = 100.0 * (kio.rtime - ORCA_io_dev_info[iodev]._rtime) / elapsed_etime;
+      ORCA_io_dev_info[iodev].wait_percent = 100.0 * (kio.wtime - ORCA_io_dev_info[iodev]._wtime) / elapsed_etime;
+      ORCA_io_dev_info[iodev]._writes      = kio.writes;
+      ORCA_io_dev_info[iodev]._nwritten    = kio.nwritten;
+      ORCA_io_dev_info[iodev]._wlastupdate = kio.wlastupdate;
+      ORCA_io_dev_info[iodev]._wlentime    = kio.wlentime;
+      ORCA_io_dev_info[iodev]._wtime       = kio.wtime;
+      ORCA_io_dev_info[iodev]._wcnt        = kio.wcnt;
+      ORCA_io_dev_info[iodev]._reads       = kio.reads;
+      ORCA_io_dev_info[iodev]._nread       = kio.nread;
+      ORCA_io_dev_info[iodev]._rlastupdate = kio.rlastupdate;
+      ORCA_io_dev_info[iodev]._rlentime    = kio.rlentime;
+      ORCA_io_dev_info[iodev]._rtime       = kio.rtime;
+      ORCA_io_dev_info[iodev]._rcnt        = kio.rcnt;
+    }
+  }
+  kstat_close(kc);
+}
+#endif // USE_KSTAT_IO
+
+// Variables for handling output.
+string  compress = getenv("COMPRESSOR");   // How to compress logs.
+ulong   out_log_fp;                        // File pointer to the logging file.
+string  col_comment[MAX_COLUMNS];          // Comments for each column.
+string  col_data[MAX_COLUMNS];             // Data for each column.
+string  col_previous_comment[MAX_COLUMNS]; // Previous comments.
+int     current_column = 0;                // The current column.
+int     previous_number_columns = -1;      // Number columns printed last.
+int     print_header = 1;                  // Flag to flush header.
+
+// This is a list of the extensions the compress programs add to the
+// compress filename.
+#define NUMBER_COMPRESS_SUFFIXES 3
+string  compression_suffixes[NUMBER_COMPRESS_SUFFIXES] = {".Z",
+                                                          ".gz",
+                                                          ".bz2"};
+
+// Add one column of comments and data to the buffers.
+put_output(string comment, string data)
+{
+  if (current_column >= MAX_COLUMNS) {
+    fprintf(stderr, "%s: too many columns (%d).  Increase MAX_COLUMNS.\n",
+                program_name, current_column);
+    exit(1);
+  }
+
+  col_comment[current_column] = comment;
+  col_data[current_column]    = data;
+  current_column++;
+}
+
+// Send the stored columns of information to the output.
+print_columns(string data[])
+{
+  int i;
+  for (i=0; i<current_column; ++i) {
+    fprintf(out_log_fp, "%s", data[i]);
+    if (i != current_column-1) {
+      fputc(' ', out_log_fp);
+    }
+  }
+  fputc('\n', out_log_fp);
+  fflush(out_log_fp);
+}
+
+// Flush all of the stored output.
+print_output() {
+  if (print_header != 0) {
+    print_columns(col_comment);
+    print_header = 0;
+  }
+  print_columns(col_data);
+
+  // Save the current number of columns stored and the column names so
+  // that the next set can be compared with to determine if the
+  // headers should be printed again.
+  col_previous_comment    = col_comment;
+  previous_number_columns = current_column - 1;
+  current_column          = 0;
+}
+
+// Sets out_log_fp to the output file pointer.  Creates or appends to
+// the log file if OUTDIR is set, otherwise sets the file pointer to
+// STDOUT.  It start a new log file each day.  It compresses the
+// previous days log file if the environmental variable COMPRESSOR is
+// set.
+check_output_log_filename(tm_t now) {
+  string        output_directory = getenv("OUTDIR");
+  string        output_filename;
+  string        compressed_filename;
+  stat_t        log_file_stat[1];
+  tm_t          then;
+  char          tm_buf[32];
+  int           file_number;
+  int           need_new_log_file;
+  int           exists_uncompressed;
+  int           exists_compressed;
+  int           result;
+  int           i;
+
+  if (output_directory == nil) {
+    // No output directory so use stdout.
+    if (out_log_fp == 0) {
+      //  First time, so print header and set out_log_fp.
+      out_log_fp   = stdout;
+      print_header = 1;
+    }
+    return;
+  }
+
+  // Check if a new output log is needed.  This happens when the day
+  // changes, if the number of columns changes or if the column
+  // comments change since the last measurement.
+  if (now.tm_yday             != then.tm_yday ||
+      previous_number_columns != (current_column - 1)) {
+    need_new_log_file = 1;
+  } else {
+    need_new_log_file = 0;
+    for (i=0; i<current_column; ++i) {
+      if (col_comment[i] != col_previous_comment[i]) {
+        need_new_log_file = 1;
+        break;
+      }
+    }
+  }
+
+  // Maintain daily output log files in OUTDIR.
+  if (need_new_log_file != 0) {
+    // Close and optionally compress the existing output file.  The
+    // first time through out_log_fp will be 0.
+    if (out_log_fp != 0) {
+      if (fclose(out_log_fp) != 0) {
+        perror("cannot close output log file");
+      }
+      if (compress != nil) {
+        system(sprintf(compress, output_filename));
+      }
+    }
+
+    // Get the new filename.  Check for already existing uncompressed
+    // log filenames and compressed log filenames.
+    strftime(tm_buf, sizeof(tm_buf), "%Y-%m-%d", now);
+
+    // If the previous log filename has the same date, then increment
+    // the file number, otherwise reset it to 0.  The first time
+    // through, output_filename will be nil.
+    if (nil != output_filename && output_filename =~ tm_buf) {
+      file_number++;
+    } else {
+      file_number = 0;
+    }
+
+    while (1 == 1) {
+
+      // Check for the existence of uncompressed and compressed log
+      // files.  If there is an uncompressed log file but no
+      // compressed ones, then compress it in the background.  If
+      // either an uncompressed or compressed log file exist, then
+      // check the next file number.
+      output_filename = sprintf("%s/orcallator-%s-%03d", output_directory,
+                                                         tm_buf,
+                                                         file_number);
+      result          = stat(output_filename, log_file_stat);
+      if (result != -1) {
+        exists_uncompressed = 1;
+      } else {
+        exists_uncompressed = 0;
+      }
+
+      exists_compressed = 0;
+      for (i=0; i<NUMBER_COMPRESS_SUFFIXES; ++i) {
+        compressed_filename = sprintf("%s%s", output_filename,
+                                              compression_suffixes[i]);
+        result              = stat(compressed_filename, log_file_stat);
+        if (result != -1) {
+          exists_compressed = 1;
+          break;
+        }
+      }
+
+      if (nil != compress &&
+          0 != exists_uncompressed &&
+          0 == exists_compressed) {
+        system(sprintf(compress, output_filename));
+      }
+
+      if (0 != exists_uncompressed || 0 != exists_compressed) {
+        ++file_number;
+      } else {
+        break;
+      }
+    }
+
+    // Open the file for appending.
+    out_log_fp = fopen(output_filename, "a");
+    if (out_log_fp == 0) {
+      perror("cannot open output log file");
+      exit(1);
+    }
+
+    // Always write a new header.
+    print_header = 1;
+    then         = now;
+  }
+}
+
+int main(int argc, string argv[])
+{
+  utsname_t     u[1];
+  long          now;
+  long          sleep_till;        // Time to sleep to.
+  tm_t          tm_now;
+
+  // Get the nodename of the machine.
+  uname(u);
+  nodename = u[0].nodename;
+
+  program_name = argv[0];
+
+  // Handle the command line arguments.
+  switch (argc) {
+    case 1:
+      break;
+    case 2:
+      interval = atoi(argv[1]);
+      break;
+    default:
+      fprintf(stderr, "usage: se [-Defines] %s [interval]\n", program_name);
+      fprintf(stderr, "The default interval is %d seconds.\n", SAMPLE_INTERVAL);
+      fprintf(stderr, "%s uses the following environmental variables:\n", program_name);
+      fprintf(stderr, "   OUTDIR            directory to write log files, output to stdout if not set\n");
+      fprintf(stderr, "   WEB_SERVER        regex to match web server's name (def = httpd)\n");
+      fprintf(stderr, "   WEB_SERVER_SECURE regex to match secure web server's name (def = httpsd)\n");
+      fprintf(stderr, "   WEB_LOG           location of web server access log (/httpd/logs/access)\n");
+      fprintf(stderr, "   GATEWAY           special web address to monitor (some.where.com)\n");
+      fprintf(stderr, "   SEARCHURL         regex for search scripts (def = search.cgi)\n");
+      fprintf(stderr, "   COMPRESSOR        compress log files with this command (\"bzip2 -9\")\n");
+      fprintf(stderr, "Add these defines to enable monitoring of specific subsystems:\n");
+      fprintf(stderr, "   -DWATCH_WEB        watch web server access logs\n");
+      fprintf(stderr, "   -DWATCH_PROXY      use WEB_LOG as a NCSA style proxy log\n");
+      fprintf(stderr, "   -DWATCH_SQUID      use WEB_LOG as a Squid log\n");
+      fprintf(stderr, "   -DWATCH_OS         includes all of the below:\n");
+      fprintf(stderr, "   -DWATCH_CPU        watch the cpu load, run queue, etc\n");
+      fprintf(stderr, "   -DWATCH_MUTEX      watch the number of mutex spins\n");
+      fprintf(stderr, "   -DWATCH_NET        watch all Ethernet interfaces\n");
+      fprintf(stderr, "   -DWATCH_TCP        watch all the TCP/IP stack\n");
+      fprintf(stderr, "   -DWATCH_UDP        watch all the UDP/IP stack\n");
+      fprintf(stderr, "   -DWATCH_NFS_CLIENT watch NFS client requests\n");
+      fprintf(stderr, "   -DWATCH_NFS_SERVER watch NFS server requests\n");
+      fprintf(stderr, "   -DWATCH_MOUNTS     watch usage of mount points\n");
+      fprintf(stderr, "   -DWATCH_DISK       watch disk read/write usage\n");
+      fprintf(stderr, "   -DWATCH_TAPE       watch tape read/write usage\n");
+      fprintf(stderr, "   -DWATCH_IO         watch disk and tape read/write usage\n");
+      fprintf(stderr, "   -DWATCH_DNLC       watch the directory name lookup cache\n");
+      fprintf(stderr, "   -DWATCH_INODE      watch the inode cache\n");
+      fprintf(stderr, "   -DWATCH_RAM        watch memory usage\n");
+      fprintf(stderr, "   -DWATCH_PAGES      watch where pages are allocated\n");
+      exit(1);
+      break;
+  }
+
+  // Initialize the various structures.
+  initialize();
+
+  // Run forever.  If WATCH_WEB is defined, then have measure_web()
+  // do the sleeping while it is watching the access log file until the
+  // next update time for the whole operating system.  Also, collect the
+  // data from the access log file before printing any output.
+  for (;;) {
+    // Calculate the next time to sleep to that is an integer multiple of
+    // the interval time.  Make sure that at least half of the interval
+    // passes before waking up.
+    now        = time(0);
+    sleep_till = (now/interval)*interval;
+    while (sleep_till < now + interval*0.5) {
+      sleep_till += interval;
+    }
+
+#ifdef WATCH_WEB
+    measure_web(sleep_till);
+#else
+    sleep_till_and_count_new_processes(sleep_till);
+#endif
+
+    // Get the current time.
+    now    = time(0);
+    tm_now = localtime(&now);
+
+    measure_os(now, tm_now);
+
+#ifdef WATCH_WEB
+    put_httpd();
+#endif
+
+    // Get a file descriptor to write to.  Maintains daily output files.
+    check_output_log_filename(tm_now);
+
+    // Print the output.
+    print_output();
+  }
+  return 0;
+}
+
+initialize()
+{
+#ifdef WATCH_CPU
+  int i;
+#endif
+
+  // Get the command to compress the log files.
+  if (compress == nil || compress == "") {
+    compress = nil;
+  }
+  else {
+    compress = sprintf("%s %%s &", compress);
+  }
+
+#ifdef WATCH_CPU
+  // Initialize the process spawning rate measurement variables.
+  // Determine if the kernel can be read to measure the last pid.
+  i = open("/dev/kmem", O_RDONLY);
+  if (i != -1) {
+    close(i);
+    can_read_kernel = 1;
+    mpid_previous   = kvm$mpid;
+    mpid_then       = gethrtime();
+    mpid_current    = mpid_previous;
+
+    mpid5_then      = mpid_then;
+    mpid5_previous  = mpid_previous;
+    mpid5_current   = mpid_previous;
+    mpid5_rate      = 0;
+  }
+#endif
+
+#ifdef WATCH_WEB
+  // Initialize those variables that were not set with environmental
+  // variables.
+  if (www_search_url == nil || www_search_url == "") {
+    www_search_url = "search.cgi";
+  }
+
+  if (www_server_proc_name == nil || www_server_proc_name == "") {
+    www_server_proc_name = "httpd";
+  }
+
+  if (www_server_secure_proc_name == nil ||
+      www_server_secure_proc_name == "") {
+    www_server_secure_proc_name = "httpsd";
+  }
+
+  if (www_gateway == nil || www_gateway == "" ) {
+    www_gateway = "NoGatway";
+    www_gatelen = 0;
+  }
+  else {
+    www_gatelen = strlen(www_gateway);
+  }
+
+  // Initialize the web server watching variables.  Move the file pointer
+  // to the end of the web access log and note the current time.
+  if (www_log_filename != nil) {
+    www_log_fp   = fopen(www_log_filename, "r");
+    www_log_ino  = 0;
+    www_log_size = 0;
+    if (www_log_fp != 0) {
+      if (fstat(fileno(www_log_fp), www_log_stat) == 0) {
+        www_log_ino  = www_log_stat[0].st_ino;
+        www_log_size = www_log_stat[0].st_size;
+      }
+      // Move to the end of the file.
+      fseek(www_log_fp, 0, 2);
+    }
+  }
+
+  www_then  = gethrtime();
+  www5_then = www_then;
+#endif
+
+  // Sleep to give the disks a chance to update.
+  sleep(DISK_UPDATE_RATE);
+
+  // Get the clock tick rate.
+  hz = sysconf(_SC_CLK_TCK);
+
+  // Get the page size.
+  page_size = sysconf(_SC_PAGESIZE);
+
+  // Calculate the system boot time.
+  boot_time = time(0) - (kstat$misc.clk_intr / hz);
+
+  // Perform the first measurement of the system.
+  _measure_os();
+}
+
+// Measure the system statistics all at once.
+_measure_os()
+{
+  tmp_lr_cpu        = lr_cpu$cpu;
+  tmp_lr_mutex      = lr_mutex$m;
+  tmp_lr_net        = lr_net$nr;
+  tmp_lr_tcp        = lr_tcp$tcp;
+  tmp_lr_rpcclient  = lr_rpcclient$r;
+  tmp_lr_disk       = lr_disk$dr;
+  tmp_lr_dnlc       = lr_dnlc$dnlc;
+  tmp_lr_inode      = lr_inode$inode;
+  tmp_lr_ram        = lr_ram$ram;
+  tmp_lr_swapspace  = lr_swapspace$s;
+  tmp_lr_kmem       = lr_kmem$kmem;
+
+  tmp_kstat_misc    = kstat$misc;
+#ifdef WATCH_NFS_SERVER
+  tmp_nfs           = kstat$nfs;
+  tmp_rfsproccnt_v2 = kstat$rfsproccnt_v2;
+  tmp_rfsproccnt_v3 = kstat$rfsproccnt_v3;
+#endif
+#ifdef WATCH_PAGES
+  tmp_kstat_pages   = kstat$pages;
+#endif
+#ifdef WATCH_TCP
+  tmp_tcp           = tcp$tcp;
+#endif
+#ifdef WATCH_UDP
+  tmp_mib_ip        = mib$ip;
+  tmp_mib_udp       = mib$udp;
+#endif
+
+#if defined (USE_KSTAT_IO) && (defined (WATCH_DISK) || defined (WATCH_TAPE))
+  orca_io_info_update();
+#endif
+}
+
+measure_os(long now, tm_t tm_now)
+{
+  // Measure the system now.
+  _measure_os();
+
+  // Take care of miscellaneous measurements.
+  measure_misc(now, tm_now);
+
+  // Take care of cpu.
+#ifdef WATCH_CPU
+  measure_cpu();
+#endif
+
+  // Take care of mutexes.
+#ifdef WATCH_MUTEX
+  measure_mutex();
+#endif
+
+  // If the CPUs or mutexes are being monitored, then output the
+  // number online CPUs on the system.  The GLOBAL_pvm_ncpus variable
+  // is used after it has been updated in _measure_os().
+#if defined(WATCH_CPU) || defined (WATCH_MUTEX)
+  put_output("ncpus", sprintf("%5d", GLOBAL_pvm_ncpus));
+#endif
+
+  // Take care of mount points.
+#ifdef WATCH_MOUNTS
+  measure_mounts();
+#endif
+
+  // Take care of the disks.
+#ifdef WATCH_DISK
+  measure_disk();
+#endif
+
+  // Take care of the tapes.
+#if defined (WATCH_TAPE) && defined (USE_KSTAT_IO)
+  measure_tape();
+#endif
+
+  // Take care of ram.
+#ifdef WATCH_RAM
+  measure_ram();
+#endif
+
+  // Take care of the network.
+#ifdef WATCH_NET
+  measure_net();
+#endif
+
+  // Take care of TCP/IP.
+#ifdef WATCH_TCP
+  measure_tcp();
+#endif
+
+  // Take care of UDP/IP.
+#ifdef WATCH_UDP
+  measure_udp();
+#endif
+
+  // Take care of NFS client statistics.
+#ifdef WATCH_NFS_CLIENT
+  measure_nfs_client();
+#endif
+
+  // Take care of NFS server statistics.
+#ifdef WATCH_NFS_SERVER
+  measure_nfs_server();
+#endif
+
+  // Take care of DNLC.
+#ifdef WATCH_DNLC
+  measure_dnlc();
+#endif
+
+  // Take care of the inode cache.
+#ifdef WATCH_INODE
+  measure_inode();
+#endif
+
+  // Take care of page allocations.
+#ifdef WATCH_PAGES
+  measure_pages();
+#endif
+
+  // Get workload data
+#ifdef WATCH_WORKLOAD
+  measure_workload();
+#endif
+}
+
+/*
+ * State as a character.
+ */
+char state_char(int state) {
+  switch(state) {
+    case ST_WHITE: return 'w'; /* OK states are lower case. */
+    case ST_BLUE:  return 'b';
+    case ST_GREEN: return 'g';
+    case ST_AMBER: return 'A'; /* Bad states are upper case to stand out. */
+    case ST_RED:   return 'R';
+    case ST_BLACK: return 'B';
+    default:       return 'I'; /* Invalid state. */
+  }
+}
+
+/*
+ * State as a digit.
+ */
+int state_digit(int state) {
+  switch(state) {
+    case ST_WHITE: return  0; /* OK states are zero. */
+    case ST_BLUE:  return  1;
+    case ST_GREEN: return  2;
+    case ST_AMBER: return  4; /* Bad states have a non-zero value. */
+    case ST_RED:   return  8;
+    case ST_BLACK: return 16;
+    default:       return -1; /* Invalid state. */
+  }
+}
+
+measure_misc(long now, tm_t tm_now)
+{
+  char states[12];
+  char tm_buf[16];
+  int  statetmp;
+
+  states = "wwwwwwwwwww";
+  strftime(tm_buf, sizeof(tm_buf), "%T", tm_now);
+
+  put_output("timestamp ", sprintf("%10d", now));
+  put_output("locltime",   tm_buf);
+  put_output("  uptime",   sprintf("%8d", now - boot_time));
+
+  statetmp  = tmp_lr_disk.state;
+  states[0] = state_char(statetmp);
+  put_output("state_D", sprintf("%7d", state_digit(statetmp)));
+
+  statetmp  = tmp_lr_net.state;
+  states[1] = state_char(statetmp);
+  put_output("state_N", sprintf("%7d", state_digit(statetmp)));
+
+  statetmp  = tmp_lr_rpcclient.state;
+  states[2] = state_char(statetmp);
+  put_output("state_n", sprintf("%7d", state_digit(statetmp)));
+
+  statetmp  = tmp_lr_swapspace.state;
+  states[3] = state_char(statetmp);
+  put_output("state_s", sprintf("%7d", state_digit(statetmp)));
+
+  statetmp  = tmp_lr_ram.state;
+  states[4] = state_char(statetmp);
+  put_output("state_r", sprintf("%7d", state_digit(statetmp)));
+
+  statetmp  = tmp_lr_kmem.state;
+  states[5] = state_char(statetmp);
+  put_output("state_k", sprintf("%7d", state_digit(statetmp)));
+
+  statetmp  = tmp_lr_cpu.state;
+  states[6] = state_char(statetmp);
+  put_output("state_c", sprintf("%7d", state_digit(statetmp)));
+
+  statetmp  = tmp_lr_mutex.state;
+  states[7] = state_char(statetmp);
+  put_output("state_m", sprintf("%7d", state_digit(statetmp)));
+
+  statetmp  = tmp_lr_dnlc.state;
+  states[8] = state_char(statetmp);
+  put_output("state_d", sprintf("%7d", state_digit(statetmp)));
+
+  statetmp  = tmp_lr_inode.state;
+  states[9] = state_char(statetmp);
+  put_output("state_i", sprintf("%7d", state_digit(statetmp)));
+
+  statetmp   = tmp_lr_tcp.state;
+  states[10] = state_char(statetmp);
+  put_output("state_t", sprintf("%7d", state_digit(statetmp)));
+
+  put_output("DNnsrkcmdit", states);
+}
+
+// This function puts the program to sleep until the beginning of the
+// sleep_till second (as measured in the number of seconds from the
+// Unix Epoch (00:00:00 UTC, January 1, 1970)) using microsecond sleep
+// intervals to wake from sleep as close to the beginning of the
+// sleep_till second as possible.
+orca_sleep_till(long sleep_till)
+{
+  timeval_t now[1];
+  long      time_to_sleep;
+
+  gettimeofday(now, 0);
+  time_to_sleep = sleep_till - now[0].tv_sec;
+  while (time_to_sleep > 0) {
+    usleep(1000000*time_to_sleep - now[0].tv_usec);
+    gettimeofday(now, 0);
+    time_to_sleep = sleep_till - now[0].tv_sec;
+  }
+}
+
+sleep_till_and_count_new_processes(long sleep_till)
+{
+  long   now;
+#ifdef WATCH_CPU
+  int    mpid5_diff;
+  double mpid5_interval;
+  double rate;
+#endif
+
+  now = time(0);
+  while (now < sleep_till) {
+#ifdef WATCH_CPU
+    if (can_read_kernel != 0) {
+      // Sleep for 5 seconds to make a measurement or less to stay
+      // within the sleep_till limit.
+      if (now + 5 < sleep_till) {
+        orca_sleep_till(now + 5);
+      } else {
+        orca_sleep_till(sleep_till);
+      }
+
+      // Measure the 5 second process creation rate.
+      mpid5_current  = kvm$mpid;
+      mpid5_now      = gethrtime();
+      mpid5_interval = (mpid5_now - mpid5_then) * 0.000000001;
+      mpid5_then     = mpid5_now;
+      if (mpid5_current >= mpid5_previous) {
+        mpid5_diff = mpid5_current - mpid5_previous;
+      }
+      else {
+        mpid5_diff = mpid5_current + DEFAULT_MAXPID - mpid5_previous;
+      }
+      rate = mpid5_diff/mpid5_interval;
+      if (rate > mpid5_rate) {
+        mpid5_rate = rate;
+      }
+      mpid5_previous = mpid5_current;
+
+      // Now take these results to measure the long interval rate.
+      // Because the mpid may flip over DEFAULT_MAXPID more than once
+      // in the long interval time span, use the difference between
+      // the previous and current mpid over a 5 second interval to
+      // calculate the long interval difference.
+      mpid_current += mpid5_diff;
+      mpid_now      = mpid5_now;
+    }
+    else {
+      orca_sleep_till(sleep_till);
+    }
+#else
+    orca_sleep_till(sleep_till);
+#endif
+    now = time(0);
+  }
+}
+
+#ifdef WATCH_CPU
+measure_cpu()
+{
+  p_vmstat pvm;
+  double   mpid_interval;
+  double   mpid_rate;
+
+  pvm = vmglobal_total();
+
+  // In SE 3.0 and below user_time and system_time are int and in SE
+  // 3.1 and above they are double, so cast everything to double using
+  // + 0.0.
+  put_output(" usr%",    sprintf("%5.1f", pvm.user_time + 0.0));
+  put_output(" sys%",    sprintf("%5.1f", pvm.system_time + 0.0));
+  put_output(" wio%",    sprintf("%5.1f", pvm.wait_time + 0.0));
+  put_output("idle%",    sprintf("%5.1f", pvm.idle_time + 0.0));
+  put_output(" 1runq",   sprintf("%6.2f", tmp_kstat_misc.avenrun_1min/256.0));
+  put_output(" 5runq",   sprintf("%6.2f", tmp_kstat_misc.avenrun_5min/256.0));
+  put_output("15runq",   sprintf("%6.2f", tmp_kstat_misc.avenrun_15min/256.0));
+  put_output("#proc",    sprintf("%5lu",  tmp_kstat_misc.nproc));
+  put_output(" #runque", sprintf("%8.2f", pvm.runque + 0.0));
+  put_output("#waiting", sprintf("%8.2f", pvm.waiting + 0.0));
+  put_output(" #swpque", sprintf("%8.2f", pvm.swpque + 0.0));
+  put_output("scanrate", sprintf("%8.3f", pvm.scan + 0.0));
+  put_output("pgrec/s",      sprintf("%8.3f", pvm.pgrec + 0.0));
+  put_output("pgfrec/s",     sprintf("%8.3f", pvm.pgfrec + 0.0));
+  put_output("pgin/s",       sprintf("%8.3f", pvm.pgin + 0.0));
+  put_output("pages_in/s",   sprintf("%8.3f", pvm.pages_in + 0.0));
+  put_output("pgout/s",      sprintf("%8.3f", pvm.pgout + 0.0));
+  put_output("pages_out/s",  sprintf("%8.3f", pvm.pages_out + 0.0));
+  put_output("dfree/s",      sprintf("%8.3f", pvm.dfree + 0.0));
+  put_output("min_fault/s",  sprintf("%8.3f", pvm.hat_fault + pvm.as_fault + 0.0))
+;
+  put_output("maj_fault/s",  sprintf("%8.3f", pvm.maj_fault + 0.0));
+  put_output("prot_fault/s", sprintf("%8.3f", pvm.prot_fault + 0.0));
+  put_output("cow_fault/s",  sprintf("%8.3f", pvm.cow_fault + 0.0));
+  put_output("zfod/s",       sprintf("%8.3f", pvm.zfod + 0.0));
+  put_output("interrupts/s",    sprintf("%8.3f", pvm.interrupts + 0.0));
+  put_output("intrthread/s",    sprintf("%8.3f", pvm.intrthread + 0.0));
+  put_output("system_calls/s",  sprintf("%8.3f", pvm.system_calls + 0.0));
+  put_output("context_switches/s",  sprintf("%8.3f", pvm.context_switches + 0.0));
+  put_output("invol_switches/s",    sprintf("%8.3f", pvm.invol_switches + 0.0));
+  put_output("traps/s",             sprintf("%8.3f", pvm.trap + 0.0));
+  put_output("forks/s",             sprintf("%8.3f", pvm.sysfork + 0.0));
+  put_output("vforks/s",            sprintf("%8.3f", pvm.sysvfork + 0.0));
+  put_output("execs/s",             sprintf("%8.3f", pvm.sysexec + 0.0));
+  put_output("namei/s",             sprintf("%8.3f", pvm.namei + 0.0));
+  put_output("ufsiget/s",           sprintf("%8.3f", pvm.ufsiget + 0.0));
+  put_output("ufsdirblk/s",         sprintf("%8.3f", pvm.ufsdirblk + 0.0));
+
+  // Calculate the rate of new process spawning.
+  if (can_read_kernel != 0) {
+    mpid_interval = (mpid_now - mpid_then) * 0.000000001;
+    mpid_rate     = (mpid_current - mpid_previous) / mpid_interval;
+    put_output("#proc/s",   sprintf("%7.3f", mpid_rate));
+    put_output("#proc/p5s", sprintf("%9.4f", mpid5_rate));
+
+    // Reset counters.
+    mpid_then     = mpid_now;
+    mpid_previous = mpid_current;
+    mpid5_rate    = 0;
+  }
+}
+#endif
+
+#ifdef WATCH_MUTEX
+measure_mutex()
+{
+  put_output(" smtx",    sprintf("%5d", tmp_lr_mutex.smtx));
+  put_output("smtx/cpu", sprintf("%8d", tmp_lr_mutex.smtx/GLOBAL_pvm_ncpus));
+}
+#endif
+
+#ifdef WATCH_NET
+measure_net()
+{
+  int previous_count = -1;
+  int current_count;
+  int i;
+
+  current_count = 0;
+  for (i=0; i<tmp_lr_net.net_count; ++i) {
+    // Skip unused interfaces.
+//  if (GLOBAL_net[i].up == 0) {
+//    continue;
+//  }
+    current_count++;
+    put_output(sprintf("%5sIpkt/s", tmp_lr_net.names[i]),
+               sprintf("%11.3f", GLOBAL_net[i].ipackets));
+    put_output(sprintf("%5sOpkt/s", tmp_lr_net.names[i]),
+               sprintf("%11.3f", GLOBAL_net[i].opackets));
+    put_output(sprintf("%5sInKB/s", tmp_lr_net.names[i]),
+               sprintf("%11.3f", GLOBAL_net[i].ioctets/1024.0));
+    put_output(sprintf("%5sInDtSz/p", tmp_lr_net.names[i]),
+               sprintf("%11.3f", GLOBAL_net[i].idtsize));
+    put_output(sprintf("%5sInOvH%%/p", tmp_lr_net.names[i]),
+               sprintf("%11.3f", GLOBAL_net[i].ihdrovhd));
+    put_output(sprintf("%5sOuKB/s", tmp_lr_net.names[i]),
+               sprintf("%11.3f", GLOBAL_net[i].ooctets/1024.0));
+    put_output(sprintf("%5sOuDtSz/p", tmp_lr_net.names[i]),
+               sprintf("%11.3f", GLOBAL_net[i].odtsize));
+    put_output(sprintf("%5sOuOvH%%/p", tmp_lr_net.names[i]),
+               sprintf("%11.3f", GLOBAL_net[i].ohdrovhd));
+    put_output(sprintf("%5sIErr/s", tmp_lr_net.names[i]),
+               sprintf("%11.3f", GLOBAL_net[i].ierrors));
+    put_output(sprintf("%5sOErr/s", tmp_lr_net.names[i]),
+               sprintf("%11.3f", GLOBAL_net[i].oerrors));
+    put_output(sprintf("%5sColl%%", tmp_lr_net.names[i]),
+               sprintf("%10.3f", GLOBAL_net[i].collpercent));
+    put_output(sprintf("%5sNoCP/s", tmp_lr_net.names[i]),
+               sprintf("%11.3f", GLOBAL_net[i].nocanput));
+    put_output(sprintf("%5sDefr/s", tmp_lr_net.names[i]),
+               sprintf("%11.3f", GLOBAL_net[i].defer));
+  }
+
+  // If the number of up interfaces changes, then print new headers.
+  if (current_count != previous_count) {
+    print_header = 1;
+    previous_count = current_count;
+  }
+}
+#endif
+
+#ifdef WATCH_TCP
+measure_tcp()
+{
+  double tmp_tcp_InDtpPkt;
+  double tmp_tcp_OuDtpPkt;
+  double tmp_tcp_InOvHPct;
+  double tmp_tcp_OuOvHPct;
+
+  put_output("tcp_Iseg/s", sprintf("%10.3f", tmp_tcp.InDataSegs));
+  put_output("tcp_Oseg/s", sprintf("%10.3f", tmp_tcp.OutDataSegs));
+  put_output("tcp_InKB/s", sprintf("%10.3f", tmp_tcp.InDataBytes/1024.0));
+  put_output("tcp_OuKB/s", sprintf("%10.3f", tmp_tcp.OutDataBytes/1024.0));
+  if ( tmp_tcp.InDataSegs == 0.0 ) {
+    tmp_tcp_InDtpPkt = 0.0;
+    tmp_tcp_InOvHPct = 0.0;
+  } else {
+    tmp_tcp_InDtpPkt = tmp_tcp.InDataBytes/tmp_tcp.InDataSegs;
+    tmp_tcp_InOvHPct = 100 * (40 * tmp_tcp.InDataSegs / (40 * tmp_tcp.InDataSegs + tmp_tcp.InDataBytes));
+  }
+  put_output("tcp_InDtSz/p", sprintf("%10.3f", tmp_tcp_InDtpPkt));
+  put_output("tcp_InOvH%/p", sprintf("%8.3f",  tmp_tcp_InOvHPct));
+  if ( tmp_tcp.OutDataSegs == 0.0 ) {
+    tmp_tcp_OuDtpPkt = 0.0;
+    tmp_tcp_OuOvHPct = 0.0;
+  } else {
+    tmp_tcp_OuDtpPkt = tmp_tcp.OutDataBytes/tmp_tcp.OutDataSegs;
+    tmp_tcp_OuOvHPct = 100 * (40 * tmp_tcp.OutDataSegs / (40 * tmp_tcp.OutDataSegs + tmp_tcp.OutDataBytes));
+  }
+  put_output("tcp_OuDtSz/p", sprintf("%10.3f", tmp_tcp_OuDtpPkt));
+  put_output("tcp_OuOvH%/p", sprintf("%8.3f",  tmp_tcp_OuOvHPct));
+  put_output("tcp_Ret%",   sprintf("%8.3f",  tmp_tcp.RetransPercent));
+  put_output("tcp_Dup%",   sprintf("%8.3f",  tmp_tcp.InDupPercent));
+  put_output("tcp_Icn/s",  sprintf("%9.3f",  tmp_tcp.PassiveOpens));
+  put_output("tcp_Ocn/s",  sprintf("%9.3f",  tmp_tcp.ActiveOpens));
+  put_output("tcp_estb",   sprintf("%8lu",   tmp_tcp.last.tcpCurrEstab));
+  put_output("tcp_Rst/s",  sprintf("%9.3f",  tmp_tcp.OutRsts));
+  put_output("tcp_Atf/s",  sprintf("%9.3f",  tmp_tcp.AttemptFails));
+  put_output("tcp_Ldrp/s", sprintf("%10.3f", tmp_tcp.ListenDrop));
+  put_output("tcp_LdQ0/s", sprintf("%10.3f", tmp_tcp.ListenDropQ0));
+  put_output("tcp_HOdp/s", sprintf("%10.3f", tmp_tcp.HalfOpenDrop));
+}
+#endif
+
+#ifdef WATCH_UDP
+measure_udp()
+{
+  put_output("udpNoPorts", sprintf("%8lu", tmp_mib_ip.udpNoPorts));
+  put_output("udpInOverflows", sprintf("%8lu", tmp_mib_ip.udpInOverflows));
+  put_output("udpInCksumErrs", sprintf("%8lu", tmp_mib_ip.udpInCksumErrs));
+  put_output("udpInDatagrams", sprintf("%8lu", tmp_mib_udp.udpInDatagrams));
+  put_output("udpInErrors", sprintf("%8lu", tmp_mib_udp.udpInErrors));
+  put_output("udpOutDatagrams", sprintf("%8lu", tmp_mib_udp.udpOutDatagrams));
+}
+#endif
+
+#ifdef WATCH_NFS_CLIENT
+measure_nfs_client()
+{
+  put_output("nfs_call/s", sprintf("%10.3f", tmp_lr_rpcclient.calls));
+  put_output("nfs_timo/s", sprintf("%10.3f", tmp_lr_rpcclient.timeouts));
+  put_output("nfs_badx/s", sprintf("%10.3f", tmp_lr_rpcclient.badxids));
+}
+#endif
+
+#ifdef WATCH_NFS_SERVER
+measure_nfs_server()
+{
+  ulong calls;
+  ulong badcalls;
+  ulong v2read;
+  ulong v2write;
+  ulong v3read;
+  ulong v3write;
+
+  calls    = tmp_nfs.calls;
+  badcalls = tmp_nfs.badcalls;
+  v2read   = tmp_rfsproccnt_v2.read;
+  v2write  = tmp_rfsproccnt_v2.write;
+  v3read   = tmp_rfsproccnt_v3.read;
+  v3write  = tmp_rfsproccnt_v3.write;
+
+  put_output("nfss_calls", sprintf("%10lu", calls));
+  put_output("nfss_bad",   sprintf("%8lu", badcalls));
+  put_output(" v2reads",   sprintf("%8lu", v2read));
+  put_output("v2writes",   sprintf("%8lu", v2write));
+  put_output(" v3reads",   sprintf("%8lu", v3read));
+  put_output("v3writes",   sprintf("%8lu", v3write));
+}
+#endif
+
+#ifdef WATCH_MOUNTS
+measure_mounts()
+{
+  statvfs_t vfs_array[1];
+  statvfs_t vfs;
+  string    comment_fmt;
+  string    kbytes_fmt;
+  string    inode_fmt;
+  string    percent_fmt;
+  ulong     kbytes_used;
+  ulong     inodes_used;
+  double    block_factor;
+  int       comment_length;
+  int       previous_count = -1;
+  int       current_count;
+
+  current_count = 0;
+  // Traverse the mount table to find mounted ufs/vxfs/zfs file systems.
+  for (mnt$mnt.number$=0; mnt$mnt.number$ != -1; mnt$mnt.number$++) {
+    tmp_mnt = mnt$mnt;
+    if (tmp_mnt.mnt_fstype == "ufs" || tmp_mnt.mnt_fstype == "vxfs" ||
+	tmp_mnt.mnt_fstype == "zfs") {
+      // Skip locally mounted /cdrom partitions.
+      if (tmp_mnt.mnt_mountp =~ "^/cdrom/") {
+        continue;
+      }
+
+      // Skip snapshot file systems to avoid output format changes as
+      // they are mounted and unmounted.
+      if (tmp_mnt.mnt_mountp =~ "^/snapshots/") {
+        continue;
+      }
+
+      if (statvfs(tmp_mnt.mnt_mountp, vfs_array) == -1) {
+        continue;
+      }
+      vfs = vfs_array[0];
+      current_count++;
+
+      // Generate the format strings for the comment and for the data.
+      comment_fmt    = sprintf("mnt%%c_%s", tmp_mnt.mnt_mountp);
+      comment_length = strlen(comment_fmt) - 1;
+      kbytes_fmt     = sprintf("%%%d.0f",   comment_length);
+      inode_fmt      = sprintf("%%%dld",    comment_length);
+      percent_fmt    = sprintf("%%%d.3f",   comment_length);
+
+      // Calculate the number of 1 kilobyte blocks on the disk.
+      block_factor = vfs.f_frsize/1024;
+
+      // Capital letters refer to the disk usage in kilobytes.  Lower case
+      // letters refer to inode usage.
+      // C - Capacity of the disk.
+      // U - Used capacity.
+      // A - Available capacity for non-root users.
+      // P - Percent used.
+      kbytes_used = vfs.f_blocks - vfs.f_bfree;
+      inodes_used = vfs.f_files  - vfs.f_ffree;
+
+      put_output(sprintf(comment_fmt, 'C'),
+                 sprintf(kbytes_fmt, block_factor*vfs.f_blocks));
+      put_output(sprintf(comment_fmt, 'U'),
+                 sprintf(kbytes_fmt, block_factor*kbytes_used));
+      put_output(sprintf(comment_fmt, 'A'),
+                 sprintf(kbytes_fmt, block_factor*vfs.f_bavail));
+      put_output(sprintf(comment_fmt, 'P'),
+                 sprintf(percent_fmt,
+                         100.0*kbytes_used/(vfs.f_blocks + vfs.f_bavail - vfs.f_bfree)));
+
+      put_output(sprintf(comment_fmt, 'c'),
+                 sprintf(inode_fmt, vfs.f_files));
+      put_output(sprintf(comment_fmt, 'u'),
+                 sprintf(inode_fmt, inodes_used));
+      put_output(sprintf(comment_fmt, 'a'),
+                 sprintf(inode_fmt, vfs.f_favail));
+      put_output(sprintf(comment_fmt, 'p'),
+                 sprintf(percent_fmt,
+                         100.0*inodes_used/(vfs.f_files + vfs.f_favail - vfs.f_ffree)));
+
+    }
+  }
+
+  // If the number of mounted filesystems changes, then print new headers.
+  if (current_count != previous_count) {
+    print_header = 1;
+    previous_count = current_count;
+  }
+}
+#endif
+
+#ifdef WATCH_DISK
+measure_disk()
+{
+  // This variable is treated as static variable to keep track
+  // of any changes to the number of disks on the system.
+  int    previous_disk_count = -1;
+
+  double mean_disk_busy;             // Avg % of time trans. in progress
+  double peak_disk_busy;             // Max % of time trans. in progress
+  double total_disk_reads;           // Total disk reads per second
+  double total_disk_writes;          // Total disk writes per second
+  double total_disk_readk;           // Total kilobytes read per second
+  double total_disk_writek;          // Total kilobytes written per second
+#ifdef WATCH_DISK_EXTENDED_TOTALS
+  double total_disk_avg_wait;        // Total avg trans. waiting for service
+  double total_disk_avg_run;         // Total avg trans. actively being serviced
+  double mean_disk_avg_wait_time;    // Avg service time in wait queue (ms)
+  double mean_disk_avg_serv_time;    // Avg service time active trans. (ms)
+  double mean_disk_service;          // Avg service time (ms)
+  double mean_disk_wait_percent;     // Avg % of time there are trans. waiting for service
+#endif // WATCH_DISK_EXTENDED_TOTALS
+  int    disk_count;
+  int    i;
+
+  mean_disk_busy      = 0.0;
+  peak_disk_busy      = 0.0;
+  total_disk_reads    = 0.0;
+  total_disk_writes   = 0.0;
+  total_disk_readk    = 0.0;
+  total_disk_writek   = 0.0;
+#ifdef WATCH_DISK_EXTENDED_TOTALS
+  total_disk_avg_wait     = 0.0;
+  total_disk_avg_run      = 0.0;
+  mean_disk_avg_wait_time = 0.0;
+  mean_disk_avg_serv_time = 0.0;
+  mean_disk_service       = 0.0;
+  mean_disk_wait_percent  = 0.0;
+#endif // WATCH_DISK_EXTENDED_TOTALS
+  disk_count          = 0;
+
+#ifdef USE_KSTAT_IO
+  for (i=0; i<ORCA_io_dev_count; ++i) {
+    if (ORCA_io_dev_info[i].dev_class == "disk") {
+      disk_count++;
+      // Percent of time transactions in progress
+      put_output(sprintf("disk_runp_%s", ORCA_io_dev_info[i].long_name),
+                 sprintf("%16.5f", ORCA_io_dev_info[i].run_percent));
+      // Average service time in milliseconds
+      put_output(sprintf("disk_svct_%s", ORCA_io_dev_info[i].long_name),
+                 sprintf("%16.5f", ORCA_io_dev_info[i].service));
+#ifdef WATCH_DISK_EXTENDED
+      // Reads per second
+      put_output(sprintf("disk_rd/s_%s", ORCA_io_dev_info[i].long_name),
+                 sprintf("%16.5f", ORCA_io_dev_info[i].reads));
+      // Writes per second
+      put_output(sprintf("disk_wr/s_%s", ORCA_io_dev_info[i].long_name),
+                 sprintf("%16.5f", ORCA_io_dev_info[i].writes));
+      // Kilobytes read per second
+      put_output(sprintf("disk_rK/s_%s", ORCA_io_dev_info[i].long_name),
+                 sprintf("%16.5f", ORCA_io_dev_info[i].kreads));
+      // Kilobytes written per second
+      put_output(sprintf("disk_wK/s_%s", ORCA_io_dev_info[i].long_name),
+                 sprintf("%16.5f", ORCA_io_dev_info[i].kwrites));
+      // Average number of transactions waiting for service
+      put_output(sprintf("disk_wait_%s", ORCA_io_dev_info[i].long_name),
+                 sprintf("%16.5f", ORCA_io_dev_info[i].avg_wait));
+      // Average number of transactions actively being serviced
+      put_output(sprintf("disk_actv_%s", ORCA_io_dev_info[i].long_name),
+                 sprintf("%16.5f", ORCA_io_dev_info[i].avg_run));
+      // Average service time in wait queue in milliseconds
+      put_output(sprintf("disk_wsvct_%s", ORCA_io_dev_info[i].long_name),
+                 sprintf("%16.5f", ORCA_io_dev_info[i].avg_wait_time));
+      // Average service time active transactions in milliseconds
+      put_output(sprintf("disk_asvct_%s", ORCA_io_dev_info[i].long_name),
+                 sprintf("%16.5f", ORCA_io_dev_info[i].avg_serv_time));
+      // Percent of time there are transactions waiting for service
+      put_output(sprintf("disk_waitp_%s", ORCA_io_dev_info[i].long_name),
+                 sprintf("%16.5f", ORCA_io_dev_info[i].wait_percent));
+#endif // WATCH_DISK_EXTENDED
+
+      total_disk_reads  += ORCA_io_dev_info[i].reads;
+      total_disk_writes += ORCA_io_dev_info[i].writes;
+      total_disk_readk  += ORCA_io_dev_info[i].kreads;
+      total_disk_writek += ORCA_io_dev_info[i].kwrites;
+      mean_disk_busy    += ORCA_io_dev_info[i].run_percent;
+      if (ORCA_io_dev_info[i].run_percent > peak_disk_busy) {
+        peak_disk_busy = ORCA_io_dev_info[i].run_percent;
+      }
+#ifdef WATCH_DISK_EXTENDED_TOTALS
+      total_disk_avg_wait     += ORCA_io_dev_info[i].avg_wait;
+      total_disk_avg_run      += ORCA_io_dev_info[i].avg_run;
+      mean_disk_avg_wait_time += ORCA_io_dev_info[i].avg_wait_time;
+      mean_disk_avg_serv_time += ORCA_io_dev_info[i].avg_serv_time;
+      mean_disk_service       += ORCA_io_dev_info[i].service;
+      mean_disk_wait_percent  += ORCA_io_dev_info[i].wait_percent;
+#endif // WATCH_DISK_EXTENDED_TOTALS
+    }
+  }
+#else
+  for (i=0; i<GLOBAL_disk_count; ++i) {
+    disk_count++;
+    // Percent of time transactions in progress
+    put_output(sprintf("disk_runp_%s", GLOBAL_disk[i].info.long_name),
+               sprintf("%16.5f", GLOBAL_disk[i].run_percent));
+    // Average service time in milliseconds
+    put_output(sprintf("disk_svct_%s", GLOBAL_disk[i].info.long_name),
+               sprintf("%16.5f", GLOBAL_disk[i].service));
+#ifdef WATCH_DISK_EXTENDED
+    // Reads per second
+    put_output(sprintf("disk_rd/s_%s", GLOBAL_disk[i].info.long_name),
+               sprintf("%16.5f", GLOBAL_disk[i].reads));
+    // Writes per second
+    put_output(sprintf("disk_wr/s_%s", GLOBAL_disk[i].info.long_name),
+               sprintf("%16.5f", GLOBAL_disk[i].writes));
+    // Kilobytes read per second
+    put_output(sprintf("disk_rK/s_%s", GLOBAL_disk[i].info.long_name),
+               sprintf("%16.5f", GLOBAL_disk[i].kreads));
+    // Kilobytes written per second
+    put_output(sprintf("disk_wK/s_%s", GLOBAL_disk[i].info.long_name),
+               sprintf("%16.5f", GLOBAL_disk[i].kwrites));
+    // Average number of transactions waiting for service
+    put_output(sprintf("disk_wait_%s", GLOBAL_disk[i].info.long_name),
+               sprintf("%16.5f", GLOBAL_disk[i].avg_wait));
+    // Average number of transactions actively being serviced
+    put_output(sprintf("disk_actv_%s", GLOBAL_disk[i].info.long_name),
+               sprintf("%16.5f", GLOBAL_disk[i].avg_run));
+    // Average service time in wait queue in milliseconds
+    put_output(sprintf("disk_wsvct_%s", GLOBAL_disk[i].info.long_name),
+               sprintf("%16.5f", GLOBAL_disk[i].avg_wait_time));
+    // Average service time active transactions in milliseconds
+    put_output(sprintf("disk_asvct_%s", GLOBAL_disk[i].info.long_name),
+               sprintf("%16.5f", GLOBAL_disk[i].avg_serv_time));
+    // Percent of time there are transactions waiting for service
+    put_output(sprintf("disk_waitp_%s", GLOBAL_disk[i].info.long_name),
+               sprintf("%16.5f", GLOBAL_disk[i].wait_percent));
+#endif // WATCH_DISK_EXTENDED
+
+    total_disk_reads  += GLOBAL_disk[i].reads;
+    total_disk_writes += GLOBAL_disk[i].writes;
+    total_disk_readk  += GLOBAL_disk[i].kreads;
+    total_disk_writek += GLOBAL_disk[i].kwrites;
+    mean_disk_busy    += GLOBAL_disk[i].run_percent;
+    if (GLOBAL_disk[i].run_percent > peak_disk_busy) {
+      peak_disk_busy = GLOBAL_disk[i].run_percent;
+    }
+#ifdef WATCH_DISK_EXTENDED_TOTALS
+    total_disk_avg_wait     += GLOBAL_disk[i].avg_wait;
+    total_disk_avg_run      += GLOBAL_disk[i].avg_run;
+    mean_disk_avg_wait_time += GLOBAL_disk[i].avg_wait_time;
+    mean_disk_avg_serv_time += GLOBAL_disk[i].avg_serv_time;
+    mean_disk_service       += GLOBAL_disk[i].service;
+    mean_disk_wait_percent  += GLOBAL_disk[i].wait_percent;
+#endif // WATCH_DISK_EXTENDED_TOTALS
+  }
+#endif
+
+  if (disk_count != 0) {
+    mean_disk_busy = mean_disk_busy/disk_count;
+#ifdef WATCH_DISK_EXTENDED_TOTALS
+    mean_disk_avg_wait_time = mean_disk_avg_wait_time / disk_count;
+    mean_disk_avg_serv_time = mean_disk_avg_serv_time / disk_count;
+    mean_disk_service       = mean_disk_service       / disk_count;
+    mean_disk_wait_percent  = mean_disk_wait_percent  / disk_count;
+#endif // WATCH_DISK_EXTENDED_TOTALS
+  }
+
+  put_output("disk_peak", sprintf("%9.3f", peak_disk_busy));
+  put_output("disk_mean", sprintf("%9.3f", mean_disk_busy));
+  put_output("disk_rd/s", sprintf("%9.1f", total_disk_reads));
+  put_output("disk_wr/s", sprintf("%9.1f", total_disk_writes));
+  put_output("disk_rK/s", sprintf("%9.1f", total_disk_readk));
+  put_output("disk_wK/s", sprintf("%9.1f", total_disk_writek));
+#ifdef WATCH_DISK_EXTENDED_TOTALS
+  put_output("disk_wait",  sprintf("%9.3f", total_disk_avg_wait));
+  put_output("disk_actv",  sprintf("%9.3f", total_disk_avg_run));
+  put_output("disk_wsvct", sprintf("%9.3f", mean_disk_avg_wait_time));
+  put_output("disk_asvct", sprintf("%9.3f", mean_disk_avg_serv_time));
+  put_output("disk_svct",  sprintf("%9.3f", mean_disk_service));
+  put_output("disk_waitp", sprintf("%9.3f", mean_disk_wait_percent));
+#endif // WATCH_DISK_EXTENDED_TOTALS
+
+  // If the number of disks has changed, say due to a
+  // add_drv, then print new headers.
+  if (previous_disk_count != disk_count) {
+    print_header        = 1;
+    previous_disk_count = disk_count;
+  }
+}
+#endif
+
+#if defined (WATCH_TAPE) && defined (USE_KSTAT_IO)
+measure_tape()
+{
+  // This variable is treated as static variable to keep track
+  // of any changes to the number of tapes on the system.
+  int    previous_tape_count = -1;
+
+  double mean_tape_busy;             // Avg % of time trans. in progress
+  double peak_tape_busy;             // Max % of time trans. in progress
+  double total_tape_reads;           // Total tape reads per second
+  double total_tape_writes;          // Total tape writes per second
+  double total_tape_readk;           // Total kilobytes read per second
+  double total_tape_writek;          // Total kilobytes written per second
+#ifdef WATCH_TAPE_EXTENDED_TOTALS
+  double total_tape_avg_wait;        // Total avg trans. waiting for service
+  double total_tape_avg_run;         // Total avg trans. actively being serviced
+  double mean_tape_avg_wait_time;    // Avg service time in wait queue (ms)
+  double mean_tape_avg_serv_time;    // Avg service time active trans. (ms)
+  double mean_tape_service;          // Avg service time (ms)
+  double mean_tape_wait_percent;     // Avg % of time there are trans. waiting for service
+#endif // WATCH_TAPE_EXTENDED_TOTALS
+  int    tape_count;
+  int    i;
+
+  mean_tape_busy      = 0.0;
+  peak_tape_busy      = 0.0;
+  total_tape_reads    = 0.0;
+  total_tape_writes   = 0.0;
+  total_tape_readk    = 0.0;
+  total_tape_writek   = 0.0;
+#ifdef WATCH_TAPE_EXTENDED_TOTALS
+  total_tape_avg_wait     = 0.0;
+  total_tape_avg_run      = 0.0;
+  mean_tape_avg_wait_time = 0.0;
+  mean_tape_avg_serv_time = 0.0;
+  mean_tape_service       = 0.0;
+  mean_tape_wait_percent  = 0.0;
+#endif // WATCH_TAPE_EXTENDED_TOTALS
+  tape_count          = 0;
+
+  for (i=0; i<ORCA_io_dev_count; ++i) {
+    if (ORCA_io_dev_info[i].dev_class == "tape") {
+      tape_count++;
+      // Percent of time transactions in progress
+      put_output(sprintf("tape_runp_%s", ORCA_io_dev_info[i].long_name),
+                 sprintf("%16.5f", ORCA_io_dev_info[i].run_percent));
+      // Average service time in milliseconds
+      put_output(sprintf("tape_svct_%s", ORCA_io_dev_info[i].long_name),
+                 sprintf("%16.5f", ORCA_io_dev_info[i].service));
+#ifdef WATCH_TAPE_EXTENDED
+      // Reads per second
+      put_output(sprintf("tape_rd/s_%s", ORCA_io_dev_info[i].long_name),
+                 sprintf("%16.5f", ORCA_io_dev_info[i].reads));
+      // Writes per second
+      put_output(sprintf("tape_wr/s_%s", ORCA_io_dev_info[i].long_name),
+                 sprintf("%16.5f", ORCA_io_dev_info[i].writes));
+      // Kilobytes read per second
+      put_output(sprintf("tape_rK/s_%s", ORCA_io_dev_info[i].long_name),
+                 sprintf("%16.5f", ORCA_io_dev_info[i].kreads));
+      // Kilobytes written per second
+      put_output(sprintf("tape_wK/s_%s", ORCA_io_dev_info[i].long_name),
+                 sprintf("%16.5f", ORCA_io_dev_info[i].kwrites));
+      // Average number of transactions waiting for service
+      put_output(sprintf("tape_wait_%s", ORCA_io_dev_info[i].long_name),
+                 sprintf("%16.5f", ORCA_io_dev_info[i].avg_wait));
+      // Average number of transactions actively being serviced
+      put_output(sprintf("tape_actv_%s", ORCA_io_dev_info[i].long_name),
+                 sprintf("%16.5f", ORCA_io_dev_info[i].avg_run));
+      // Average service time in wait queue in milliseconds
+      put_output(sprintf("tape_wsvct_%s", ORCA_io_dev_info[i].long_name),
+                 sprintf("%16.5f", ORCA_io_dev_info[i].avg_wait_time));
+      // Average service time active transactions in milliseconds
+      put_output(sprintf("tape_asvct_%s", ORCA_io_dev_info[i].long_name),
+                 sprintf("%16.5f", ORCA_io_dev_info[i].avg_serv_time));
+      // Percent of time there are transactions waiting for service
+      put_output(sprintf("tape_waitp_%s", ORCA_io_dev_info[i].long_name),
+                 sprintf("%16.5f", ORCA_io_dev_info[i].wait_percent));
+#endif // WATCH_TAPE_EXTENDED
+
+      total_tape_reads  += ORCA_io_dev_info[i].reads;
+      total_tape_writes += ORCA_io_dev_info[i].writes;
+      total_tape_readk  += ORCA_io_dev_info[i].kreads;
+      total_tape_writek += ORCA_io_dev_info[i].kwrites;
+      mean_tape_busy    += ORCA_io_dev_info[i].run_percent;
+      if (ORCA_io_dev_info[i].run_percent > peak_tape_busy) {
+        peak_tape_busy = ORCA_io_dev_info[i].run_percent;
+      }
+#ifdef WATCH_TAPE_EXTENDED_TOTALS
+      total_tape_avg_wait     += ORCA_io_dev_info[i].avg_wait;
+      total_tape_avg_run      += ORCA_io_dev_info[i].avg_run;
+      mean_tape_avg_wait_time += ORCA_io_dev_info[i].avg_wait_time;
+      mean_tape_avg_serv_time += ORCA_io_dev_info[i].avg_serv_time;
+      mean_tape_service       += ORCA_io_dev_info[i].service;
+      mean_tape_wait_percent  += ORCA_io_dev_info[i].wait_percent;
+#endif // WATCH_TAPE_EXTENDED_TOTALS
+    }
+  }
+
+  if (tape_count != 0) {
+    mean_tape_busy = mean_tape_busy/tape_count;
+#ifdef WATCH_TAPE_EXTENDED_TOTALS
+    mean_tape_avg_wait_time = mean_tape_avg_wait_time / tape_count;
+    mean_tape_avg_serv_time = mean_tape_avg_serv_time / tape_count;
+    mean_tape_service       = mean_tape_service       / tape_count;
+    mean_tape_wait_percent  = mean_tape_wait_percent  / tape_count;
+#endif // WATCH_TAPE_EXTENDED_TOTALS
+  }
+
+  put_output("tape_peak", sprintf("%9.3f", peak_tape_busy));
+  put_output("tape_mean", sprintf("%9.3f", mean_tape_busy));
+  put_output("tape_rd/s", sprintf("%9.1f", total_tape_reads));
+  put_output("tape_wr/s", sprintf("%9.1f", total_tape_writes));
+  put_output("tape_rK/s", sprintf("%9.1f", total_tape_readk));
+  put_output("tape_wK/s", sprintf("%9.1f", total_tape_writek));
+#ifdef WATCH_TAPE_EXTENDED_TOTALS
+  put_output("tape_wait",  sprintf("%9.3f", total_tape_avg_wait));
+  put_output("tape_actv",  sprintf("%9.3f", total_tape_avg_run));
+  put_output("tape_wsvct", sprintf("%9.3f", mean_tape_avg_wait_time));
+  put_output("tape_asvct", sprintf("%9.3f", mean_tape_avg_serv_time));
+  put_output("tape_svct",  sprintf("%9.3f", mean_tape_service));
+  put_output("tape_waitp", sprintf("%9.3f", mean_tape_wait_percent));
+#endif // WATCH_TAPE_EXTENDED_TOTALS
+
+  // If the number of tapes has changed, say due to a
+  // add_drv, then print new headers.
+  if (previous_tape_count != tape_count) {
+    print_header        = 1;
+    previous_tape_count = tape_count;
+  }
+}
+#endif
+
+#ifdef WATCH_DNLC
+measure_dnlc()
+{
+  put_output("dnlc_ref/s", sprintf("%10.3f", tmp_lr_dnlc.refrate));
+  put_output("dnlc_hit%",  sprintf("%9.3f",  tmp_lr_dnlc.hitrate));
+}
+#endif
+
+#ifdef WATCH_INODE
+measure_inode()
+{
+  p_vmstat pvm;
+
+  put_output("inod_ref/s", sprintf("%10.3f", tmp_lr_inode.refrate));
+  put_output("inod_hit%",  sprintf("%9.3f",  tmp_lr_inode.hitrate));
+  put_output("inod_stl/s", sprintf("%10.3f", tmp_lr_inode.iprate));
+  put_output("ufsinopage/s", sprintf("%8.3f", pvm.ufsinopage + 0.0));
+
+}
+#endif
+
+#ifdef WATCH_RAM
+measure_ram()
+{
+  put_output("swap_avail", sprintf("%10ld", GLOBAL_pvm[0].swap_avail));
+  put_output("page_rstim", sprintf("%10d",  tmp_lr_ram.restime));
+  put_output("  freememK", sprintf("%10d",  GLOBAL_pvm[0].freemem));
+  put_output("free_pages", sprintf("%10d",  (GLOBAL_pvm[0].freemem*1024)/page_size));
+}
+#endif
+
+#ifdef WATCH_PAGES
+measure_pages()
+{
+  put_output("pp_kernel", sprintf("%9lu", tmp_kstat_pages.pp_kernel));
+  put_output("pagesfree", sprintf("%9lu", tmp_kstat_pages.pagesfree));
+  put_output("pageslock", sprintf("%9lu", tmp_kstat_pages.pageslocked));
+#if MINOR_VERSION < 80
+  put_output("pagesio",   sprintf("%7lu", tmp_kstat_pages.pagesio));
+#endif
+  put_output("pagestotl", sprintf("%9lu", tmp_kstat_pages.pagestotal));
+}
+#endif
+
+#ifdef WATCH_WEB
+/*
+ * Breakdown access log format.
+ */
+accesslog(string buf) {
+  int     z;
+  int     size_index;
+  int     ishead;
+  string  word;
+  char    first_byte[1];
+
+#if WATCH_PROXY || WATCH_SQUID || WATCH_YAHOO
+  double  xf;
+#ifdef WATCH_SQUID
+  string  logtag;
+  string  request;
+#endif
+#ifdef WATCH_YAHOO
+  string  arg;
+  ulong   ptr;
+  ulong   tmp;
+  ulong   ulong_xf;
+#endif
+#endif
+
+  ishead = 0;
+#ifdef WATCH_YAHOO
+  /*
+   * Make sure that the input line has at least 32 bytes of data plus a new
+   * line, for a total length of 33.
+   */
+  if (strlen(buf) < 33) {
+    return;
+  }
+  word = strtok(buf, "\05");
+#else
+  word = strtok(buf, " ");
+#endif
+  if (word == nil) {
+    return;
+  }
+
+#ifdef WATCH_SQUID
+  /*
+   * Word contains unix time in seconds.milliseconds.
+   */
+  word = strtok(nil, " ");
+  if (word == nil) {
+    return;
+  }
+  xf = atof(word)/1000.0;
+  www_dwnld_time_sum += xf;
+#ifdef DINKY
+  printf("time: %s %f total %f\n", word, xf, xfer_sum);
+#endif
+  word   = strtok(nil, " ");                      /* Client IP address.      */
+  logtag = strtok(nil, "/");                      /* Log tag.                */
+  if (logtag == nil) {
+    return;
+  }
+  if (logtag =~ "TCP") {
+    squid_client_http++;
+  }
+  if (logtag =~ "UDP") {
+    squid_icp_requests++;
+  }
+  if (logtag =~ "HIT") {
+    prxy_squid_cache_hits++;
+  }
+  if (logtag =~ "MISS") {
+    squid_cache_misses++;
+  }
+
+  word = strtok(nil, " ");                        /* Reply code.             */
+  if (word == nil) {
+    return;
+  }
+  WWW_REPLY_CODE(word)
+  word = strtok(nil, " ");                        /* Size sent to client.    */
+  if (word == nil) {
+    return;
+  }
+  z = atoi(word);
+  WWW_SIZE_INDEX(z, size_index)
+  www_dwnld_time_by_size[size_index] += xf;
+
+  request = strtok(nil, " ");                     /* Request method.         */
+  if (request == nil) {
+    return;
+  }
+  WWW_METHOD(request)
+  /* Do not add the size if it is a HEAD. */
+  if (ishead == 0) {
+    dwnld_totalz += z;
+  }
+
+  word = strtok(nil, " ");                        /* URL.                    */
+  if (word == nil) {
+    return;
+  }
+  if (word =~ "cgi-bin") {
+    httpop_cgi_bins++;
+  }
+  if (word =~ www_search_url) {
+    httpop_searches++;
+  }
+  strtok(nil, " ");                               /* Optional user identity. */
+  word = strtok(nil, "/");                        /* Hierarchy.              */
+  if (word == nil) {
+    return;
+  }
+  if (word =~ "DIRECT") {
+    prxy_squid_indirect++;
+  }
+#if 0
+  word = strtok(nil, " ");                        /* Hostname.               */
+  if (word == nil) {
+    return;
+  }
+  word = strtok(nil, " ");                        /* Content-type.           */
+  if (word == nil) {
+    return;
+  }
+#endif
+
+#elif WATCH_YAHOO
+  /*
+   * Yahoo log format.  Fields in square brackets will only appear in the
+   * log file if the data actually exists (i.e. you will never see a null
+   * Referrer field).  Further, fields labeled here with "(CONFIG)" will
+   * only appear if they are enabled via the YahooLogOptions configuration
+   * directive.
+   *
+   *     IP Address             (8 hex digits)
+   *     Timestamp              (time_t as 8 hex digits)
+   *     Processing Time        (in microseconds, as 8 hex digits)
+   *     Bytes Sent             (8 hex digits)
+   *     URL
+   *     [^Er referrer]  (CONFIG)
+   *     [^Em method]    (CONFIG)
+   *     [^Es status_code]
+   *     ^Ed signature
+   *     \n
+   */
+
+  /*
+   * Ignore the IP address and timestamp.  Get the processing time, the
+   * number of bytes sent and the URL.  For each portion of the line, split
+   * it up into separate pieces.
+   */
+  if (sscanf(word, "%8lx%8lx%8x%8x", &tmp, &tmp, &ulong_xf, &z) != 4) {
+    return;
+  }
+
+  xf = ulong_xf/1000000.0;
+  WWW_SIZE_INDEX(z, size_index)
+  www_dwnld_time_sum                 += xf;
+  www_dwnld_time_by_size[size_index] += xf;
+
+  if (word =~ "cgi-bin") {
+    httpop_cgi_bins++;
+  }
+  if (word =~ www_search_url) {
+    httpop_searches++;
+  }
+
+  for (;;) {
+    word = strtok(nil, "\05");
+    if (word == nil) {
+      break;
+    }
+    first_byte = word;
+    ptr        = &word + 1;
+    arg        = ((string) ptr);
+    ptr = 0;
+    switch (first_byte[0]) {
+      case 'm':
+        WWW_METHOD(arg)
+        ptr = 1;
+        break;
+      case 's':
+        WWW_REPLY_CODE(arg)
+        break;
+      default:
+        break;
+    }
+  }
+
+  /* If no method was seen, then assume it was a GET. */
+  if (ptr == 0) {
+    httpop_gets++;
+  }
+
+  /* Do not add the size if it is a HEAD. */
+  if (ishead == 0) {
+    dwnld_totalz += z;
+  }
+
+#else        /* common or Netscape proxy formats */
+  strtok(nil, " ");              /* -.           */
+  strtok(nil, " ");              /* -.           */
+  strtok(nil, " [");             /* date.        */
+  strtok(nil, " ");              /* zone].       */
+  strtok(nil, " \"");            /* GET or POST. */
+  if (word == nil) {
+    return;
+  }
+  WWW_METHOD(word)
+  word = strtok(nil, " ");       /* URL.         */
+  if (word == nil) {
+    return;
+  }
+  if (word =~ "cgi-bin") {
+    httpop_cgi_bins++;
+  }
+  if (word =~ www_search_url) {
+    httpop_searches++;
+  }
+  /*
+   * Sometimes HTTP/1.x is not listed in the access log.  Skip it
+   * if it does exist.  Load the error/success code.
+   */
+  word = strtok(nil, " ");
+  if (word == nil) {
+    return;
+  }
+  if (word =~ "HTTP" || word =~ "http") {
+    word = strtok(nil, " ");
+    if (word == nil) {
+      return;
+    }
+  }
+  WWW_REPLY_CODE(word)
+  word = strtok(nil, " ");       /* Bytes transferred.       */
+  if (word == nil) {
+    return;
+  }
+  z = atoi(word);
+  /* Do not add the size if it is a HEAD. */
+  if (ishead == 0) {
+    dwnld_totalz += z;
+  }
+  WWW_SIZE_INDEX(z, size_index)
+#ifdef WATCH_PROXY
+  strtok(nil, " ");              /* Status from server.      */
+  strtok(nil, " ");              /* Length from server.      */
+  strtok(nil, " ");              /* Length from client POST. */
+  strtok(nil, " ");              /* Length POSTed to remote. */
+  strtok(nil, " ");              /* Client header request.   */
+  strtok(nil, " ");              /* Proxy header response.   */
+  strtok(nil, " ");              /* Proxy header request.    */
+  strtok(nil, " ");              /* Server header response.  */
+  strtok(nil, " ");              /* Transfer total seconds.  */
+  word = strtok(nil, " ");       /* Route.                   */
+  if (word == nil) {
+    return;
+  }
+
+  /* - DIRECT PROXY(host.domain:port) SOCKS. */
+  if (strncmp(word, "PROXY", 5) == 0 ||
+      strncmp(word, "SOCKS", 5) == 0) {
+    prxy_squid_indirect++;
+  }
+  strtok(nil, " ");              /* Client finish status.    */
+  strtok(nil, " ");              /* Server finish status.    */
+  word = strtok(nil, " ");       /* Cache finish status.     */
+  if (word == nil) {
+    return;
+  }
+  /*
+   * ERROR HOST-NOT-AVAILABLE = error or incomplete op
+   * WRITTEN REFRESHED CL-MISMATCH(content length mismatch) = cache_writes
+   * NO-CHECK UP-TO-DATE = cache_hits
+   * DO-NOT-CACHE NON-CACHEABLE = uncacheable
+   */
+  switch(word) {
+    case "WRITTEN":
+    case "REFRESHED":
+    case "CL-MISMATCH":
+      prxy_cache_writes++;
+      break;
+    case "NO-CHECK":
+    case "UP-TO-DATE":
+      prxy_squid_cache_hits++;
+      break;
+    case "DO-NOT-CACHE":
+    case "NON-CACHEABLE":
+      prxy_uncacheable++;
+      break;
+    default:
+      break;
+  }
+  word = strtok(nil, " [");      /* [transfer total time x.xxx. */
+  if (word == nil) {
+    return;
+  }
+  xf = atof(word);
+  www_dwnld_time_sum                 += xf;
+  www_dwnld_time_by_size[size_index] += xf;
+#endif
+#endif
+}
+
+measure_web(long sleep_till)
+{
+  double lastops = 0.0;
+  char   buf[BUFSIZ];
+  int    i;
+  long   now;
+  long   sleep_till_tmp;
+
+  httpops         = 0.0;
+  httpops5        = 0.0;
+  gateops         = 0.0;
+  httpop_gets     = 0;
+  httpop_condgets = 0;
+  httpop_posts    = 0;
+  httpop_cgi_bins = 0;
+  httpop_errors   = 0;
+  httpop_searches = 0;
+
+  for (i=0; i<5; ++i) {
+    dwnld_size[i] = 0;
+#if WATCH_PROXY || WATCH_SQUID || WATCH_YAHOO
+    www_dwnld_time_by_size[i] = 0.0;
+#endif
+  }
+  dwnld_totalz = 0;
+
+#if WATCH_PROXY || WATCH_SQUID || WATCH_YAHOO
+  www_dwnld_time_sum      = 0.0;
+#endif
+#if WATCH_PROXY || WATCH_SQUID
+  prxy_squid_indirect     = 0;
+  prxy_squid_cache_hits   = 0;
+#ifdef WATCH_PROXY
+  prxy_cache_writes       = 0;
+  prxy_uncacheable        = 0;
+#else
+  squid_cache_misses      = 0;
+  squid_icp_requests      = 0;
+  squid_icp_queries       = 0;
+  squid_client_http       = 0;
+#endif
+#endif
+
+  if (www_log_filename != nil) {
+    now = time(0);
+    while (now < sleep_till) {
+      if (now + 5 < sleep_till) {
+        sleep_till_tmp = now + 5;
+      } else {
+        sleep_till_tmp = sleep_till;
+      }
+#ifdef WATCH_CPU
+      sleep_till_and_count_new_processes(sleep_till_tmp);
+#else
+      orca_sleep_till(sleep_till_tmp);
+#endif
+
+      now = time(0);
+      if (www_log_fp != 0) {
+        buf[BUFSIZ-1] = 127;
+        while (fgets(buf, BUFSIZ, www_log_fp) != nil) {
+          httpops += 1.0;
+          if (www_gatelen > 0) {
+            if (strncmp(buf, www_gateway, www_gatelen) == 0) {
+              gateops += 1.0;
+            }
+          }
+          accesslog(buf);
+
+          /*
+           * If the line is longer than the buffer, then ignore the rest
+           * of the line.
+           */
+          while (buf[BUFSIZ-1] == 0    &&
+                 buf[BUFSIZ-2] != '\n') {
+            buf[BUFSIZ-1] = 127;
+            if (fgets(buf, BUFSIZ, www_log_fp) == nil) {
+              break;
+            }
+          }
+        }
+      }
+
+      /*
+       * See if the file has been switched or truncated.
+       */
+      if (stat(www_log_filename, www_log_stat) == 0) {
+        if (www_log_ino  != www_log_stat[0].st_ino ||
+            www_log_size >  www_log_stat[0].st_size) {
+          /*
+           * Close the old log file and open the new one.
+           */
+          if (www_log_fp != 0) {
+            fclose(www_log_fp);
+          }
+
+          www_log_fp = fopen(www_log_filename, "r");
+          if (www_log_fp != 0) {
+            fstat(fileno(www_log_fp), www_log_stat);
+            www_log_ino   = www_log_stat[0].st_ino;
+            www_log_size  = www_log_stat[0].st_size;
+            buf[BUFSIZ-1] = 127;
+            while(fgets(buf, BUFSIZ, www_log_fp) != nil) {
+              httpops += 1.0;
+              if (www_gatelen > 0) {
+                if (strncmp(buf, www_gateway, www_gatelen) == 0) {
+                  gateops += 1.0;
+                }
+              }
+              accesslog(buf);
+
+              /*
+               * If the line is longer than the buffer, then ignore
+               * the rest of the line.
+               */
+              while (buf[BUFSIZ-1] == 0    &&
+                     buf[BUFSIZ-2] != '\n') {
+                buf[BUFSIZ-1] = 127;
+                if (fgets(buf, BUFSIZ, www_log_fp) == nil) {
+                  break;
+                }
+              }
+            }
+          } else {
+            www_log_ino  = 0;
+            www_log_size = 0;
+          }
+        } else {
+          /*
+           * Remember size for next time.
+           */
+          www_log_size = www_log_stat[0].st_size;
+        }
+      }
+
+      www5_now      = gethrtime();
+      www5_interval = (www5_now - www5_then) * 0.000000001;
+      www5_then     = www5_now;
+      dtmp          = (httpops - lastops)/www5_interval;
+      if (dtmp > httpops5) {
+        httpops5 = dtmp;
+      }
+      lastops = httpops;
+    }
+  }
+  else {
+    sleep_till_and_count_new_processes(sleep_till);
+    www5_now = gethrtime();
+  }
+
+  www_now      = www5_now;
+  www_interval = (www_now - www_then) * 0.000000001;
+  www_then     = www_now;
+
+  /*
+   * Use dtmp to get percentages.
+   */
+  if (httpops == 0.0) {
+    dtmp = 0.0;
+  }
+  else {
+    dtmp = 100.0 / httpops;
+  }
+
+#if WATCH_PROXY || WATCH_SQUID || WATCH_YAHOO
+  for (i=0; i<5; ++i) {
+    if (dwnld_size[i] == 0) {
+      www_dwnld_time_by_size[i] = 0.0;
+    }
+    else {
+      www_dwnld_time_by_size[i] = www_dwnld_time_by_size[i]/dwnld_size[i];
+    }
+  }
+#endif
+}
+
+// Functions in SE cannot return an array, so to work around this, have
+// count_procs place it's results in a global array.
+#define MAX_COUNT_PROC_REGEXS 2
+int count_procs_results[MAX_COUNT_PROC_REGEXS];
+count_procs(int number_regexs, string regexs[])
+{
+  psinfo_t p;
+  int      i;
+
+  if (number_regexs > MAX_COUNT_PROC_REGEXS) {
+    fprintf(stderr, "%s: too many regular expressions (%d).  Increase MAX_COUNT_PROC_REGEXS.\n",
+            program_name, number_regexs);
+    exit(1);
+  }
+
+  for (i=0; i<number_regexs; ++i) {
+    count_procs_results[i] = 0;
+  }
+
+  for (p=first_proc(); p.pr_pid != -1; p=next_proc()) {
+    for (i=0; i<number_regexs; ++i) {
+      if (p.pr_fname =~ regexs[i]) {
+        ++count_procs_results[i];
+      }
+    }
+  }
+}
+
+put_httpd()
+{
+  string proc_regexs[2];
+
+  proc_regexs[0] = www_server_proc_name;
+  proc_regexs[1] = www_server_secure_proc_name;
+
+  count_procs(sizeof(proc_regexs)/sizeof(proc_regexs[0]), proc_regexs);
+
+  put_output("#httpds",    sprintf("%7d",   count_procs_results[0]));
+  put_output("#httpsds",   sprintf("%8d",   count_procs_results[1]));
+  put_output("httpop/s",   sprintf("%8.2f", httpops/www_interval));
+  put_output("http/p5s",   sprintf("%8.2f", httpops5));
+  put_output("cndget/s",   sprintf("%8.2f", httpop_condgets/www_interval));
+  put_output("search/s",   sprintf("%8.3f", httpop_searches/www_interval));
+  put_output("   cgi/s",   sprintf("%8.3f", httpop_cgi_bins/www_interval));
+  put_output(" htErr/s",   sprintf("%8.3f", httpop_errors/www_interval));
+  put_output(" httpb/s",   sprintf("%8.0f", dwnld_totalz/www_interval));
+  put_output("  %to1KB",   sprintf("%8.2f", dtmp*dwnld_size[0]));
+  put_output(" %to10KB",   sprintf("%8.2f", dtmp*dwnld_size[1]));
+  put_output("%to100KB",   sprintf("%8.2f", dtmp*dwnld_size[2]));
+  put_output("  %to1MB",   sprintf("%8.2f", dtmp*dwnld_size[3]));
+  put_output("%over1MB",   sprintf("%8.2f", dtmp*dwnld_size[4]));
+  put_output(www_gateway,  sprintf("%8.2f", gateops/www_interval));
+#if WATCH_PROXY || WATCH_SQUID
+  put_output("  %indir",   sprintf("%8.2f", dtmp * prxy_squid_indirect));
+  put_output("%cch_hit",   sprintf("%8.2f", dtmp * prxy_squid_cache_hits));
+#ifdef WATCH_PROXY
+  put_output("%cch_wrt",   sprintf("%8.2f", dtmp * prxy_cache_writes));
+  put_output("%cch_unc",   sprintf("%8.2f", dtmp * prxy_uncacheable));
+#else
+  put_output("%cch_mis",   sprintf("%8.2f", dtmp * squid_cache_misses));
+  put_output("%cch_req",   sprintf("%8.2f", dtmp * squid_icp_requests));
+  put_output("%cch_qry",   sprintf("%8.2f", dtmp * squid_icp_queries));
+#endif
+  put_output("   xfr_t",   sprintf("%8.2f", 0.01 * dtmp * www_dwnld_time_sum));
+  put_output("  xfr1_t",   sprintf("%8.2f", www_dwnld_time_by_size[0]));
+  put_output(" xfr10_t",   sprintf("%8.2f", www_dwnld_time_by_size[1]));
+  put_output("xfr100_t",   sprintf("%8.2f", www_dwnld_time_by_size[2]));
+  put_output(" xfr1M_t",   sprintf("%8.2f", www_dwnld_time_by_size[3]));
+  put_output("xfro1M_t",   sprintf("%8.2f", www_dwnld_time_by_size[4]));
+#elif WATCH_YAHOO
+  put_output("   wprc_t",  sprintf("%9.5f", 0.01 * dtmp * www_dwnld_time_sum));
+  put_output("  wprc1_t",  sprintf("%9.5f", www_dwnld_time_by_size[0]));
+  put_output(" wprc10_t",  sprintf("%9.5f", www_dwnld_time_by_size[1]));
+  put_output("wprc100_t",  sprintf("%9.5f", www_dwnld_time_by_size[2]));
+  put_output(" wprc1M_t",  sprintf("%9.5f", www_dwnld_time_by_size[3]));
+  put_output("wprco1M_t",  sprintf("%9.5f", www_dwnld_time_by_size[4]));
+#endif
+}
+#endif
+
+#ifdef WATCH_WORKLOAD
+measure_workload()
+{
+  work_info_class_t ww;
+  double            millisecs_per_switch;
+
+  ww.number = -1;
+#ifndef WORKLOAD_TOTAL
+  refresh$(ww);
+#endif // WORKLOAD_TOTAL
+  for (refresh$(ww); ww.number != -1; refresh$(ww)) {
+    put_output(sprintf("%s_cnt", ww.w.name), sprintf("%4d", ww.w.count));
+    put_output(sprintf("%s_lwpcnt", ww.w.name), sprintf("%4d", ww.w.info.lwp_count));
+    put_output(sprintf("%s_lwpmax", ww.w.name), sprintf("%4d", ww.w.info.lwp_max));
+
+    if (ww.w.cnt == 0) {
+      millisecs_per_switch = ww.w.info.vcontexts + ww.w.info.icontexts;
+      if (millisecs_per_switch > 0.0) {
+        millisecs_per_switch = 1000 * (ww.w.info.user_time + ww.w.info.system_time) / millisecs_per_switch;
+      }
+
+      put_output(sprintf("%s_usr%%", ww.w.name), sprintf("%6.1f", 100.0*ww.w.info.user_time));
+      put_output(sprintf("%s_sys%%", ww.w.name), sprintf("%6.1f", 100.0*(ww.w.info.system_time +
+                                                                         ww.w.info.trap_time)));
+      put_output(sprintf("%s_cpwt%%", ww.w.name), sprintf("%5.0f", 100.0*(ww.w.info.cpu_wait_time)));
+      put_output(sprintf("%s_chld%%", ww.w.name), sprintf("%5.0f", 100.0*ww.w.info.child_time));
+      put_output(sprintf("%s_sizeM", ww.w.name), sprintf("%7d", ww.w.info.vmem_size/1024));
+      put_output(sprintf("%s_pf", ww.w.name), sprintf("%4d", ww.w.info.maj_faults));
+      put_output(sprintf("%s_pgwt%%", ww.w.name), sprintf("%6.0f", 100.0*(ww.w.info.text_pf_time +
+                                                                          ww.w.info.data_pf_time +
+                                                                          ww.w.info.kernel_pf_time)));
+      put_output(sprintf("%s_ulkwt%%", ww.w.name), sprintf("%6.0f", 100.0*ww.w.info.user_lock_time));
+      put_output(sprintf("%s_ioK", ww.w.name), sprintf("%6.0f", ww.w.info.charios/1024.0));
+      put_output(sprintf("%s_sysc", ww.w.name), sprintf("%6d", ww.w.info.syscalls));
+      put_output(sprintf("%s_vctx", ww.w.name), sprintf("%6d", ww.w.info.vcontexts));
+      put_output(sprintf("%s_ictx", ww.w.name), sprintf("%6d", ww.w.info.icontexts));
+      put_output(sprintf("%s_msps", ww.w.name), sprintf("%6.2f", millisecs_per_switch));
+    }
+  }
+  return;
+}
+#endif // WATCH_WORKLOAD

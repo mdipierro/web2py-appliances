@@ -1,0 +1,160 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="{{=T.accepted_language or 'en'}}">
+  <head>
+    <title>{{=response.title or request.application}}</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />     
+    {{response.files.append(URL(request.application,'static','style.css'))}}
+   
+    {{include 'web2py_ajax.html'}}
+<script type="text/javascript">
+<!--
+/* this adds sfhover class to menu li items to make IE6 work */
+jQuery(document).ready(function(){
+    jQuery('li.web2py-menu-expand').hover(
+        function () {
+            jQuery(this).addClass('sfhover');
+        },
+        function () {
+            jQuery(this).removeClass('sfhover');
+        }
+    );
+});
+
+
+//-->
+</script> 
+  </head>
+
+<body>
+
+<div id="wrapper">
+
+    <div id="header">
+
+        <div id="logo">
+
+            {{=A(response.title or request.application, _href=URL(request.application,'default','index'))}}
+
+            <p> {{=response.subtitle or ''}}</a></p>
+
+        </div>
+
+    </div>
+
+    <!-- end #header -->
+
+    <div id="menu">
+
+        <ul>
+
+            
+      
+        <li>
+          <td colspan="3" class="statusbar">
+           
+        {{ if 'auth' in globals():}}
+         {{if not auth.user:}}
+        <li><a href="{{=URL('user/login')}}">{{=T('login')}}</a> </li>
+        <li><a href="{{=URL('user/register')}}">{{=T('register')}}</a>  </li>
+        {{else:}}
+        <li> <a href="{{=URL('user/logout')}}">{{=T('logout')}}</a> </li>
+        <li> <a href="{{=URL('user/change_password')}}">{{=T('change password')}}</a> </li>
+        <li> <a href="{{=URL('user/profile')}}">{{=T('edit profile')}}</a> </li>
+        {{=auth.user.first_name}}
+        {{pass}} 
+        {{pass}}
+          </td></li>
+
+        </ul>
+        
+    </div>
+    
+         
+
+    <!-- end #menu -->
+
+    <div id="page">
+
+    <div id="page-bgtop">
+
+    <div id="page-bgbtm">
+
+        <div id="content">
+              
+    <div class="post">
+
+            <div class="post-bgtop">
+            
+                <div class="post-bgbtm">
+                 
+               
+                <div class="entry">
+
+                    <td class="expandable column2">
+                    <div class="flash">{{=response.flash or ''}}</div>
+                  
+                    {{include}}
+                
+                  </td>
+                   
+
+                </div>
+
+            </div>
+
+            </div>
+
+            </div>
+
+        </div>
+            
+
+        <!-- end #content -->
+
+        <div id="sidebar">
+
+                    <tr>
+          <td class="width10em column1">
+            {{if response.menu:}}
+            <h2>{{=T('Menu principal')}}</h2>
+            {{=MENU(response.menu)}}
+            {{pass}}
+           
+	    {{if response.menu_sistemas:}}
+	    <h2>{{=T('Menu principal')}}</h2>
+            {{=MENU(response.menu_sistemas)}}
+            </div>
+             {{pass}}
+          
+          </td>
+          
+          
+              
+        </tr>
+        
+
+        </div>
+       
+    
+    </div>
+        
+</div>
+
+        <!-- end #sidebar -->
+
+        <div style="clear: both;">&nbsp;</div>
+
+    </div>
+
+    </div>
+
+    </div>
+
+    <!-- end #page -->
+
+</div>
+
+
+</body>
+
+</html>

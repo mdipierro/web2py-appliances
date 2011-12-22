@@ -1,0 +1,22 @@
+{{extend 'layout.html'}}
+
+<h2>{{=tr[item.category].capitalize()}} {{=item.xwhat}}</h2>
+
+<img src="{{=URL('download',args=item.image)}}" align="right" />
+<p>
+Dove: {{=item.xwhere}} ({{=item.latitude}},{{=item.longitude}})<br/>
+Quando: {{=item.xwhen}}
+</p>
+<h2>Descrizione</h2>
+<p>
+{{=item.description}}
+</p>
+
+<h2>Contatta</h2>
+
+{{if item.phone:}}
+Telefono: {{=item.phone}}</br>
+{{pass}}
+{{if item.email:}}
+Email: <a href="mailto:{{=item.email}}">{{=item.email}}</a>
+{{pass}}

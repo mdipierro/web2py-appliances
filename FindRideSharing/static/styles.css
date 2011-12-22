@@ -1,0 +1,251 @@
+* {
+	margin:0;
+	padding:0;
+}
+body {
+	background:#333333 none repeat-x scroll top left;
+	margin:0 auto;
+	padding:0;
+	font-family:Arial, Helvetica, sans-serif;
+}
+
+
+/* wrapper */
+div#wrap {
+	width:90%;
+	margin:0 auto;
+	padding:0 10px;
+}
+
+
+/* header & nav */
+div.header {
+	margin:0 auto;
+}
+div.nav {
+	padding:0;
+	margin:0 0 0 15px;
+	background:#5E008D url('images/nav-bg-right.png') no-repeat scroll bottom right;
+}
+div.title {
+	padding:10px 10px;
+	margin:0 auto; 
+	background:#333 url('images/titlebg.png') repeat-x scroll 50% 50%;
+}
+div.innernav { 
+	margin:0 15px 0 0;
+	background:#5E008D url('images/nav-bg.png') repeat-x scroll bottom left;
+	height:80px;
+}
+div.outernav {
+	width:90%;
+	margin:0 auto;
+	background:#5E008D url('images/nav-bg-left.png') no-repeat scroll bottom left;
+}
+div.innertitle {
+	width:90%;
+	margin:0 auto;
+}
+div.innertitle a {
+	color: white;
+}
+div.innertitle h2 {
+    color: #cccccc;
+}
+div.nav ul {
+	list-style:none;
+	padding:0 0 0 10px;
+	margin:0;
+	position:relative;
+}
+div.nav ul li {
+	display:inline;
+	float:left;
+}
+div.nav ul li a, div.nav ul li a:visited {
+	float:left;
+	margin:0 5px;
+	padding:30px 20px 10px 20px;
+	height:40px;
+	text-decoration:none;
+	color:#ffffff;
+	font-weight:normal;
+}
+
+div.nav ul li a:hover {
+    background-color: #360050;
+}
+
+
+/* headers */
+h1, h2 {
+	text-align:left;
+	color:#360050;
+}
+h1 {
+	font-size:3em;
+	padding-left:10px;
+}
+h1 a, h1 a:hover, h1 a:visited {
+	text-decoration: none;
+}
+h2 {
+	padding:0 0 10px 10px;
+}
+h3 {
+	font-size:1.5em;
+	font-weight:normal;
+	color:#333333;
+}
+h4 {
+	color:#51007A;
+	font-size:1.4em;
+	font-weight:normal;
+	padding:5px 5px 5px 10px;
+	border-left:10px solid #500078;
+}
+
+
+/* element defaults */
+p {
+	margin-bottom:20px;
+	line-height:1.7em;
+
+	font-size:0.95em;	color:#333333;
+}
+ul {
+	padding:0 0 20px 35px;
+}
+code {
+	border:1px solid #51007A;
+	border-left-width:10px;
+	display:block;
+	padding:10px;
+	margin:10px 0;
+}
+
+/* default forms */
+form {}
+form input, form textarea {
+	border:2px solid #dddddd;
+	padding:5px;
+	color:#666666;
+	font-size:1.0em;
+}
+form input.formbutton {
+	background:#5E008D url('images/nav-bg.png') repeat-x scroll bottom left;
+	color:#ffffff;
+	font-size:0.9em;
+	border:1px solid #220033;
+	font-weight:bold;
+}
+
+/* default tables */ 
+table {
+	width:100%;
+	margin-bottom:10px;
+}
+table tr th, table tr td {
+	padding:5px 10px; 
+        vertical-align: top;
+	text-align: left;
+}
+table tr th {
+	background:#5E008D url('images/nav-bg.png') repeat-x scroll bottom left;
+	color:#ffffff;
+}
+
+/* default links */
+a { 
+	color:#51007A;
+}
+a:visited { 
+	color:#51007A;
+} 
+a:hover { 
+	color:#300047; 
+}
+	
+
+/* centeral page */
+div.pagewrapper {
+	margin:0 auto;
+	background:#ffffff url('images/content-bg-right.png') no-repeat scroll top right;
+	
+}
+div.innerpagewrapper {
+	background:#ffffff url('images/content-bg-left.png') no-repeat scroll top left;
+	margin:0 11px 0 0;
+}
+div.page {
+	margin:0 0 0 11px;
+	background-color:#ffffff;
+	padding:10px 10px 0 10px;
+}
+div.page ul {
+	list-style:square;
+	font-size:0.95em;
+}
+div.page ul li {
+	padding:3px 0;
+}
+
+
+/* content */
+div.content {
+	width:95%;
+	float:left;
+}
+
+
+/* sidebar */
+div.sidebar {
+	width:1%;
+	float:right;
+}
+div.sidebar ul {
+	list-style:none;
+	padding:10px 10px 25px 10px;
+}
+div.sidebar ul li {
+	padding:7px 0;
+}
+div.sidebar ul li a {
+	text-decoration:none;
+	font-size:1.1em;
+}
+
+/* footer */
+div.footer {
+	clear:both;
+	margin-top:10px;
+	border-top:1px solid #c6c6c6;
+	background:#dddddd url('images/footerbg.png') repeat-x scroll bottom left;
+	height:80px;
+}
+div.footer p {
+	text-align:center;
+	color:#666666;
+	padding-top:30px;
+	font-size:0.9em;
+}
+div.footer p a {
+	color:#666666;
+}
+
+/* search form */
+form.searchform {
+	padding-top:10px;
+}
+
+
+/* misc classes */
+*:focus {
+	outline:none;
+}
+.clear {
+	clear:both;
+}
+
+ .flash { margin: 0 auto; text-align: center; clear: both; border: 1px #000000; background-color: red; color: white; margin-top: 0.0em; margin-bottom: 1.0em; padding-top: 1.0em; padding-bottom: 1.0em; cursor: pointer; }
+div.error { background-color: red; color: white; padding: 3px}

@@ -1,0 +1,254 @@
+<!-- !NEW VIEW: add_profile_topic
+         This lets users add a new topic to their profile. -->
+
+{{extend 'zlayout.html'}}
+
+<h2 class="fancy">{{=XML(T('Add New Topic'))}}</h2>
+
+{{if view_info['errors']:}}
+    <p class="err">{{=XML(T('There was one or more errors while processing your request, please correct the following'))}}</p>
+    <ul>
+        {{for error in view_info['errors']:}}
+            <li class="err">{{=XML(T(error))}}</li>
+        {{pass}}
+    </ul>
+{{pass}}
+
+
+{{if view_info.has_key('preview'):}}
+    <div class="preview bottom-separator">
+        <b>{{=XML(T('Message Preview'))}}</b>
+        <div class="hr"><hr /></div>
+        <div>{{=XML(parse_content(view_info['preview'], mode='forumfull'))}}</div>
+    </div>
+{{pass}}
+
+{{if auth_user.is_auth():}}
+<form id="add_topic_form" method="post" action="">
+    <fieldset id="add_topic_form_fields">
+        <input type="hidden" id="form_submitted" name="form_submitted" value="1" />
+        <input type="hidden" id="c" name="c" value="{{=view_info['anon_captcha_base64']}}" />
+        <table cellspacing="2" cellpadding="1">
+        <tbody>
+            <tr>
+                <td>{{=XML(T('Author'))}}:</td>
+                <td>{{=forumhelper.get_display_name(None, 'Anonymous User')}}</td>
+            </tr>
+            <tr>
+                <td><span class="required">*</span> {{=XML(T('Title'))}}:</td>
+                <td><input type="text" id="title" name="title" value="{{=request.vars.get('title', '')}}" style="width:600px;" /></td>
+            </tr>
+
+            <tr>
+                <td >
+                </td>
+                <td class="cell3d">
+                    {{for icon in view_info['font_effects']:}}
+                        {{if icon=="I":}}
+                            {{style = "font-style:italic;width:24px;height:24px;vertical-align:text-top;"}}
+                        {{elif icon=="B":}}
+                            {{style = "font-weight:bold;width:24px;height:24px;vertical-align:text-top;"}}
+                        {{elif icon=="U":}}
+                            {{style = "text-decoration:underline;width:24px;height:24px;vertical-align:text-top;"}}
+                        {{pass}}
+                        <button type="button" onmouseover="this.style.cursor='pointer';" 
+                            onmouseout="this.style.cursor='default';"
+                            onclick="add_font_effect('{{=icon}}');" 
+                            style={{=style}}>{{=icon}}</button>    
+                    {{pass}} 
+                    {{if security_info['can_embed'] or auth_user.is_admin():}}
+                        &nbsp;&nbsp;
+                        {{for icon in view_info['video_icons']:}}
+                            <img src="{{=URL(r=request, c='static/images', f=icon)}}" alt="{{=icon[5:icon.rfind('.')]}}" 
+                                 class="imgclear" style="width:24px;height:24px;vertical-align:text-top;"
+                                 onmouseover="this.style.cursor='pointer';"
+                                 onmouseout="this.style.cursor='default';"
+                                 onclick="embed_media('{{=icon[5:icon.rfind('.')]}}');" />
+                        {{pass}}
+                    {{pass}}   
+                </td>
+            </tr>
+            <tr>
+                <td><span class="required">*</span> {{=XML(T('Content'))}}:</td>
+                <td><textarea id="content" name="content" cols="0" rows="0" style="width:600px;height:250px;">{{=request.vars.get('content', '')}}</textarea></td>
+            </tr>
+            <tr>
+                <td><label for="add_signature">{{=XML(T('Add Signature'))}}:</label></td>
+                <td><input type="checkbox" id="add_signature" name="add_signature" {{if request.vars.get('add_signature', ''):}}checked="checked"{{pass}} /></td>
+            </tr>
+            <tr>
+                <td><label for="add_subscription">{{=XML(T('Subscribe Immediately'))}}:</label></td>
+                <td><input type="checkbox" id="add_subscription" name="add_subscription" {{if request.vars.get('add_subscription', ''):}}checked="checked"{{pass}} /></td>
+            </tr>
+            {{if auth_user.has_role('zAdministrator'):}}
+                <tr>
+                    <td><span class="warning">*</span> <label for="locked_flag">{{=XML(T('Locked Topic'))}}:</label></td>
+                    <td><input type="checkbox" id="locked_flag" name="locked_flag" {{if request.vars.get('locked_flag', ''):}}checked="checked"{{pass}} /></td>
+                </tr>
+                <tr>
+                    <td><span class="warning">*</span> <label for="sticky_flag">{{=XML(T('Sticky Topic'))}}:</label></td>
+                    <td><input type="checkbox" id="sticky_flag" name="sticky_flag" {{if request.vars.get('sticky_flag', ''):}}checked="checked"{{pass}} /></td>
+                </tr>
+                <tr>
+                    <td><span class="warning">*</span> <label for="system_announcement_flag">{{=XML(T('System Announcement'))}}:</label></td>
+                    <td><input type="checkbox" id="system_announcement_flag" name="system_announcement_flag" {{if request.vars.get('system_announcement_flag', ''):}}checked="checked"{{pass}} /></td>
+                </tr>
+                <tr>
+                    <td><span class="warning">*</span> {{=XML(T('Created'))}}:</td>
+                    <td>
+                        <input type="text" id="creation_date" name="creation_date" value="{{=request.vars.get('creation_date', request.now.strftime('%Y-%m-%d %H:%M:%S'))}}" style="width:200px;" />
+                    </td>
+                </tr>
+                <tr>
+                    <td><span class="warning">*</span> {{=XML(T('Modified'))}}:</td>
+                    <td>
+                        <input type="text" id="modifying_date" name="modifying_date" value="{{=request.vars.get('modifying_date', request.now.strftime('%Y-%m-%d %H:%M:%S'))}}" style="width:200px;" />
+                    </td>
+                </tr>
+            {{pass}}
+            <tr>
+                <td>{{=XML(T('Click on an emoticon to add it'))}}:</td>
+                <td>
+                    {{for icon in view_info['emoticons']:}}
+                        <img src="{{=URL(r=request, c='static/images', f=icon)}}" alt="{{=icon[5:icon.rfind('.')]}}" class="imgclear" style="width:16px;height:16px;"
+                             onmouseover="this.style.cursor='pointer';"
+                             onmouseout="this.style.cursor='default';"
+                             onclick="add_emoticon('{{=icon[5:icon.rfind('.')]}}');" />
+                    {{pass}}
+                </td>
+            </tr>
+        </tbody>
+        </table>
+
+        <div class="both-separator"><span class="required">* {{=XML(T('Required Fields'))}}</span></div>
+
+        <input type="submit" id="preview_b" name="preview_b" value="{{=XML(T('Preview'))}}" />
+        <input type="submit" id="add_topic" name="add_topic" value="{{=XML(T('Add'))}}" />
+        <input type="submit" id="cancel_b" name="cancel_b" value="{{=XML(T('Cancel'))}}" />
+
+    </fieldset>
+</form>
+{{pass}}
+
+<div class="top-separator">
+    <span class="warning">*</span>
+    <span class="small"> - {{=XML(T('Adminitrative-only options, not available to regular members'))}}.</span>
+</div>
+
+<script type="text/javascript">
+<!--
+    function add_emoticon(e_value) {
+        var emoticon_value = ':' + e_value + ':';
+        var my_field = document.getElementById('content');
+
+        //IE support
+        if (document.selection) {
+            my_field.focus();
+            sel = document.selection.createRange();
+            sel.text = emoticon_value;
+        }
+        //MOZILLA/NETSCAPE support
+        else if (my_field.selectionStart || my_field.selectionStart == 0) {
+            var start_pos = my_field.selectionStart;
+            var end_pos = my_field.selectionEnd;
+            my_field.value = my_field.value.substring(0, start_pos) + emoticon_value + my_field.value.substring(end_pos, my_field.value.length);
+        } else {
+            my_field.value += emoticon_value;
+        }
+
+        document.getElementById('content').focus();
+    }
+
+    function add_font_effect(e_value) { 
+        var e_value_start = '[i]';
+        var e_value_end = '[/i]';
+        
+        if (e_value == 'B') {
+            e_value_start = '[b]';
+            e_value_end = '[/b]';
+        }
+        else if(e_value == 'U') {
+            e_value_start = '[u]';
+            e_value_end = '[/u]';
+        }
+        
+        var my_field = document.getElementById('content'); 
+        
+        //IE support
+        if (document.selection) {
+            my_field.focus();
+            sel = document.selection.createRange();
+            sel.text = e_value_start + sel.text + e_value_end;
+        }
+        //MOZILLA/NETSCAPE support
+        else if (my_field.selectionStart || my_field.selectionStart == 0) {
+            var start_pos = my_field.selectionStart;
+            var end_pos = my_field.selectionEnd;
+            my_field.value = my_field.value.substring(0, start_pos) + e_value_start 
+                + my_field.value.substring(start_pos, end_pos) + e_value_end 
+                + my_field.value.substring(end_pos, my_field.value.length);
+        } 
+        else {
+            my_field.value += e_value_start + e_value_end;
+        }
+        document.getElementById('content').focus();
+    }
+    
+    function embed_media(e_value) {
+        var e_value_start = '[youtube]';
+        var e_value_end = '[/youtube]';
+        
+        if (e_value == 'vimeo') {
+            e_value_start = '[vimeo]';
+            e_value_end = '[/vimeo]';
+        }
+        else if (e_value == 'music') {
+            e_value_start = '[music]';
+            e_value_end = '[/music]';
+        }
+        
+        var reply = prompt("Enter media URL:", "");
+        var my_field = document.getElementById('content');
+        
+        //If not already in an embedded format, convert here
+        if (e_value == 'youtube') {
+            var watch_index = -1; 
+            watch_index = reply.indexOf("watch?");
+            var video_index = -1; 
+            video_index = reply.indexOf("v=");
+            if (watch_index != -1 && video_index != -1) {
+                reply = reply.substring(0,watch_index) + "embed/" + reply.substring(video_index+2);
+            }
+        }
+        else if (e_value == "vimeo")
+        {
+            var watch_index = -1;
+            watch_index = reply.indexOf("/video/");
+            if (watch_index == -1)
+            {
+                reply = "http://player.vimeo.com/video" + reply.substring(reply.lastIndexOf("/"));
+            }
+        }
+        
+        //IE support
+        if (document.selection) {
+            my_field.focus();
+            sel = document.selection.createRange();
+            sel.text = e_value_start + reply + e_value_end;
+        }
+        
+        //MOZILLA/NETSCAPE support
+        else if (my_field.selectionStart || my_field.selectionStart == 0) {
+            var start_pos = my_field.selectionStart;
+            var end_pos = my_field.selectionEnd;
+            my_field.value = my_field.value.substring(0, start_pos) + e_value_start 
+                + reply + e_value_end 
+                + my_field.value.substring(end_pos, my_field.value.length);
+        } else {
+            my_field.value += e_value_start + e_value_end;
+        }
+        
+        document.getElementById('content').focus();
+    }
+//-->
+</script>

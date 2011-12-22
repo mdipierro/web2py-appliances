@@ -1,0 +1,54 @@
+{{extend 'zlayout.html'}}
+
+<h2 class="fancy">{{=XML(T('pyForum Administration'))}}</h2>
+
+{{include 'zadmin/admin_options.html'}}
+
+{{if view_info.has_key('updated'):}}
+    <p class="warning">{{=XML(T('Parameters Updated'))}}</p>
+{{pass}}
+
+{{if system_properties:}}
+    <form id="system_params_form" method="post" action="">
+        <fieldset id="system_params_form_fields">
+            <input type="hidden" id="form_submitted" name="form_submitted" value="1" />
+
+            <div class="bottom-separator">
+                <input type="submit" id="save_sys_params_top" name="save_sys_params" value="{{=XML(T('Save New configuration'))}}" />
+            </div>
+
+            <table cellspacing="0" cellpadding="0" class="zf-table max-width">
+                <thead>
+                    <tr class="shadedarker">
+                        <th class="cell3d">ID</td>
+                        <th class="cell3d">{{=XML(T('Property Description'))}}</th>
+                        <th class="cell3d">{{=XML(T('Value'))}}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{for idx, sys_prop in enumerate(system_properties):}}
+                        <tr class="{{if idx%2:}}shadedark{{else:}}shadelight{{pass}}">
+                            <td class="cell3d center-xy">{{=sys_prop.property_name}}</td>
+                            <td class="cell3d" style="vertical-align:middle;">{{=XML(sys_prop.property_desc)}}</td>
+                            <td class="cell3d center-xy">
+                                <input type="hidden" id="new_property_id_{{=sys_prop.id}}" name="new_property_id_{{=sys_prop.id}}" value="{{=sys_prop.id}}" />
+                                <textarea id="new_property_value_{{=sys_prop.id}}"
+                                          name="new_property_value_{{=sys_prop.id}}"
+                                          cols="0"
+                                          rows="0"
+                                          style="width:350px;height:80px;">{{=request.get('new_property_value', sys_prop.property_value)}}</textarea>
+                            </td>
+                        </tr>
+                    {{pass}}
+                </tbody>
+            </table>
+
+            <div class="both-separator">
+                <input type="submit" id="save_sys_params" name="save_sys_params" value="{{=XML(T('Save New configuration'))}}" />
+            </div>
+
+        </fieldset>
+    </form>
+{{else:}}
+    </p>{{=XML(T('No System Parameters have been configured. This may be due to forum mosconfiguration'))}}.</p>
+{{pass}}

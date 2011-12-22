@@ -1,0 +1,36 @@
+<!--
+#########################################################################
+## (C) Equimind Financial LLC.
+##  Written by Casey Schroeder, A Theory of Publishing
+##  MIT License
+##
+##  See www.atheoryofpublishing.com for 
+##  full licensing of OpenOpine
+##
+##  Powered by web2py, Thanks Massimo!
+#########################################################################
+-->
+
+{{extend 'two-column.html'}}
+{{if 'message' in globals():}}
+<h1>{{=message}}</h1>
+<hr />
+<div id="column1">
+<img width="250" src="{{=URL('default', 'download', args=[rec.photo])}}"/><br/><br/>
+<h3>{{=T('Region')}}:</h3>{{=rec.city +', '+ rec.state +', '+ rec.country}}<br/>
+<h3>{{=T('Likes')}}:</h3>{{=rec.likes}}<br/>
+<h3>{{=T('Dislikes')}}:</h3>{{=rec.dislikes}}<br/>
+<h3>{{=T('Loves')}}:</h3>{{=rec.loves}}<br/>
+<h3>{{=T('About Me')}}:</h3>{{=rec.about_me}}<br/>
+{{else:}}
+{{=BEAUTIFY(response._vars)}}
+{{pass}}
+</div>
+<div id="column2">
+    {{if graphics:}}
+    <h3>{{=T('Reviews:')}}</h3>
+    {{pass}}
+   {{for g in graphics:}}
+        <a href="{{=URL('default', 'review', args=[g[0]], vars=dict(tbl=g[3]))}}"><img width='180px' height="135px" src=   "{{=g[1]}}"  title='{{=g[2]}}' /></a>
+   {{pass}}   
+</div>

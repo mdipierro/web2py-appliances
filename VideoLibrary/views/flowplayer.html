@@ -1,0 +1,41 @@
+<style>
+/* dimensions for both splash image and the player wrapper */
+a.flowplayer, a.flowplayer img {
+	display:block;
+	width:400px;
+	height:300px;
+	border:0px;
+	margin:0px;
+	padding:0px;
+}
+
+a.flowplayer {
+	color:#000;
+	border:5px solid;
+}
+
+/* play button on top of splash screen */
+div.playButton {
+	background:url(/{{=request.application}}/static/img/play.png) no-repeat;
+	width:50px;
+	height:50px;
+	position:relative;
+	top:-175px;
+	left:175px;
+	opacity:0.5;
+}
+
+/* play button upon mouseover */
+div.playButton:hover {
+	opacity:1.0;
+}
+</style>
+
+<script type="text/javascript" src="/{{=request.application}}/static/js/jquery.pack.js"></script>
+<script type="text/javascript" src="/{{=request.application}}/static/js/flashembed.min.js"></script>
+<script type="text/javascript" src="/{{=request.application}}/static/js/flow.embed.js"></script>
+<script>
+	$(function() {
+		$("a.flowplayer").flowembed("/{{=request.application}}/static/FlowPlayerDark.swf",  {initialScale:'scale'});
+	});
+</script>

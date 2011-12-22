@@ -1,0 +1,22 @@
+#!/bin/bash
+
+# Copyright 1999-2004 Gentoo Foundation
+# Distributed under the terms of the GNU General Public License v2
+#depend() {
+
+    # El script lo uso para controlar los servicios del servidor, en este caso requiero la ejecución
+    # de apache. 
+    #after apache
+#}
+
+start(){
+    ebegin "Starting systemd Daemon"
+    start-stop-daemon --start --pidfile /var/run/orcad.pid --exec /home/jose/Documents/GrandesInstlaciones/SystemD/server/web2py/applications/systemD/daemon/systemddaemon.py
+    eend ${?}
+}
+
+stop(){
+    ebegin "Stopping systemd Daemon"
+    start-stop-daemon --stop --pidfile /var/run/orcad.pid
+    eend ${?}
+}  

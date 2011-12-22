@@ -1,0 +1,17 @@
+{{extend 'layout.html'}}
+<h1>Create/Edit Event</h1>
+{{=form}}
+
+<ul>
+{{for row in rows:}}
+<li>{{=row.attendee.first_name}} {{row.attendee.last_name}} said "{{=row.attendance}}"
+{{if row.comment:}}and "{{=row.comment}}"{{pass}}
+</li>
+{{pass}}
+<ul>
+
+<h3>Emails</h3>
+<textarea>
+{{for row in rows:}}{{if not row.attendance=='no':}}
+{{=row.attendee.email}}{{pass}}{{pass}}
+</textarea>

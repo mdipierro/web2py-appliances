@@ -1,0 +1,10 @@
+{{extend 'layout.html'}}
+[ {{=A('Home', _href=URL('index'))}} ]
+[ {{=A('Admin', _href=URL('admin'))}} ]
+[ {{=A('Clients', _href=URL('clients'))}} ]
+
+<ul>{{for client in clients:}}
+     <li>
+   		  {{=(A(client.name, _href=URL('showclient', args=client.id)))}}, {{=client.company}}
+     </li>
+{{pass}}</ul>

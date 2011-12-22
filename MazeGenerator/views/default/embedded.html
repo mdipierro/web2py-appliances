@@ -1,0 +1,20 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="{{=T.accepted_language or 'en'}}">
+  <head>
+    <title>{{=response.title or request.application}}</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <!-- include requires CSS files
+    {{response.files.append(URL(request.application,'static','base.css'))}}
+    {{response.files.append(URL(request.application,'static','ez-plug-min.css'))}}
+    -->
+    {{include 'web2py_ajax.html'}}
+    <script type="text/javascript">
+      <!-- /* this adds sfhover class to menu li items to make IE6 work */ jQuery(document).ready(function(){jQuery('li.web2py-menu-expand').hover(function () {jQuery(this).addClass('sfhover');},function () {jQuery(this).removeClass('sfhover');});});//-->
+    </script>
+  </head>
+  <body>
+    <div style="background:white">
+      {{=maze}}
+    </div>
+  </body>
+</html>

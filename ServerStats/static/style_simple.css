@@ -1,0 +1,122 @@
+/*
+Design by Free CSS Templates
+http://www.freecsstemplates.org
+Released for free under a Creative Commons Attribution 2.5 License
+*/
+
+body {
+	margin: 0;
+	padding: 0;
+
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: 12px;
+	color: #787878;
+}
+
+h1, h2, h3 {
+	margin: 0;
+	padding: 0;
+	font-family: Arial, Helvetica, sans-serif;
+	font-weight: normal;
+	color: #F93D00;
+}
+
+h1 {
+	font-size: 2em;
+}
+
+h2 {
+	font-size: 1.6em;
+}
+
+h3 {
+	font-size: 1.6em;
+}
+
+p, ul, ol {
+	margin-top: 0;
+	line-height: 180%;
+}
+
+ul, ol {
+}
+
+a {
+	text-decoration: none;
+	color: #000000;
+}
+
+a:hover {
+}
+
+#wrapper {
+	width: 800px;
+	margin: 0 auto;
+	padding: 0;
+}
+
+/* Header */
+
+#header {
+	width: 800ppx;
+	height: 70px;
+	margin: 0 auto;
+}
+
+/* Logo */
+
+#logo {
+	float: left;
+	width: 800ppx;
+	height: 100px;
+	margin: 0;
+	background: url(images/img05.jpg) no-repeat left 25px;
+	color: #FFFFFF;
+}
+
+#logo h1, #logo p {
+	margin: 0;
+	padding: 0;
+	text-transform: uppercase;
+ }
+
+#logo h1 {
+	padding-top: 25px;
+	padding-left: 60px;
+	letter-spacing: -1px;
+	font-size: 2.2em;
+	font-weight: bold;
+}
+
+#logo p {
+	margin-top: -6px;
+	padding-left: 62px;
+	font-size: 11px;
+	color: #000000;
+} 
+
+#logo p a {
+	color: #000000;
+}
+
+#logo a {
+	border: none;
+	background: none;
+	text-decoration: none;
+	color: #D01010;
+}
+
+
+/* Page */
+
+#page {
+	width: 800px;
+	margin: 0 auto;
+	padding-top: 10px;
+}
+
+
+
+
+
+

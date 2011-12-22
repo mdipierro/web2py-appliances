@@ -1,0 +1,11 @@
+{{extend 'layout.html'}}
+
+<h1>Forms you have created</h1>
+{{if request.args:}}<h3>{{=T('For %s #%s' % (request.args(0)[2:],request.args(1)))}}</h3>{{pass}}
+
+<ul>
+{{for row in rows:}}
+<li><a href="{{=URL('form_fill',args=row.f_uuid)}}">{{=row.f_name}}</a>
+[<a href="{{=URL('form_update',args=row.id)}}">edit</a>]
+{{pass}}
+</ul>

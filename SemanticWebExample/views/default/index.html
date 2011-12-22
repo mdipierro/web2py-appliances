@@ -1,0 +1,15 @@
+{{extend 'layout.html'}}
+
+<h1>Exmaples RDF application</h1>
+
+<a href="{{=URL(r=request,c='plugin_rdf',f='ld',args=['tables'])}}">click here for RDF tables</a><br/>
+{{for table in db.tables:}}{{if not hasattr(db[table],'rdf'): continue}}
+<a href="{{=URL(r=request,c='plugin_rdf',f='ld',args=['select',table])}}">click here for RDF table:{{=table}}</a><br/>
+{{for item in db(db[table].id>0).select():}}
+<a href="{{=URL(r=request,c='plugin_rdf',f='ld',args=['read',table,item.id])}}">click here for RDF table:{{=table}} record {{=item.id}}</a><br/>
+{{pass}}
+{{pass}}
+<br/>
+{{import os}}
+<h2>Code to generate the above links</h2>
+{{=CODE(open(os.path.join(request.folder,'models/db_example.py'),'r').read(),language='web2py')}}

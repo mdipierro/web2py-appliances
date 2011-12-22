@@ -1,0 +1,34 @@
+{{extend 'layout.html'}}
+
+{{=DIV(menu)}}
+
+<form>
+    <input type="hidden" id="id" name="id" value="" />
+</form>
+
+{{=DIV(CENTER(IMG(_src = URL('download', 
+                         args = page.photo), 
+              _alt = page.caption, 
+              _title = page.caption)))}}
+{{=DIV(CENTER(page.caption))}}
+{{=DIV(CENTER(db.photo_album[page.album_id].album))}}
+    
+{{=SPAN(page.like, 
+        _id = 'photo_like_%s' % page.id)}}
+{{=SPAN(T('People Like This'))}}
+    
+<span onclick="jQuery('#id').val('{{=page.id}}');
+               ajax('{{=URL('photo_like.load')}}', ['id'], 'photo_like_{{=page.id}}');">
+{{=A(T('Like'), 
+     _href = '#')}}
+</span>
+
+{{=LOAD('default', 
+        'photo_comment_show.load', 
+        args = page.id, 
+        ajax = True)}}
+
+{{=LOAD('default', 
+        'photo_comment_add.load', 
+        args = page.id, 
+        ajax = True)}}

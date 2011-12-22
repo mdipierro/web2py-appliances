@@ -1,0 +1,104 @@
+{{extend 'zlayout.html'}}
+
+<h2 class="fancy">{{=XML(T('Messages - Main page'))}}</h2>
+
+{{if view_info['errors']:}}
+    <p class="err">{{=XML(T('There was one or more errors while processing your request, please correct the following'))}}</p>
+    <ul>
+        {{for error in view_info['errors']:}}
+            <li class="err">{{=XML(T(error))}}</li>
+        {{pass}}
+    </ul>
+{{pass}}
+
+<form id="pm_form" method="post" action="">
+    <fieldset id="pm_form_fields">
+
+        <input type="hidden" id="empty_b_msg" name="empty_b_msg" value="{{=XML(T('Please confirm you wish to permanently remove the messages from the trash'))}}" />
+        <input type="hidden" id="form_submitted" name="form_submitted" value="1" />
+
+        <div class="subnav">
+            Move Selected Messages To:
+            <select id="moveto" name="moveto">
+                <option value="">{{=XML(T('Please Select'))}}</option>
+                {{for cat in cats:}}
+                    <option value="{{=cat.id}}">{{=XML(T(cat.name))}}</option>
+                {{pass}}
+            </select>
+            <input type="submit" id="move_b" name="move_b" value="{{=XML(T('Move'))}}" />
+            <input type="submit" id="empty_b" name="empty_b" value="{{=XML(T('Empty Trash'))}}" onclick="return confirm(document.getElementById('empty_b_msg').value);" />
+            <!-- <input type="submit" id="new_b" name="new_b" value="{{=XML(T('New Message'))}}" /> //-->
+        </div>
+
+        <table cellspacing="0" cellpadding="0" style="width:100%;" class="zf-table">
+            <tbody>
+                <tr class="shadedarker">
+                    <td class="cell3d" style="vertical-align:top;width:15%;">
+                        <table cellspacing="0" cellpadding="0" class="zf-table" style="width:100%;">
+                            <tbody>
+                                {{for idx, cat in enumerate(cats):}}
+                                    <tr class="{{if idx%2:}}shadedark{{else:}}shadelight{{pass}}">
+                                        <td class="cell3d">
+                                            <a title="{{=XML(T(cat.name))}}"
+                                               {{if view_info.get('default_cat', {}).get('id', 0) == cat.id:}}class="linkb"{{pass}}
+                                               href="{{=URL(r=request, c='pm', f='index', args=[cat.id])}}">{{=XML(T(cat.name))}}
+                                               ({{=view_info['unread_dict'].get(cat.id, 0)}}/{{=view_info['read_unread_dict'].get(cat.id, 0)}})</a>
+                                        </td>
+                                    </tr>
+                                {{pass}}
+                            </tbody>
+                        </table>
+                    </td>
+                    <td class="cell3d" style="vertical-align:top;width:85%">
+                        <table cellspacing="0" cellpadding="0" class="zf-table" style="width:100%;">
+                            <thead>
+                                <tr class="shadedarker">
+                                    <th class="cell3d" colspan="4" style="text-align:left;">
+                                        {{=XML(T('Messages In'))}} {{=XML(T(view_info.get('default_cat', {}).get('name', 'Unknown')))}}
+                                    </th>
+                                </tr>
+                                <tr class="shadedarker">
+                                    <th class="cell3d">&nbsp;</td>
+                                    <th class="cell3d" style="text-align:left;">{{=XML(T('Subject'))}}</td>
+                                    <th class="cell3d">{{=XML(T('From'))}}</td>
+                                    <th class="cell3d">{{=XML(T('Date'))}}</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {{if len(messages):}}
+                                    {{for idx, msg in enumerate(messages):}}
+                                        <tr class="{{if idx%2:}}shadedark{{else:}}shadelight{{pass}}">
+                                            <td class="cell3d" style="text-align:center;">
+                                                <input type="checkbox"
+                                                       id="remove_pm_id_{{=msg.id}}"
+                                                       name="remove_pm_id_{{=msg.id}}"
+                                                       value="{{=msg.id}}" />
+                                            </td>
+                                            <td class="cell3d" style="text-align:left;">
+                                                <a href="{{=URL(r=request, c='pm', f='view', args=[msg.id])}}"
+                                                   {{if not msg.read_flag:}}class="linkb"{{pass}}
+                                                   title="">{{=msg.subject}}</a>
+                                            </td>
+                                            <td class="cell3d" style="text-align:center;">
+                                                <a href="{{=URL(r=request, c='pm', f='message_new', args=[msg.from_user_id])}}"
+                                                   title="">{{=forumhelper.get_member_property('zfmp_display_name', msg.from_user_id, 'user_%s' % (msg.from_user_id))}}</a>
+                                            </td>
+                                            <td class="cell3d" style="text-align:center;">
+                                                {{=msg.creation_date.strftime(str(T('%b %d, %Y - %I:%M %p')))}}
+                                            </td>
+                                        </tr>
+                                    {{pass}}
+                                {{else:}}
+                                    <tr class="shadelight">
+                                        <td class="cell3d" colspan="4"><i>{{=XML(T('No messages found'))}}.</i></td>
+                                    </tr>
+                                {{pass}}
+                            </tbody>
+                        </table>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+
+    </fieldset>
+</form>

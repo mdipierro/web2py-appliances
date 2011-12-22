@@ -1,0 +1,22 @@
+{{extend 'layout.html'}}
+<script src="http://maps.google.com/maps?file=api&amp;v=2&amp;key={{=settings.googlemap_key}}"></script>
+<script src="{{=URL('static','js/gmap.js')}}"></script>
+
+<div id="map_canvas" style="width:400px; height:300px"></div>
+
+<script>
+jQuery(document).ready(function() { 
+    jQuery('#map_canvas').gMap({
+        zoom: 1,
+        markers: [
+        {{for i,row in enumerate(rows):}}{{if not i==0:}},{{pass}}
+        {
+            latitude:   {{=row.f_latitude}},
+            longitude:  {{=row.f_longitude}},
+            html: '<b>{{=row.f_title}}</b>: {{=row.f_start_time}} to {{row.f_end_time}} at {{=row.f_location}}'
+        }
+        {{pass}}
+        ]
+    }); 
+}); 
+</script>

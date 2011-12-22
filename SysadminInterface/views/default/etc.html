@@ -1,0 +1,16 @@
+{{extend 'layout.html'}}
+<h1>Etcetera (configuration)</h1>
+
+<h2>users</h2>
+{{for user in users:}}{{=A(user,_href=URL('finger/'+user))}}<br/>{{pass}}
+
+<br/>
+<h2>services</h2>
+{{keys=services.keys()
+keys.sort()}}
+<table>
+{{for service in keys:}}
+<tr><td>{{=A(service,_href=URL('man/'+service))}}</td><td>
+{{if services[service]:}}running{{else:}}stopped{{pass}}</td></tr>
+{{pass}}
+</table>

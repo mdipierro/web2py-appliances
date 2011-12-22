@@ -1,0 +1,8 @@
+{{extend "layout.html"}}
+<h1>GeoLite Country</h1>
+<div class="center" style="margin-bottom: 50px; padding-bottom: 20px; border-bottom: 1px dotted #DDDDDD">{{=form}}</div>
+This software uses free GeoLite database provided by <a href="http://www.maxmind.com" target="_new">Maxmind</a>
+(<a href="http://www.maxmind.com/download/geoip/database/LICENSE.txt" target="_new">license</a>)<br />
+Country flags provided by <a href="http://famfamfam.com" target="_new">FAMFAMFAM</a><br />
+Loader gif created using <a href="http://www.ajaxload.info" target="_new">Ajaxload</a><br /><br />
+Your computer IP address is: <a href="{{=URL(r=request, c="default", f="index/" + request.env.remote_addr)}}">{{=request.env.remote_addr}}</a>

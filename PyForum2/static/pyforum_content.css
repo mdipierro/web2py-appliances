@@ -1,0 +1,513 @@
+* {
+	margin: 0;
+	padding: 0;
+}
+
+body {
+	font-family:"Lucida Grande", "Lucida Sans Unicode", sans-serif, arial, helvetica;
+	font-size:14px;
+	color: #333;
+    width:100%;
+    background-color: #e1e1e1;
+    background-image:url(/pyforum/static/images/top_light.jpg);
+    background-repeat:repeat-x;
+}
+
+a {
+    font-size:14px;
+	color: #1b67b2;
+    text-decoration: none;
+}
+
+a:hover {
+    font-size:14px;
+	text-decoration: none;
+    color: #B22222;
+}
+
+a.linkb:active, a.linkb:link, a.linkb:visited {
+    font-size:14px;
+	color: #1b67b2;
+    text-decoration: none;
+    font-weight:bold;
+}
+
+a.linkb:hover {
+    font-size:14px;
+	text-decoration: none;
+    color: #B22222;
+    font-weight:bold;
+}
+
+a.smallb-new:active, a.smallb-new:link, a.smallb-new:visited, a.smallb:hover {
+    font-size:12px;
+    color:red;
+    background-color:transparent;
+    font-weight:bold;
+    text-decoration:none;
+}
+
+a.smallb:active, a.smallb:link, a.smallb:visited {
+    font-size:12px;
+    color: #1b67b2;
+    background-color:transparent;
+    font-weight:bold;
+    text-decoration:none;
+}
+
+a.smallb:hover {
+    font-size:12px;
+    color: #B22222;
+    background-color:transparent;
+    font-weight:bold;
+    text-decoration:none;
+}
+
+a.small:active, a.small:link, a.small:visited {
+    font-size:12px;
+    color: #1b67b2;
+    background-color:transparent;
+    text-decoration:none;
+}
+
+a.small:hover {
+    font-size:12px;
+    color: #B22222;
+    background-color:transparent;
+    text-decoration:none;
+}
+
+.imgclear {
+    border:0;
+}
+
+#main {
+	min-width: 760px;
+	margin: 0 20px 0 10px;
+	display: block;
+	position: relative;
+	height: 100%;
+	z-index: 1;
+}
+
+#content {
+	margin-right: 300px;
+}
+
+#content-container {
+	float: left;
+	width: 100%;
+	margin-right: -200px;
+}
+
+.box {
+	margin: 0 0 15px;
+	padding: 15px;
+	background: #fff;
+	border: 1px solid #bababa;
+}
+
+.boxmain {
+	margin: 0;
+	padding: 10px;
+	background: #fafafa;
+	border: 1px solid #bababa;
+	margin-bottom:15px;
+}
+
+.box h2 {
+	color: #000;
+	font-size: 18px;
+	font-weight: bold;
+	margin: 0 0 15px;
+}
+
+.box h3 {
+	color: #1b57aa;
+	font-size: 16px;
+	font-weight: bold;
+	margin: 0 0 15px;
+}
+
+.box h4 {
+	color: #000;
+	font-size: 14px;
+	font-weight: normal;
+	margin: 0 0 15px;
+}
+
+/* Not compatible with IEm but then again, the entire universe is not compatible with windows anyway */
+.round {
+    -moz-border-radius:7px;
+    -webkit-border-radius:7px;
+}
+
+.success {
+	font-size: 12px;
+	margin: 0 0 25px;
+	padding: 10px 15px;
+	background: #d3f2bf;
+	border: 1px solid #a7c394;	
+}
+
+.message-container {
+    margin:15px 0 0 0;
+}
+
+.message {
+	font-size: 12px;
+	margin: 0 0 20px;
+	padding: 10px 15px;
+	background: #ffffe0;
+	border: 1px solid #e6db55;
+}
+
+.error-message {
+	font-size: 12px;
+	margin: 0 0 25px;
+	padding: 10px 15px;
+	background: #ffebe8;
+	border: 1px solid #cc0000;
+}
+
+.error {
+    color:red;
+}
+
+.error-message ul li {
+	margin: 0 0 10px 15px;
+}
+
+.warning {
+    color:orange;
+}
+
+.important {
+    color:green;
+    font-weight:bold;
+}
+
+/* Table Style */
+
+table.tab {
+	width: 100%;
+	height: 100%;
+	margin: 0 0 15px;
+	text-align: left;
+	border-collapse: collapse;
+	border: 1px solid #c4c4c4;
+}
+
+table.tab thead {
+	color: #666;
+}
+
+table.tab th {
+	font-weight: bold;
+	padding: 5px 8px;
+	color: #444444;
+	background: #f0f0f0;
+    text-align:center;
+	border-top: 1px solid #c4c4c4;
+}
+
+table.tab #shade {
+	font-weight: bold;
+	padding: 5px 8px;
+	color: #444444;
+	background: #f0f0f0;
+	border-top: 1px solid #c4c4c4;
+}
+
+table.tab td {
+    font-size:14px;
+	padding: 5px;
+	color: #000;
+	border-top: 1px solid #c4c4c4;
+}
+
+table.tab td span.active { color: #55a34a;}
+table.tab td span.pending { color: #c5a059;}
+table.tab td span.closed { color: #a02b2b;}
+
+table.tab tr {
+	border-top: none;
+	background: #f9f9f9;
+}
+
+table.tab .odd {
+	background: #ffffff; 
+}
+
+/* Header */
+
+div#header {
+    height:102px;
+    width:100%;
+    clear:both;
+    background-image:url(http://ya-webdesign.com/idealcorp/images/top_light.jpg);
+    background-repeat:repeat-x;
+}
+
+div#header-container-left {
+    float:left;
+    width:332px;
+    height:102px;
+}
+
+div#header-container-right {
+    float:right;
+    padding-right:15px;
+    text-align:right;
+    margin:20px 0 auto 0;
+}
+
+/* Footer */
+
+div#footer {
+    width:100%;
+    clear:both;
+    border-top: 1px solid #bababa;
+    background-color:white;
+    font-size:12px;
+}
+
+div#footer-container {
+    text-align:right;
+    padding:5px;
+}
+
+/* Sidebar */
+
+#sidebar {
+	float: right;
+	margin: 10px 0;
+	width: 280px;
+	font-size: 12px;
+	color: #444444;
+}
+
+.side-box {
+	margin: 0 0 30px;
+    border-bottom: 1px solid #bababa;
+}
+
+.side-box h3 {
+	margin: 0 0 10px;
+	padding: 0 0 5px;
+	color: #222;
+	font-size: 16px;
+}
+
+.side-box ul {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.side-box ul li {
+	margin: 0 0 15px;
+	padding: 0 0 15px;
+	line-height: 16px;
+}
+
+.side-box a {
+    font-size:12px;
+}
+
+/*
+.side-box ul li a{
+	font-weight: bold;
+}
+*/
+
+/* Search */
+
+#search {
+	height: 23px;
+	margin: 0 0 15px;
+}
+
+#search-text {
+	margin: 0;
+	padding: 3px 5px;
+	border: 1px solid #c4c4c4;
+	position: absolute;
+	width: 243px;
+	height: 17px;
+}
+
+#search-btn {
+	margin: 0 0 0 254px;
+	padding: 0;
+	position: absolute;
+}
+
+/* Form Style */
+
+form ul {
+	margin: 0;
+	padding: 0;
+}
+
+form ul li {
+	margin: 0 0 15px;
+	padding: 0;
+	list-style: none;
+}
+
+form ul li label {
+	font-weight: bold;
+	font-size: 12px;
+}
+
+label.note {
+	color: #999;
+	font-weight: normal;
+	font-size: 10px;
+}
+
+label.choice {
+	margin: 0 15px 0 0;
+	font-weight: normal;
+	font-size: 12px;
+	color: #666;
+}
+
+input {
+	margin: 0;
+	padding: 0;
+}
+
+input.text, textarea {
+	margin: 5px 0 0 0;
+	padding: 3px 5px;
+	border: 1px solid #c4c4c4;
+	background: #fbfbfb;
+	font-size: 12px;
+}
+
+input.radio, input.checkbox, input.file {
+	margin: 5px 5px 0 0;
+}
+
+input.button {
+	font-size: 12px;
+	margin: 0 10px  0 0;
+}
+
+select.drop {
+	font-size: 12px;
+	margin: 5px 5px 0 0;
+	border: 1px solid #d2d2d2;
+}
+
+input.short { width: 20%;}
+input.medium { width: 45%;}
+input.long { width: 75%;}
+input.max { width: 96%;}
+
+.req {
+	color: #d8122d;
+	font-weight: normal;
+}
+
+fieldset {
+    border:0;
+    margin:0;
+    padding:0;
+}
+
+h2.fancy {
+    color:#000000;
+    font-weight:normal;
+    background-color:#fafafa;
+    border-bottom:1px solid #c8c8c8;
+    /* border-top:1px solid #c8c8c8; */
+    text-align:right;
+    padding-right:10px;
+    margin-bottom:25px;
+}
+
+.highlight {
+    background-color:yellow;
+}
+
+div.breadcrumbs, div.subnav {
+    color:#000000;
+    background-color:#transparent;
+    margin-bottom:5px;
+    font-size:12px;
+    text-align:center;
+}
+
+div.breadcrumbs .ctr, div.subnav .ctr {
+    text-align:center;
+}
+
+a.breadcrumbs:active, a.breadcrumbs:link, a.breadcrumbs:visited, a.subnav:active, a.subnav:link, a.subnav:visited {
+    color:#466dab;
+    font-size:12px;
+    background-color:transparent;
+    font-weight:bold;
+    text-decoration:none; 
+}
+
+a.breadcrumbs:hover, a.subnav:hover {
+    color:#B22222;
+    font-size:12px;
+    background-color:transparent;
+    text-decoration:none;
+    font-weight:bold;
+}
+
+.small {
+    font-size:12px;
+}
+
+div.sep-bottom {
+    margin-bottom:15px;
+}
+
+div.sep-both, div.both-separator {
+    margin:15px 0 15px 0;
+}
+
+div.preview {
+    color: #000000;
+    background-color: #ffffff;
+    width:90%;
+    margin:10px auto 10px auto;
+    border:1px dashed #000000;
+    padding:10px;
+}
+
+div.hr {
+    height:1px;
+    background-color:#c8c8c8;
+    width:100%;
+    margin:5px auto 15px auto;
+}
+
+div.hr hr {
+    display: none;
+}
+
+pre.code {
+    font-size:12px;
+    font-family:"Courier New", "Courier";
+    width:850px;
+    padding: 5px;
+    max-height:500px;
+    overflow:auto;
+    white-space:pre;
+    border: 1px solid #cacaca;
+    overflow:scroll;
+    display: block;
+}
+
+.note {
+	font-size:12px;
+	color:#444444;
+	font-style:italic;
+}

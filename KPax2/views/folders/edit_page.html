@@ -1,0 +1,77 @@
+{{extend 'layout.html'}}
+<script src="/{{=request.application}}/static/nicEdit.js" type="text/javascript"></script>
+</script>
+<script src="/{{=request.application}}/static/jquery.dimensions.js"></script>
+<script src="/{{=request.application}}/static/ui.mouse.js"></script>
+<script src="/{{=request.application}}/static/ui.draggable.js"></script>
+<script src="/{{=request.application}}/static/ui.droppable.js"></script>
+<script src="/{{=request.application}}/static/ui.sortable.js"></script>
+<script>
+function sortUpdate(a,b){
+   var dragEls = $(".myPage");
+   var els = '';
+   $.each(dragEls, function (){
+       var cur_id = $(this).attr('id').split('_').shift();
+       els += cur_id+",";
+   });
+   var url = '/{{=request.application}}/folders/sort_pages/{{=folder.id}}?order='+els;
+   $.get(url);
+}
+$(document).ready(function(){
+$('#page_body').attr('rows','40');
+new nicEditor({fullPanel : true, iconsPath : '/{{=request.application}}/static/nicEditorIcons.gif'}).panelInstance('page_body');
+$("#myPages").sortable({stop: sortUpdate });
+});
+function relock() {ajax("{{=URL('relock',args=[page.id])}}",[],false); setTimeout("relock()",{{=PAGE_LOCK_RENEW_TIME*1000}});}; setTimeout("relock()",{{=PAGE_LOCK_RENEW_TIME*1000}});
+</script>
+
+<h1>Folder: {{=folder.name}}</h1>
+<table width="100%">
+<tr><td width="200px">
+{{=A(IMG(_src=URL(r=request,c='static',f='folder/preview_page.png')),_href=URL('show_page',args=request.args))}}
+
+<ul id="myPages" class="myPages">
+  {{for item in pages:}}
+    <li id="{{=item.id}}_page" class="myPage">
+    {{=A(item.title,_href=URL(r=request,args=[request.args[0],item.id]))}}
+    </li>
+  {{pass}}
+</ul>
+{{=A(IMG(_src=URL(r=request,c='static',f='folder/append_page.png')),_href=URL('append_page',args=[request.args[0]]))}}<br/>
+</td><td>
+{{if pages:}}
+<h2 onclick="$('#body').slideToggle();">{{=page.title}}</h2>
+<div id="body">
+{{=form_page}}
+<br/><br/></div>
+<h2 onclick="$('#docs').slideToggle();">Attached Documents</h2>
+<div id="docs">
+<ul>
+  {{for item in documents:}}
+     <li>
+     {{if item.file[-4:].lower() in ['.flv','.pm3','.swf','.png','.jpg','.gif']:}}
+     {{=A(item.title,_href=URL(r=request,c='media',f='player',args=[item.id,item.file]))}} [{{=A('download',_href=URL('download',args=[item.id,item.file]))}}]
+     {{else:}}
+     {{=A(item.title,_href=URL('download',args=[item.id,item.file]))}}
+     {{pass}}
+     {{if folder.owner==auth.user_id:}}
+     [{{=A('delete',_href=URL('delete_document',args=[item.id]))}}]
+     {{pass}}
+     </li>
+  {{pass}}
+</ul>
+<h3>Upload new document</h3>
+{{=form_document}}
+<br/><br/></div>
+<h2 onclick="$('#coms').slideToggle();">Comments</h2>
+<div id="coms">
+  {{for item in comments:}}
+     <div class="comment">{{=item.auth_user.name+' on '+item.comment.posted_on.strftime('%m/%d/%Y at %H:%M')+' says:'}}<br/>{{=item.comment.body}}
+[{{=A('X',_href=URL('delete_comment',args=[item.comment.id]))}}]
+</div><br/>
+  {{pass}}
+  {{if not len(comments):}}No comments yet{{pass}}
+</div>
+{{pass}}
+</td></tr>
+</table>

@@ -1,0 +1,97 @@
+<script type="text/javascript" src="../static/tooltip/script.js"></script>
+<link rel="stylesheet" type="text/css" href="../static/tooltip/style.css" />
+
+
+<br>
+{{for i in range(len(imagesdb)):}}
+  <br><br>
+<h2><span class="hotspot" onmouseover="tooltip.show('{{=imagesdb_description[i]}}');" onmouseout="tooltip.hide();"><img src="../static/tooltip.gif" border="0"></span>
+{{=imagesdb_name[i]}} (Last {{=time}})</h2>
+<br>
+  <img src="{{=embed64(data=imagesdb[i])}}" onclick="next_image('{{=time}}');"/>
+{{pass}}
+
+<script type="text/javascript">
+function next_image(time){
+
+	    platform_id={{=platform_id}}
+	    server_id={{=server_id}}
+	    filter_id={{=filter_id}}
+	    if(time=="hourly"){
+	      time="daily"
+	    }else if(time=="daily"){
+	      time="weekly"
+	    }else if(time=="weekly"){
+	      time="quarterly"
+	    }else if(time =="quarterly"){
+	      time="yearly"
+	    }else if(time =="yearly"){
+	      time="hourly"
+	    }
+
+	  var params = "platform=" + platform_id
+	  params = params + "&time=" + time
+	  params = params + "&server=" + server_id
+	  params = params + "&filter=" + filter_id
+	  $.ajax({
+		      type: "POST",
+		      data: params,
+		      url: "orca",
+		      dataType: "html",
+		      success: function(data) {
+			  $("#result").html(data);
+		      }
+		  });
+}
+
+</script>
+
+
+
+<!--
+<script type="text/javascript">
+/*
+function next_image(time){
+
+      platform_id={{=platform_id}}
+      server_id={{=server_id}}
+      
+      size=$(type_graph).size()
+      if(time=="hourly"){
+	time="weekly"
+      }else if(time=="weekly"){
+	 time="quarterly"
+      }else if(time=="quarterly"){
+	 time="yearly"
+      }else if(time =="yearly"){
+	 time="hourly"
+      }
+
+     var params = "platform=" + platform_id
+     params = params + "&time=" + time
+     params = params + "&server=" + server_id
+     if (size!="0"){
+      $.each(type_graph,function(index, value) {
+		  params = params + "&type_graph=" + value;
+	      });
+     }
+     else{
+	params = params + "&type_graph=" + type_graph;
+     }
+     $.ajax({
+                type: "POST",
+                data: params,
+                url: "orca",
+                dataType: "html",
+                success: function(data) {
+                    $("#result").html(data);
+                }
+            });
+}
+*/
+</script>
+-->
+
+
+
+

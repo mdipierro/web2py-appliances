@@ -1,0 +1,30 @@
+{{extend 'layout.html'}}
+[ {{=A('Home', _href=URL('index'))}} ]
+[ {{=A('Admin', _href=URL('admin'))}} ]
+[ {{=A('Departments', _href=URL('depts'))}} ]
+[ {{=A('Edit Department', _href=URL('editdepartment'))}} ]
+
+<h4>Name</h4>
+<p>
+{{=department.name }}
+{{pass}}
+</p>
+
+<h4>Locaiton</h4>
+<p>
+{{=department.location }}
+{{pass}}
+</p>
+
+<h4>Contact Info</h4>
+<ul>
+<li>{{=department.phone}}</li>
+{{pass}}
+</ul>
+
+
+
+
+
+
+

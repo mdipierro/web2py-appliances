@@ -1,0 +1,10 @@
+{{ extend 'layout.html' }}
+
+<h1>{{= request.args(0) }}</h1>
+
+{{for page in pages:}}
+<a href="{{=URL('index',args=page.name,vars=dict(_version=page.id))}}">
+{{=page.saved_on}} by 
+{{="%(first_name)s %(last_name)s" % db.auth_user[page.author]}}
+</a><br/>
+{{pass}}

@@ -1,0 +1,39 @@
+{{extend 'layout.html'}}
+
+<script type="text/javascript"><!--
+var id=0;
+var k=0;
+function ajax_chat(s) {
+  var u="{{=URL('post',args=[chat_line.id])}}";
+  var query="last="+encodeURIComponent(id);
+  if(s) query=query+"&message="+encodeURIComponent(document.getElementById("message").value);
+  $.ajax({type: "POST", url: u, data: query, success: function(msg) { 
+     var msgs=eval('('+msg+')');
+     var area=document.getElementById('messages')
+     var scroll=document.getElementById('scroll')
+     var color;
+     for(i=0; i<msgs.length; i++) {
+       msg=msgs[i];
+       if(k%2==0) color='#fff'; else color='#ccc';
+       area.innerHTML+='<tr bgcolor="'+color+'"><td width="140px" bgcolor="#ccc">'+msg[1]+'</td><td><a href="mailto:'+msg[3]+'">'+msg[2]+'</a>: <i>'+msg[4]+'</i></td></tr>';
+       id=msg[0];
+       k+=1;
+       scroll.scrollTop=scroll.scrollHeight;
+     }
+     if(s!=false) document.getElementById('message').value=''; 
+  } });
+} 
+function step1() { ajax_chat(false); setTimeout("step1()", 4000); }
+function step2() { ajax_chat(true); };
+$(document).ready(function(){step1();});
+//--></script>
+
+<h1>Chat Line: {{=chat_line.name}}</h1>
+<div style="border: 1px solid; height:300px; overflow: scroll;" id="scroll">
+  <table style="width:100%; font-size:14px" id="messages"></table>
+</div>
+{{if not readonly:}}
+<form action="javascript:step2();">
+<input id="message" size="80"/><input type="submit" value="post"/>
+</form>
+{{pass}}

@@ -1,0 +1,60 @@
+<!--
+#########################################################################
+## (C) Equimind Financial LLC.
+##  Written by Casey Schroeder, A Theory of Publishing
+##  MIT License
+##
+##  See www.atheoryofpublishing.com for 
+##  full licensing of OpenOpine
+##
+##  Powered by web2py, Thanks Massimo!
+#########################################################################
+-->
+
+{{extend 'two-column.html'}}
+{{if 'message' in globals():}}
+
+<h1>{{=message}}</h1>
+<hr />
+<div id="column1">
+    <img width=250 src="{{=URL('default', 'download', args=[rec.photo])}}"/><br/><br/>
+    {{if place_or_event:}}
+            <h3>{{=rec.blurb}}</h3><br/>
+            <h3>{{=T('Where')}}: </h3>{{=db.region[rec.region].name}}
+            <a href="{{=URL('default', 'profile', args=[rec.region],vars=dict(tbl='region'))}}">
+                <img width='50' height='37' src="{{=URL('default', 'download', args=[db.region[rec.region].photo])}}", align="left"/>
+            </a><br/><br/><br/>
+            <h3>{{=T('Cost')}}:</h3> {{=rec.cost}}
+            <h3>{{=T('About')}}:</h3>  {{=rec.about}}
+            <h3>{{=T('Description')}}:</h3> {{=rec.description}}
+    {{else:}}
+            <h3>{{=T('Where')}}:</h3> {{=rec.city + ", " + rec.state + ", " + rec.country}}
+            <h3>{{=T('Famous For')}}:</h3> {{=rec.famous_for}}
+            <h3>{{=T('Product Categories')}}:</h3> {{=rec.product_categories}}
+            <h3>{{=T('Product Lines')}}:</h3> {{=rec.product_lines}}
+            <h3>{{=T('About')}}:</h3> {{=rec.about}}
+    {{pass}}
+</div>
+<div id="column2">
+    {{if graphics:}}
+    <h3>{{=T('Reviews:')}}</h3>
+    {{pass}}
+   {{for g in graphics:}}
+        <a href="{{=URL('default', 'review', args=[g[0]], vars=dict(tbl=g[3]))}}"><img width='180px' height="135px" src=   "{{=g[1]}}",  title='{{=g[2]}}' /></a>
+   {{pass}}
+    {{if rgraphics:}}
+    <h3>{{=T('Products:')}}</h3>
+    {{pass}}
+   {{for g in rgraphics:}}
+        <a href="{{=URL('default', 'profile', args=[g[0]], vars=dict(tbl=g[3]))}}"><img width='180px'  height="135px"  src=   "{{=g[1]}}",  title='{{=g[2]}}' /></a>
+   {{pass}}
+    {{if egraphics:}}
+    <h3>{{=T('Events:')}}</h3>
+    {{pass}}
+   {{for g in egraphics:}}
+        <a href="{{=URL('default', 'profile', args=[g[0]], vars=dict(tbl=g[3]))}}"><img width='180px'  height="135px"  src=   "{{=g[1]}}",  title='{{=g[2]}}' /></a>
+   {{pass}}
+</div>
+{{else:}}
+{{=BEAUTIFY(response._vars)}}
+{{pass}}

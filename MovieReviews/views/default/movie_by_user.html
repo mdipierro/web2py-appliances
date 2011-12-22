@@ -1,0 +1,19 @@
+{{extend 'layout.html'}}
+<html>
+<head>
+</head>
+<body>
+
+<h1> Movies </h1>
+
+{{for movie in db(db.movie.id>0).select():}}
+{{=A(movie.name,_href=URL('moviereview',args=movie.id))}}<br/>
+{{pass}}
+<hr/>
+
+
+</br>
+<a href="{{=URL("newmovie")}}">New Movie</a></br>
+<a href="{{=URL("userlogin")}}">Login</a></br>
+</body>
+</html>

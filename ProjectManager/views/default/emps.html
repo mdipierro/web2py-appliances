@@ -1,0 +1,14 @@
+{{extend 'layout.html'}}
+[ {{=A('Home', _href=URL('index'))}} ]
+[ {{=A('admin', _href=URL('admin'))}} ]
+[ {{=A('Projects', _href=URL('index'))}} ]
+
+
+<h3>Add Employee</h3>
+{{=formemp}}
+
+
+<h4>Search Employees</h4>
+{{=searchform}}<br />{{=target_div}}
+<br  />
+[ {{=A('List All Employees', _href=URL('allemployees'))}} ]

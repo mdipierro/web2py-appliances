@@ -1,0 +1,11 @@
+{{ extend 'layout.html' }}
+
+<h1>{{=(page and page.title) or 'Page does not exist'}}</h1>
+
+{{if page:}}
+<div>{{=WIKI(page.body)}}</div>
+[<a href="{{=URL('edit',args=request.args)}}">edit</a>]
+[<a href="{{=URL('log',args=request.args)}}">logs</a>]
+{{else:}}
+[<a href="{{=URL('edit',args=request.args)}}">create</a>]
+{{pass}}

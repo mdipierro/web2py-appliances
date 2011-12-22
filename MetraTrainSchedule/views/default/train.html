@@ -1,0 +1,51 @@
+{{extend 'layout.html'}}
+
+{{
+def format_time(t):
+   h=t/60
+   m=t-h*60
+   t1='%i:%.2i'%(h,m)
+   if h>11 and h<24:
+       t1=t1+'pm'
+   else:
+       t1=t1+'am'
+       pass
+   return t1
+}}
+{{departure=rows1[0].departure}}
+<h1>{{=lines[departure.line]}}</h1>
+<h2>Train number: {{=departure.number}}
+{{if departure.weekday:}}(weekday)
+{{elif departure.saturday:}}(Saturday)
+{{elif departure.sunday:}}(Sunday)
+{{pass}}
+</h2>
+
+<table class="sortable">
+<thead>
+<tr>
+  <td>Time</td>
+  <td>Arrival</td>
+  <td>Time</td>
+  <td>Departure</td>
+</tr>
+</thead>
+<tbody>
+{{for i in range(len(rows1)+1):}}
+<tr>
+{{if i>0:}}
+   <td>{{=format_time(rows2[i-1].arrival.time)}}</td><td>
+<a href="{{=URL('station',args=[rows2[i-1].station.id])}}">{{=rows2[i-1].station.name}}</a></td>
+{{else:}}
+   <td></td><td></td>
+{{pass}}
+{{if i<len(rows1):}}
+   <td>{{=format_time(rows1[i].departure.time)}}</td><td>
+<a href="{{=URL('station',args=[rows1[i].station.id])}}">{{=rows1[i].station.name}}</a></td>
+{{else:}}
+   <td></td><td></td>
+{{pass}}
+</tr>
+{{pass}}
+</body>
+</table>

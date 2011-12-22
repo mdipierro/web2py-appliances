@@ -1,0 +1,20 @@
+{{=DIV(menu)}}
+
+{{=DIV(H1(title_1))}}
+
+{{=DIV(form)}}
+
+{{=BR()}}
+
+{{=DIV(H3(title_2))}}
+
+{{=DIV(search)}}
+
+{{if rows:}}
+    {{headers = dict((str(k), 
+                      k.label) for k in table)}}
+    {{=SQLTABLE(rows, 
+                headers = headers)}}
+{{else:}}
+    {{=TAG.blockquote(T('No Data'))}}
+{{pass}}

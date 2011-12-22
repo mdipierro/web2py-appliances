@@ -1,0 +1,551 @@
+{{extend 'layout.html'}}
+
+<h1>Visual Representation</h1>
+
+<div id="holder"></div>
+
+<script type="text/javascript" charset="utf-8">
+    var rdf_db = {{=json}};
+</script>
+
+<script type="text/javascript" charset="utf-8">
+    Raphael.fn.connection = function (obj1, obj2, line, bg) {
+        if (obj1.line && obj1.from && obj1.to) {
+            line = obj1;
+            obj1 = line.from;
+            obj2 = line.to;
+        }
+        
+        var bb1 = obj1.getBBox();
+        var bb2 = obj2.getBBox();
+        var p = [ {x: bb1.x + bb1.width / 2, y: bb1.y - 1},
+                  {x: bb1.x + bb1.width / 2, y: bb1.y + bb1.height + 1},
+                  {x: bb1.x - 1, y: bb1.y + bb1.height / 2},
+                  {x: bb1.x + bb1.width + 1, y: bb1.y + bb1.height / 2},
+                  {x: bb2.x + bb2.width / 2, y: bb2.y - 1},
+                  {x: bb2.x + bb2.width / 2, y: bb2.y + bb2.height + 1},
+                  {x: bb2.x - 1, y: bb2.y + bb2.height / 2},
+                  {x: bb2.x + bb2.width + 1, y: bb2.y + bb2.height / 2}
+                ];
+
+        var d = {}, dis = [];
+        for (var i = 0; i < 4; i++) {
+            for (var j = 4; j < 8; j++) {
+                var dx = Math.abs(p[i].x - p[j].x),
+                dy = Math.abs(p[i].y - p[j].y);
+                if ((i == j - 4) || (((i != 3 && j != 6) || p[i].x < p[j].x) && ((i != 2 && j != 7) || p[i].x > p[j].x) && ((i != 0 && j != 5) || p[i].y > p[j].y) && ((i != 1 && j != 4) || p[i].y < p[j].y))) {
+                
+                    dis.push(dx + dy);
+                    d[dis[dis.length - 1]] = [i, j];
+                }
+            }
+        }
+        
+        if (dis.length == 0) {
+            var res = [0, 4];
+        } else {
+            var res = d[Math.min.apply(Math, dis)];
+        }
+                                                                                                                                                                     var x1 = p[res[0]].x,
+            y1 = p[res[0]].y,
+            x4 = p[res[1]].x,
+            y4 = p[res[1]].y,
+            dx = Math.max(Math.abs(x1 - x4) / 2, 10),
+            dy = Math.max(Math.abs(y1 - y4) / 2, 10),
+            x2 = [x1, x1, x1 - dx, x1 + dx][res[0]].toFixed(3),
+            y2 = [y1 - dy, y1 + dy, y1, y1][res[0]].toFixed(3),
+            x3 = [0, 0, 0, 0, x4, x4, x4 - dx, x4 + dx][res[1]].toFixed(3),
+            y3 = [0, 0, 0, 0, y1 + dy, y1 - dy, y4, y4][res[1]].toFixed(3);
+
+        var path = ["M", x1.toFixed(3), y1.toFixed(3), "C", x2, y2, x3, y3, x4.toFixed(3), y4.toFixed(3)].join(",");
+
+        if (line && line.line) {
+            line.bg && line.bg.attr({path: path});
+            line.line.attr({path: path});
+        } else {
+            var color = typeof line == "string" ? line : "#000";
+            return {
+                bg: bg && bg.split && this.path(path).attr({stroke: bg.split("|")[0], fill: "none", "stroke-width": bg.split("|")[1] || 3}),
+                line: this.path(path).attr({stroke: color, fill: "none"}),
+                from: obj1,
+                to: obj2
+            };
+        }
+    };
+
+
+var el;
+
+window.onload = function () {
+    var isDrag = false;
+
+    var dragger = function( e ) {
+
+        isDrag = { dx : e.clientX,
+                   dy : e.clientY,
+                   enclosing : this.enclosing };
+                    
+        //this.animate( { "fill-opacity": .2 }, 500 );
+        
+        e.preventDefault && e.preventDefault();
+    };
+
+    var splitFun = function( to_be_split, splitter ) {
+        if( typeof to_be_split == 'string') {
+            var splits = to_be_split.split(splitter);
+            var new_splits = [];
+            var new_index = 0;
+            for( var i = 0, ii = splits.length; i < ii; i++ ) {
+                if( i == 0 ) { new_splits[new_index++] = splits[0]; }
+                else { new_splits[new_index++] = splitter;
+                       new_splits[new_index++] = splits[i]; }
+            }
+            return new_splits;
+        } else {
+            var newest_splits = [];
+            for( var i = 0, ii = to_be_split.length; i < ii; i++ ) {
+                var new_splits = splitFun( to_be_split[i], splitter );
+                for each( var split in new_splits ) { newest_splits.push( split ); }
+            }
+            return newest_splits;
+        }
+    }
+
+    var displayRdf = function(e) {
+        if(this.attr("fill-opacity") == '.4') {
+            for( var i = 0, ii = table_rdfs[this.index].children_rect.length; i < ii; i++) {
+                table_rdfs[this.index].children_rect[i].show();
+                table_rdfs[this.index].children_text[i].show();
+            }
+            this.attr({"fill-opacity": 0});
+            if(this.connection) {
+                this.connection.line.show();
+            } else {
+                this.connection = r.connection(table_rects[this.index], table_rdfs[this.index].children_rect[0], "#000");
+            }
+        } else {
+            for( var i = 0, ii = table_rdfs[this.index].children_rect.length; i < ii; i++) {
+                table_rdfs[this.index].children_rect[i].hide();
+                table_rdfs[this.index].children_text[i].hide();
+            }
+            this.attr({"fill-opacity": 0.4});
+            this.connection.line.hide();
+        }
+
+        e.preventDefault && e.preventDefault();
+    };
+    
+    var displayRdfColumn = function(e) {
+        if(this.attr("fill-opacity") == '.4') {
+            this.child_rect.show();
+            this.connection.line.show();
+            this.attr({"fill-opacity": 0});
+            if( this.child_text.length == undefined  ) {
+                this.child_text.show();
+            } else {
+                for each( var child in this.child_text ) {
+                    child.show();
+                }
+            }
+        } else {
+            this.attr({"fill-opacity": 0.4});
+            this.child_rect.hide();
+            this.connection.line.hide();
+            if( this.child_text.length == undefined ) {
+                this.child_text.hide();
+            } else {
+                for each( var child in this.child_text ) {
+                    child.hide();
+                }
+            }
+        }
+
+        e.preventDefault && e.preventDefault();
+    }
+
+
+    var canvas_info = { width: 800,
+                        height: 1800 };
+                            
+    var r = Raphael( "holder", canvas_info.width, canvas_info.height );
+
+    var getSpace = function( coords ) {
+
+        var search_granularity = 20;
+
+        var allow = 1;
+
+        for each( var used in used_space ) {
+            if( ( ( coords.left >= used.left && coords.left <= used.right ) || ( coords.right >= used.left && coords.right <= used.right ) )
+                &&
+                ( ( coords.top >= used.top && coords.top <= used.bottom ) || ( coords.bottom >= used.top && coords.bottom <= used.bottom ) ) ) {
+
+                   allow = 0;
+
+                   if( coords.right + search_granularity < canvas_info.width ) {
+                       coords.left = coords.left + search_granularity;
+                       coords.right = coords.right + search_granularity;
+                   } else {
+                       coords.bottom = coords.bottom + search_granularity;
+                       if( coords.bottom + search_granularity > canvas_info.height ) { alert( coords.toSource() ); alert("No more room" ); return 0; }
+                       coords.right = coords.right - coords.left + 5;
+                       coords.left = 5;
+                       coords.top = coords.top + search_granularity;
+                   }
+
+                   return getSpace( coords );
+             }
+        }
+
+        used_space.push( coords );
+        return coords;
+    };
+
+    var makeComplexColumnRdfRect = function( args ) {
+
+        var return_obj = new Object();
+
+        return_obj.text_rows = [];
+
+        var comma_list = [];
+
+        for each( var commaed in args.string.split(",") ) {
+            comma_list.push( commaed + "," );
+        } 
+
+        comma_list[comma_list.length-1] = comma_list[comma_list.length-1].replace(/,/,"");
+
+        var child_split = splitFun( comma_list, "[{" );
+        
+        var child_split = splitFun( child_split, "}]" );
+
+        child_split[0] = child_split[0].replace("{","");
+        child_split.unshift("{");
+
+        var yoff = 0;
+        var indent = 0;
+        var max_right = 0;
+        for each( var pretty in child_split ) {
+            if(pretty != "" ) {
+                if((pretty.match(/\[{/) == '[{')) { indent = indent + 10; }
+
+                if((pretty.match(/\}]/) == '}]')) { indent = indent - 10;
+                } else if(pretty.match(/}/)) { indent = indent - 10; }
+
+                return_obj.text_rows.push( r.text( 5+indent, 200+yoff, pretty ).attr({ "text-anchor": "start" }) );
+
+                yoff=yoff+10;
+                if(pretty.match(/{/)) { indent = indent + 10; }
+                if((pretty.match(/\}]/) == '}]')) { indent = indent - 10; }
+            
+                var current_right = return_obj.text_rows[return_obj.text_rows.length-1].getBBox().width + 
+                                    return_obj.text_rows[return_obj.text_rows.length-1].getBBox().x
+                max_right = ( current_right > max_right ) ? current_right : max_right;
+            }
+        }
+
+        var rect = getSpace( { left: 5, top: 5, right: max_right + 15, bottom: yoff + 25 } );
+
+        return_obj.rect = r.rect( rect.left, rect.top, rect.right-rect.left, rect.bottom-rect.top, 2 );
+        return_obj.rect.attr( { fill: args.color, stroke: args.color, "fill-opacity": 0, "stroke-width": 2 } );
+        return_obj.rect.node.style.cursor = "move";
+        return_obj.rect.hide();
+        //return_header.rect.mousedown( dragger );
+
+        var translate_right = return_obj.rect.getBBox().x - return_obj.text_rows[0].getBBox().x + 10;
+        var translate_down = return_obj.rect.getBBox().y - return_obj.text_rows[0].getBBox().y + 10;
+
+        for each( var text in return_obj.text_rows ) {
+            text.translate( translate_right, translate_down );
+            text.hide();
+        }
+
+        return return_obj;
+    };
+    
+    var makeTableRdfRect = function( args ) {
+
+        var string_list = [];
+        var temp_list = [];
+
+        var return_obj = new Object();
+        
+        return_obj.text_rows = [];
+        return_obj.rect = null;
+
+        for each( var commad in args.string.split(",") ) {
+            string_list.push( commad + "," );
+        } 
+        
+        string_list[string_list.length-1] = string_list[string_list.length-1].replace(/,/,"");
+
+        for each( var string in string_list ) {
+            if( string.match( /{.*}/ ) ) { 
+                temp_list.push( string );
+            } else {
+                var brace_list = string.split( /{/ );
+                if( brace_list.length == 1 ) { temp_list.push( brace_list[0] ); }
+                else { for each( var brace in brace_list ) {
+                    if(brace.length) {
+                        var append = ( brace == brace_list[brace_list.length-1] ) ? "" : "{";
+                        temp_list.push( brace + append ); } } }
+            }
+        }
+
+        string_list = temp_list;
+        string_list[0] = "{  " + string_list[0];
+
+
+        var y = 200;
+        var max_right = 0;
+        return_obj.text_rows.push( r.text( 275, y, string_list[0] ).attr( { "text-anchor": "start" } ) );
+        string_list.shift();
+        var indent = ( string_list[0].split(/{}/).length - 1 ) * 20;
+        for each( var string in string_list ) {
+            string = string.replace( /([{}])/g, "  $1  " );
+            y = y + 15;
+            return_obj.text_rows.push( r.text( 300+indent, y, string ).attr( { "text-anchor": "start" } ) );
+            var lbrace = string.split( /{/ ).length;
+            var rbrace = string.split( /}/ ).length;
+            indent = indent + ( ( lbrace - rbrace ) * 20 ) 
+
+            var current_right = return_obj.text_rows[return_obj.text_rows.length-1].getBBox().width + 
+                                return_obj.text_rows[return_obj.text_rows.length-1].getBBox().x
+            max_right = ( current_right > max_right ) ? current_right : max_right;
+        }
+        
+        var rect = getSpace( { left: 5, top: 5, right: max_right - 255, bottom: y - 165 } );
+
+        return_obj.rect = r.rect( rect.left, rect.top, rect.right-rect.left, rect.bottom-rect.top, 2 );
+        return_obj.rect.attr( { fill: args.color, stroke: args.color, "fill-opacity": 0, "stroke-width": 2 } );
+        return_obj.rect.node.style.cursor = "move";
+        //return_header.rect.mousedown( dragger );
+        return_obj.rect.hide();
+
+        var translate_right = return_obj.rect.getBBox().x - return_obj.text_rows[0].getBBox().x + 10;
+        var translate_down = return_obj.rect.getBBox().y - return_obj.text_rows[0].getBBox().y + 10;
+
+        for each( var text in return_obj.text_rows ) {
+            text.translate( translate_right, translate_down );
+            text.hide();
+        }
+                               
+        return return_obj;
+    };
+
+    var makeTableHeader = function( args ) {
+
+        var return_header = { };
+
+        return_header.rect = r.rect( args.left, args.top, args.dims.width, args.dims.height, 2 );
+        return_header.text = r.text( args.left+(args.dims.width/2), args.top+(args.dims.height/2), args.name );
+        
+        return_header.rect.attr( { fill: args.color, stroke: args.color, "fill-opacity": 0, "stroke-width": 2 } );
+        return_header.rect.node.style.cursor = "move";
+        return_header.rect.mousedown( dragger );
+
+        return return_header;
+
+    }
+
+    var makeSimpleColumnRdfRect = function( args ) {
+
+        var return_obj = new Object();
+
+        var dims = { width: 100, height: 30 };
+        
+        var coords = getSpace( { left: 5,
+                                 top: 5,
+                                 right: 5 + dims.width,
+                                 bottom: 5 + dims.height } );
+
+        return_obj.rect = r.rect( coords.left, coords.top, dims.width, dims.height, 2 ).attr( { fill: args.color,
+                                                                                                stroke: args.color,
+                                                                                                "fill-opacity": 0,
+                                                                                                "stroke-width": 1 } );
+
+        return_obj.text_rows = [ r.text( coords.left + (dims.width/2), coords.top + (dims.height/2), args.string) ];
+
+        return_obj.rect.node.style.cursor = "move";
+        return_obj.rect.mousedown( dragger );
+        
+        return_obj.text_rows[0].hide();
+        return_obj.rect.hide();
+        
+        return return_obj;
+    };
+
+    var makeTableColumns = function( args ) {
+        var return_obj = [];
+        
+        for each( var column in args.columns ) {
+            var column_obj = { };
+
+            column_obj.name = column.name;
+
+            column_obj.rect = r.rect( args.left, args.top, args.dims.width, args.dims.height, 2 );
+            column_obj.rect.attr( { fill: args.color, stroke: args.color, "fill-opacity": 0, "stroke-width": 1 } );
+            column_obj.rect.node.style.cursor = "move";
+            //column_obj.rect.mousedown( dragger );
+
+            column_obj.text = r.text( args.left+(args.dims.width/2), args.top+(args.dims.height/2), column.name );
+
+            if(column.rdf) { column_obj.rdf = column.rdf; }
+
+            args.top = args.top + args.dims.height;
+
+            return_obj[column.name] = column_obj;
+        }
+
+        return return_obj;
+    };
+
+    var toggleRdfInfo = function( e ) {
+
+        var fun = { hide: { fun: function(a) { a.hide(); },
+                            opacity: '.4' },
+                    show: { fun: function(a) { a.show(); },
+                            opacity: '0'  } }
+
+        var caller = ( this.attr("fill-opacity") == '.4' ) ? 'show' : 'hide';
+
+        fun[caller]['fun'](this.rdf_info.rect);
+        fun[caller]['fun'](this.connection.line);
+
+        for each( var text in this.rdf_info.text_rows ) {
+            fun[caller]['fun'](text);
+        }
+
+        this.attr( { "fill-opacity": fun[caller]['opacity'] } );
+        
+        e.preventDefault && e.preventDefault();
+    }
+
+    var makeTable = function( table ) {
+        
+        var return_table = new Object();
+
+        var rect_dims = { width: 100,
+                          height: 30 };
+        
+        var color = Raphael.getColor();
+
+        return_table.name = table.name;
+
+        return_table.coords = getSpace( { left: 5,
+                                          top: 5,
+                                          right: 5 + rect_dims.width,
+                                          bottom: ( ( (table.columns.length+1) * rect_dims.height ) + 5 ) } );
+
+        return_table.header = makeTableHeader( { left: return_table.coords.left,
+                                                 top: return_table.coords.top,
+                                                 dims: rect_dims,
+                                                 name:  table.name,
+                                                 color: color } );
+
+        return_table.header.rect.mousedown( dragger );
+        return_table.header.rect.enclosing = table.name;
+
+        return_table.columns = makeTableColumns( { left: return_table.coords.left,
+                                                   top: return_table.coords.top + rect_dims.height,
+                                                   dims: rect_dims,
+                                                   columns : table.columns,
+                                                   color: color } );
+
+        return_table.createTableRdf = function( rdf ) {
+            if( rdf ) {
+                this.rdf_button = r.circle( this.coords.left+rect_dims.width-10, this.coords.top+(rect_dims.height/2), 6 );
+                this.rdf_button.attr( { fill: color, stroke: color, "fill-opacity": .4, "stroke-width": 1 } );
+                this.rdf_button.mousedown( toggleRdfInfo );
+                this.rdf_button.rdf_info = makeTableRdfRect( { color: color, string: JSON.stringify( rdf, null, '') } );
+                this.rdf_button.connection = r.connection( this.header.rect, this.rdf_button.rdf_info.rect, "#000" ); 
+
+                this.rdf_button.connection.line.hide();
+            }
+        }
+        
+        return_table.createColumnRdf = function() {
+            for each( var column in this.columns ) {
+                if( column.rdf ) {
+                    column.rdf_button = r.circle( column.rect.getBBox().x + column.rect.getBBox().width - 10,
+                                                  column.rect.getBBox().y + (column.rect.getBBox().height/2), 4 ).attr( {
+                                                      fill: color, stroke: color, "fill-opacity": .4, "stroke-width": 1 } );
+                    column.rdf_button.mousedown( toggleRdfInfo );
+                    column.rdf_button.rdf_info = ( typeof column.rdf == 'object' )
+                        ? makeComplexColumnRdfRect( { color: color, string: JSON.stringify( column.rdf, null, '') } )
+                        : makeSimpleColumnRdfRect( { color: color, string: column.rdf } );
+                    column.rdf_button.connection = r.connection( column.rect, column.rdf_button.rdf_info.rect, "#000" );
+                    column.rdf_button.connection.line.hide();
+                }
+            }
+        }
+
+        return_table.trans = function( x, y, dx, dy ) {
+
+            var move = function( el ) { el.translate(x - dx, y - dy); }
+
+            move(this.header.rect);
+            move(this.header.text);
+            move(this.rdf_button);
+            for each( var column in this.columns ) {
+                move(column.rect);
+                move(column.text);
+                if(column.rdf) { move( column.rdf_button ); }
+            }
+        }
+        
+
+
+        return return_table;
+    };
+
+    var tables = new Object();
+
+    var used_space = [];
+
+    for each( var table in rdf_db.rdf_tables.concat(rdf_db.map_tables) ) {
+        tables[table.name] = makeTable( table );
+    }
+    
+    for each( var table in rdf_db.rdf_tables.concat(rdf_db.map_tables) ) {
+        tables[table.name].createTableRdf(table.rdf);
+    }
+    
+    for each( var table in rdf_db.rdf_tables.concat(rdf_db.map_tables) ) {
+        tables[table.name].createColumnRdf();
+    }
+
+    for each( var table in rdf_db.rdf_tables.concat(rdf_db.map_tables) ) {
+        for each( var column in table.columns ) {
+            if( column.type.indexOf('reference') > -1 ) {
+                var fk_table = column.type.split(/ /)[1];
+                tables[table.name].columns[column.name].foreign_key = r.connection( tables[table.name].columns[column.name].rect,
+                                                                                    tables[fk_table].columns['id'].rect,
+                                                                                    "#000" );
+            }
+
+        }
+    }
+                
+    document.onmousemove = function (e) {
+        e = e || window.event;
+
+        if (isDrag) {
+
+            tables[isDrag.enclosing].trans( e.clientX, e.clientY, isDrag.dx, isDrag.dy );
+
+            r.safari();
+
+            isDrag.dx = e.clientX;
+            isDrag.dy = e.clientY;
+        }
+    };
+
+    document.onmouseup = function () {
+        //isDrag && isDrag.animate({"fill-opacity": 0}, 500);
+        isDrag = false;
+    };
+
+};
+
+</script>

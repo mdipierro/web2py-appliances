@@ -1,0 +1,33 @@
+{{extend 'layout.html'}}
+
+{{=DIV(menu)}}
+
+<form>
+    <input type="hidden" id="id" name="id" value="" />
+</form>
+
+{{=DIV(page.no)}}
+{{=DIV(db.room_category[page.category_id].category)}}
+{{=DIV(db.room_status[page.status_id].status)}}
+{{=DIV(db.floor[page.floor_id].no)}}
+{{=DIV(db.branch[page.branch_id].address)}}
+    
+{{=SPAN(page.like, 
+        _id = 'room_like_%s' % page.id)}}
+{{=SPAN(T('People Like This'))}}
+    
+<span onclick="jQuery('#id').val('{{=page.id}}');
+               ajax('{{=URL('room_like.load')}}', ['id'], 'room_like_{{=page.id}}');">
+{{=A(T('Like'), 
+     _href = '#')}}
+</span>
+
+{{=LOAD('default', 
+        'room_comment_show.load', 
+        args = page.id, 
+        ajax = True)}}
+
+{{=LOAD('default', 
+        'room_comment_add.load', 
+        args = page.id, 
+        ajax = True)}}

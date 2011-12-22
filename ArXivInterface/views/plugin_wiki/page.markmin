@@ -1,0 +1,4 @@
+{{
+response.headers['Content-Type']='text'
+response.write(page.body,escape=True)
+}}

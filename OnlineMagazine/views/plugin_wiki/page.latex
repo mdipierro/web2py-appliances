@@ -1,0 +1,26 @@
+{{
+def image_mapper(name):
+    return name.split('/')[-1]
+def image_mapper(name):
+    import re, os
+    if name.startswith('attachment:'):
+        name=re.compile('\d+').search(name).group()
+        name=db.plugin_wiki_attachment(name).file
+    else:
+        name=name.split('/')[-1]
+      	pass    
+    fullname=os.path.join(request.folder,'uploads',name)
+    if not os.path.exists(fullname):
+        items=name.split('.')
+        fullname=os.path.join(request.folder,'uploads',
+	                      items[0]+'.'+items[1],items[2][:2],name)
+    pass
+    return fullname
+try:
+    from gluon.contrib import markmin2latex
+    response.headers['Content-Type']='text'
+    response.write(markmin2latex.markmin2latex(page.body,image_mapper=image_mapper),escape=False)
+except:
+    raise HTTP(405,'no latex')
+pass
+}}

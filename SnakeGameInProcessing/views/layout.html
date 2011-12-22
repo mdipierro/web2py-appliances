@@ -1,0 +1,87 @@
+<html>
+<style>
+body {
+    font-family: Arial, helvetica;
+    font-size: 14px;
+    background: black;
+    color: #999;
+}
+div.flash {
+    position: absolute;
+    float: right;
+    padding: 10px;
+    top: 0px;
+    right: 0px;
+    opacity: 0.75;
+    margin: 10px 10px 10px 10px;
+    text-align: center;
+    clear: both;
+    color: #fff;
+    font-size: 11pt;
+    text-align: center;
+    vertical-align: middle;
+    cursor: pointer;
+    background: black;
+    border: 2px solid #fff; 
+    -moz-border-radius: 5px;
+    -webkit-border-radius: 5px;
+    z-index: 2;
+}
+
+div.error {
+    -moz-border-radius: 5px;
+    -webkit-border-radius: 5px;
+    background-color: red;
+    color: white;
+    padding: 3px;
+    border: 1px solid #666;
+}
+table, tr, td {
+    text-align: left;
+    vertical-align: top;
+}
+.menu {
+    position: absolute;
+    float: left, top;
+}
+.main {
+    position: absolute;
+    width: 100%;
+}
+.footer {
+    position: absolute;
+    float: left;
+    padding-top: 600px;
+}
+input {
+     width: 300px;
+}
+a {
+    text-decoration: none;
+    color: #006692;
+    background-color: black;
+}
+.footer {
+    font-size: 12px;
+}
+</style>
+<head>{{include 'web2py_ajax.html'}}</head>
+<body>
+<div class="flash">{{=response.flash}}</div>
+<div class="main">
+{{include}}
+</div>
+<div class="menu">
+{{if not request.function=='index':}}
+<a href="{{=URL('index')}}">Home</a><br />
+<a href="{{=URL('wheel')}}">Spinning Wheel</a><br />
+<a href="{{=URL('rosling')}}">Risk-Return-Volume Plot</a><br />
+<a href="{{=URL('parallel')}}">Parallel Coordinates</a><br />
+<a href="http://metacryption.com">About Us</a><br />
+<br />
+Powered by <a href="http://web2py.com">web2py</a><br />
+Developer by <a href="http://metacryption.com">MetaCryption</a><br />
+All Right Reserved &copy; 2009
+{{pass}}
+</div>
+</body>

@@ -1,0 +1,62 @@
+<!--
+#########################################################################
+## (C) Equimind Financial LLC.
+##  Written by Casey Schroeder, A Theory of Publishing
+##  MIT License
+##
+##  See www.atheoryofpublishing.com for 
+##  full licensing of OpenOpine
+##
+##  Powered by web2py, Thanks Massimo!
+#########################################################################
+-->
+
+{{extend 'basiclayout.html'}}
+{{if 'message' in globals():}}
+
+<h1>{{=message}}</h1>
+<hr />
+{{if rec.photo:}}<a href="{{=URL('default', 'profile', args=[rec.ref_id], vars=dict(tbl=tablename))}}"><img width="255px" height="192px" src="{{=URL('default', 'download', args=[rec.photo])}}" title="{{=name}}"/></a>
+{{pass}}
+{{if rec.photo1:}}<a href="{{=URL('default', 'profile', args=[rec.ref_id], vars=dict(tbl=tablename))}}"><img width="255px"  height="192px" src="{{=URL('default', 'download', args=[rec.photo1])}}" title="{{=name}}"/></a>
+{{pass}}
+{{if rec.photo2:}}<a href="{{=URL('default', 'profile', args=[rec.ref_id], vars=dict(tbl=tablename))}}"><img width="255px"  height="192px" src="{{=URL('default', 'download', args=[rec.photo2])}}" title="{{=name}}"/></a><br/><br/>
+{{pass}}
+<h2>
+<a href="{{=URL('default', 'reviewer_profile', args=[rec.author])}}"><img width="50px" height="38px" src="{{=URL('default', 'download', args=[db.reviewer[rec.author].photo])}}"/></a>
+{{=db.reviewer[rec.author].screenname}}</h2>
+<br/>
+<div>
+{{=MARKMIN(rec.text)}}
+<br/>
+{{if rec.rating:}}
+{{for i in range(0,rec.rating):}}
+<img align='left' src="{{=URL('static', 'orange_star.jpg')}}"/>
+{{pass}}
+    <br/>
+{{pass}}
+    <br/>
+  {{for comment in comments:}}
+  <tr>
+    <td class="comment" >
+    <br/>
+      <i>{{=comment.body}}</i>
+      <div class="right">{{=T('by')}} {{=db.auth_user[comment.created_by].first_name}} {{=prettydate(comment.created_on)}}</div>
+    </td>
+  </tr>
+  </br>
+  {{pass}}
+  <tr>
+  {{if form:}}
+    <td>
+      <h2>Comments Welcome</h2>
+      {{=form.custom.begin}}{{=form.custom.widget.body}}{{=form.custom.submit}}{{=form.custom.end}}
+    </td>    
+  {{else:}}
+      <h2> {{=T('Please Log On To Comment')}} </h2>
+  {{pass}}
+  </tr>
+</div>
+{{else:}}
+{{=BEAUTIFY(response._vars)}}
+{{pass}}

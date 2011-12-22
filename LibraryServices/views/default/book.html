@@ -1,0 +1,44 @@
+{{extend 'layout.html'}}
+
+<h1>{{=book.title}}</h1>
+{{if librarian:}}[{{=A('edit',_href=URL('edit',args=book.id))}}]{{pass}}
+<br/>
+<br/>
+
+<table>
+  <tr>
+    <td>{{=form}}</td>
+    <td>{{if book.isbn13:}}<img src="http://content-3.powells.com/cgi-bin/imageDB.cgi?isbn={{=book.isbn13}}"/>{{pass}}</td>
+  </tr>
+</table>
+
+<br/>
+<br/>
+{{if librarian:}}[{{=A('new loan',_href=URL('loan',args=book.id))}}]{{pass}}
+
+{{if loans:}}
+<br/>
+<br/>
+<h2>Loans Current and Scheduled</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>User</th>
+      <th>Start</th>
+      <th>End</th>
+      <th>Action</th>
+    </tr>
+  </thead>
+  <tbody>
+    {{for loan in loans:}}
+    <tr>
+      <td>{{=loan.auth_user.first_name}} {{=loan.auth_user.last_name}}</td>
+      <td>{{=loan.loan_start}}</td>
+      <td>{{=loan.loan_end}}</td>
+      <td>{{=A('edit',_href=URL('loan',args=[book.id,loan.id]))}}</td>
+    </tr>
+    {{pass}}
+  </tbody>
+</table>
+{{pass}}

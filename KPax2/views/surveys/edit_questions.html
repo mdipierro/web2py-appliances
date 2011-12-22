@@ -1,0 +1,107 @@
+{{extend 'layout.html'}}
+<script src="/{{=request.application}}/static/nicEdit.js" type="text/javascript"></script>
+<script>
+$(document).ready(function(){
+new nicEditor({fullPanel : true, iconsPath : '/{{=request.application}}/static/nicEditorIcons.gif'}).panelInstance('question_body');
+});
+</script><script src="/{{=request.application}}/static/jquery.dimensions.js"></script>
+<script src="/{{=request.application}}/static/ui.mouse.js"></script>
+<script src="/{{=request.application}}/static/ui.draggable.js"></script>
+<script src="/{{=request.application}}/static/ui.droppable.js"></script>
+<script src="/{{=request.application}}/static/ui.sortable.js"></script>
+<script><!--
+function on_type() {
+$('#question_minimum__row').hide();
+$('#question_maximum__row').hide();
+{{if survey.is_assignment:}}
+$('#question_correct_answer__row').show();
+$('#question_points__row').show();
+{{else:}}
+$('#question_correct_answer__row').hide();
+$('#question_points__row').hide();
+{{pass}}
+$('#question_option_A__row').hide();
+$('#question_option_B__row').hide();
+$('#question_option_C__row').hide();
+$('#question_option_D__row').hide();
+$('#question_option_E__row').hide();
+$('#question_option_F__row').hide();
+$('#question_option_G__row').hide();
+$('#question_option_H__row').hide();
+$('#question_points_for_option_A__row').hide();
+$('#question_points_for_option_B__row').hide();
+$('#question_points_for_option_C__row').hide();
+$('#question_points_for_option_D__row').hide();
+$('#question_points_for_option_E__row').hide();
+$('#question_points_for_option_F__row').hide();
+$('#question_points_for_option_G__row').hide();
+$('#question_points_for_option_H__row').hide();
+if($('#question_type').attr('value')=='integer') {
+$('#question_minimum__row').show();
+$('#question_maximum__row').show();
+}
+var value=$('#question_type').attr('value')
+if(value=='float') {
+$('#question_minimum__row').show();
+$('#question_maximum__row').show();
+}
+if(value=='long text' || value=='long text verbatim' || value=='upload') {
+$('#question_correct_answer__row').attr('value','').hide();
+$('#question_points__row').attr('value','0').hide();
+}
+if(value.substring(0,8)=='multiple') {
+$('#question_correct_answer__row').hide();
+$('#question_points__row').hide();
+$('#question_option_A__row').show();
+$('#question_option_B__row').show();
+$('#question_option_C__row').show();
+$('#question_option_D__row').show();
+$('#question_option_E__row').show();
+$('#question_option_F__row').show();
+$('#question_option_G__row').show();
+$('#question_option_H__row').show();
+{{if survey.is_assignment:}}
+$('#question_points_for_option_A__row').show();
+$('#question_points_for_option_B__row').show();
+$('#question_points_for_option_C__row').show();
+$('#question_points_for_option_D__row').show();
+$('#question_points_for_option_E__row').show();
+$('#question_points_for_option_F__row').show();
+$('#question_points_for_option_G__row').show();
+$('#question_points_for_option_H__row').show();
+{{pass}}
+}
+}
+function sortUpdate(a,b){ 
+    var dragEls = $(".myQuestion"); 
+    var els = ''; 
+    $.each(dragEls, function (){ 
+        var cur_id = $(this).attr('id').split('_').shift(); 
+        els += cur_id+","; 
+    }); 
+    var url = '/{{=request.application}}/surveys/sort_questions/{{=survey.id}}?order='+els; 
+    $.get(url);
+}
+$(document).ready(function() {
+on_type();
+$('#question_type').attr('onchange',"on_type();");
+$("#myQuestions").sortable({stop: sortUpdate });
+});
+//--></script>
+<h1>Edit Questions for {{=survey.title}}</h1>
+<table width="100%">
+<tr><td>
+<ul id="myQuestions" class="myQuestions">
+{{for i,row in enumerate(rows):}}
+  <li id="{{=row.question.id}}_question" class="myQuestion">
+    {{=A("%s"%(row.question.title),_href=URL(r=request,args=[survey.id,row.question.id]))}}
+  </li>
+{{pass}}
+</ul>
+{{if question_id:}}
+{{pass}}
+{{=A(IMG(_src=URL(r=request,c='static',f='surveys/append_question.png')),_href=URL('append_question',args=request.args))}}
+</td><td>
+{{=form}}
+</td></tr>
+</table>

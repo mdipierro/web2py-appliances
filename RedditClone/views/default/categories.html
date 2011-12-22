@@ -1,0 +1,13 @@
+{{extend 'layout.html'}}
+<h2>Categories</h2>
+<table>
+  {{for category in categories:}}
+  <tr>
+    <td>{{=A(category.name,_href=URL('news',args=category.id))}}</td>
+    <td>{{=A('edit',_href=URL('category_edit',args=category.id))}}</td>
+  </tr>
+  {{pass}}
+  <tr>
+    <td>{{=A('add category',_href=URL('category_create'))}}</td>
+  </tr>
+</table>

@@ -1,0 +1,22 @@
+{{extend 'layout.html'}}
+<h2>My Orders</h2>
+<table>
+   <tr>
+   <th>invoice</th>
+   <th>datetime</th>
+   <th>product name</th>
+   <th>product price</th>
+   <th>product quantity</th>
+   <th>product shipped</th>
+   </tr>
+{{for order in orders:}}{{p=db.product(order.product)}}
+   <tr>
+     <td>{{=order.invoice}}</td>
+     <td>{{=order.created_on}}</td>
+     <td>{{=p.name}} (#{{=p.id}})</td>
+     <td>${{=p.price}}</td>
+     <td>{{=order.quantity}}</td>
+     <td>{{=order.shipped and order.tracking_number}}</td>
+   </tr>
+{{pass}}
+</table>

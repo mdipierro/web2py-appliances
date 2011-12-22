@@ -1,0 +1,2574 @@
+#!/usr/bin/perl -w # -*- perl -*-
+
+# Orca: display arbitrary data from files onto web pages using RRDtool.
+#
+# $HeadURL: file:///var/www/svn/repositories-public/orcaware-public/orca/trunk/orca/orca.pl.in $
+# $LastChangedRevision: 525 $
+# $LastChangedDate: 2006-02-01 21:25:42 -0800 (Wed, 01 Feb 2006) $
+# $LastChangedBy: blair@orcaware.com $
+#
+# Copyright (C) 1998-1999 Blair Zajac and Yahoo!, Inc.
+# Copyright (C) 1999-2005 Blair Zajac.
+#
+# This file is part of Orca.
+#
+# Orca is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# Orca is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+# or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public
+# License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with Orca in the COPYING-GPL file; if not, write to the Free
+# Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
+# 02111-1307 USA
+
+require 5.005_03;
+
+use strict;
+
+$| = 1;
+
+# Set the location of the Orca modules.
+BEGIN {
+  my $prefix      = "/opt/web2py/applications/serverStatistics/software/server/orca";
+  my $exec_prefix = "${prefix}";
+  my $libdir      = "${exec_prefix}/lib/perl";
+  unshift(@INC, $libdir);
+}
+
+use Carp;
+use Getopt::Long;
+use Cwd;
+
+# For this script and all of the Orca::* Perl modules loaded by this
+# script, load of the all Perl modules here that have a minimum
+# required version number so that the minimum module version numbers
+# can be listed in once place instead of spread out in each Orca::*
+# module.
+
+# Using the Data::Dumper module on an Ubuntu Breezy Badger (5.10)
+# system with Perl 5.8.7 generates the warning 'Argument "2.121_04"
+# isn't numeric in subroutine entry', so temporarily turn off warnings
+# when using this module.  Removing the minimum required version of
+# Data::Dumper also removes the warning, but Orca should demand a
+# particular version of Data::Dumper for systems with older Perls with
+# older Data::Dumper's.
+no warnings;
+use Data::Dumper         2.101;
+use warnings;
+
+use Digest::MD5          2.33;
+use Math::IntervalSearch 1.05 qw(interval_search);
+use Storable             2.15;
+use RRDs                 1.000503;
+
+# Set behavior of the Data::Dumper module.
+$Data::Dumper::Indent   = 1;
+$Data::Dumper::Purity   = 1;
+$Data::Dumper::Deepcopy = 1;
+
+# Load the required Orca modules.
+use Orca::Constants     qw(IS_WIN32
+                           die_when_called
+                           $INCORRECT_NUMBER_OF_ARGS
+                           $ORCA_VERSION
+                           $opt_daemon
+                           $opt_generate_gifs
+                           $opt_log_filename
+                           $opt_no_html
+                           $opt_no_images
+                           $opt_once_only
+                           $opt_verbose
+                           @IMAGE_PLOT_TYPES
+                           $IMAGE_SUFFIX
+                           $MAX_PLOT_TYPE_LENGTH);
+use Orca::Config        qw(load_config
+                           %config_global
+                           @config_groups
+                           @config_groups_names
+                           @config_plots);
+use Orca::OldState      qw($orca_old_state
+                           load_old_state
+                           save_old_state);
+use Orca::Utils         qw(capatialize
+                           name_to_fsname
+                           perl_glob
+                           print_running_stats
+                           unique);
+use Orca::SourceFile;
+use Orca::SourceFileIDs qw(@sfile_fids);
+use Orca::HTMLFile      qw($html_hr);
+
+# Remember the original working directory because it will be needed to
+# remove the locking directory.
+my $start_cwd = cwd;
+
+# Set up a signal handler to force looking for new files.
+my $force_find_files = 0;
+sub handle_hup {
+  $force_find_files = 1;
+}
+$SIG{HUP} = \&handle_hup;
+
+sub Usage {
+  print STDERR "$0: @_\n" if @_;
+die << "END";
+usage: $0 [options] configuration_file
+Options:
+  -daemon           Run Orca in daemon mode
+  -gifs             Output GIFs instead of PNGs
+  -logfile filename Output all messages
+  -no-html          Update RRD files and images but not HTML files
+  -no-images        Update RRD files but not image and HTML files
+  -once             Run only once and do not continue to monitor input files
+  -verbose          Verbose; list multiple times for increased verbosity
+Orca understands the first unique command line option, i.e. -d for -daemon.
+END
+}
+
+GetOptions('daemon'     => \$opt_daemon,
+           'gifs'       => \$opt_generate_gifs,
+           'logfile=s'  => \$opt_log_filename,
+           'no-html'    => \$opt_no_html,
+           'no-images'  => \$opt_no_images,
+           'once'       => \$opt_once_only,
+           'verbose+'   => \$opt_verbose) or
+  Usage;
+
+if ($opt_verbose) {
+  print "Orca at ", scalar localtime, " running on:\n",
+        "    Orca version $ORCA_VERSION\n",
+        "    RRDs version $RRDs::VERSION\n",
+        "    Perl version $]\n";
+}
+
+# Currently, Orca can only daemonize itself on Unix platforms.
+if ($opt_daemon and IS_WIN32) {
+  die "$0: cannot daemonize on a Windows platform.\n";
+}
+
+if ($opt_generate_gifs) {
+  $IMAGE_SUFFIX = 'gif';
+}
+
+# Load the configuration file.
+Usage("no configuration file specified") unless @ARGV == 1;
+my $config_filename = shift;
+unless (-r $config_filename) {
+  die "$0: no configuration file '$config_filename' to read.\n";
+}
+if (my $number_errors = load_config($config_filename)) {
+  die "$0: loading configuration file '$config_filename' got ",
+      "$number_errors error(s).\n";
+}
+
+# Set two variables that are used by the code that ensures that only
+# one Orca process is using a particular configuration file at a
+# particular time.  This is done by using the fact that mkdir() is
+# atomic.  The first variable is the name of the directory to create
+# and the second is a flag used by the Orca clean up code to see if
+# the locking directory should be removed.
+my $locking_directory       = "$config_filename.lock";
+my $rmdir_locking_directory = '';
+
+# Install signal handlers to clean Orca up, including the locking
+# directory.
+$SIG{INT}     = \&catch_signal;
+$SIG{PIPE}    = \&catch_signal;
+$SIG{TERM}    = \&catch_signal;
+$SIG{__DIE__} = \&catch_die;
+
+# Now try to create the locking directory.
+unless (mkdir($locking_directory, 0755)) {
+  die "$0: cannot create locking directory '$locking_directory': $!\n";
+}
+$rmdir_locking_directory = 1;
+
+# If a log file was specified or if Orca should daemonize itself, then
+# redirect STDOUT to the appropriate file.  If Orca should daemonize
+# itself and no log file was specified, then write to /dev/null.
+# STDERR is dup'ed from STDOUT after any daemonizing since it does a
+# chdir() and the log filename may be relative to the current
+# directory.  This will still keep any failures to the real STDERR
+# until the last possible time.
+if ($opt_daemon and !$opt_log_filename) {
+  $opt_log_filename = '/dev/null';
+}
+if ($opt_log_filename) {
+  open(STDOUT, ">>$opt_log_filename") or
+    die "$0: cannot open '$opt_log_filename' for writing: $!\n";
+}
+
+# If Orca should daemonize itself, then do so now.
+if ($opt_daemon) {
+  my $expr = 'use POSIX qw(setsid)';
+  local $SIG{__DIE__}  = 'DEFAULT';
+  local $SIG{__WARN__} = \&die_when_called;
+  eval $expr;
+  if ($@) {
+    die "$0: cannot get setsid since eval '$expr' failed: $@\n";
+  }
+  chdir('/')               or die "$0: cannot chdir '/': $!\n";
+  open(STDIN, '/dev/null') or die "$0: cannot open '/dev/null': $!\n";
+  defined(my $pid = fork)  or die "$0: cannot fork: $!\n";
+  exit(0) if $pid;
+  POSIX::setsid()          or die "$0: cannot start a new session: $!\n";
+}
+
+if ($opt_log_filename) {
+  open(STDERR, '>&STDOUT') or
+    die "$0: cannot dup stdout: $!\n";
+}
+
+# Load the file state information from disk.
+load_old_state($config_global{state_file});
+
+# Create orca.gif, rrdtool.gif and any other static images for the
+# HTML pages.
+&create_static_images;
+
+# Load in any new data and update necessary plots.
+&watch_data_sources($config_filename);
+
+&clean_up_and_quit(1, "Orca has completed.\n");
+
+exit 0;
+
+# This cleans up any leftover temporary files.  In certain
+# circumstances, such as when Orca receives a SIGPIPE, then assume
+# that STDOUT and STDERR are closed and do not print any messages so
+# that Orca can properly clean up.  If Orca prints when STDOUT and/or
+# STDERR or closed, then it will hang.
+sub clean_up_and_quit {
+  my $can_print = shift;
+  my $message   = shift;
+
+  $can_print = 1 unless defined $can_print;
+
+  if ($rmdir_locking_directory and $locking_directory) {
+    my $ok = 1;
+    if ($opt_daemon) {
+      unless (chdir($start_cwd)) {
+        $ok = 0;
+        if ($can_print) {
+          warn "$0: cannot chdir '$start_cwd': $!\n";
+        }
+      }
+    }
+
+    if ($ok and -d $locking_directory) {
+      unless (rmdir($locking_directory)) {
+        if ($can_print) {
+          warn "$0: cannot rmdir '$locking_directory': $!\n";
+        }
+      }
+    }
+  }
+
+  # Print the given message and any running statistics.
+  if ($can_print) {
+    &print_running_stats if $opt_verbose;
+    print $message if $message;
+  }
+
+  exit 0;
+}
+
+# Catch any die messages.
+sub catch_die {
+  my $message = shift;
+  clean_up_and_quit(1, $message);
+}
+
+# Catch any signals.  Treat SIGPIPE specially to instruct Orca to not
+# print any more messages to STDOUT or STDERR, since these file
+# descriptors may have closed if they were attached to a process that
+# exited, unless a log filename is specified, in which case it is ok
+# to print since STDOUT and STDERR were opened to a file.
+sub catch_signal {
+  my $signal    = shift;
+  my $can_print = $signal !~ /PIPE/ || $opt_log_filename;
+  my $message   = "$0: caught signal $signal.\n";
+  clean_up_and_quit($can_print, $message);
+}
+
+# Create the necessary static images files in the HTML directory using
+# the data stored in Orca's DATA section.  The generated files should
+# include orca.gif and rrdtool.gif.  Convert the hexadecimal forms
+# stored in the DATA section to the raw image form on disk.
+sub create_static_images {
+  my $image_filename = '';
+  while (<main::DATA>) {
+    chomp;
+    next unless $_;
+    if ($image_filename) {
+      if (/CLOSE/) {
+        close(ORCA_WRITE) or
+          warn "$0: error in closing '$image_filename' for writing: $!\n";
+        $image_filename = '';
+      } else {
+        chomp;
+        print ORCA_WRITE pack('h*', $_);
+      }
+    } elsif (/OPEN (.*)/) {
+      $image_filename = "$config_global{html_dir}/$1";
+      print "Creating $1.\n" if $opt_verbose;
+      if (open(ORCA_WRITE, ">$image_filename")) {
+        # Some of these generated files are images, so always open in
+        # binary mode.
+        binmode ORCA_WRITE;
+      } else {
+        warn "$0: cannot open '$image_filename' for writing: $!\n";
+        $image_filename = '';
+      }
+    }
+  }
+  if ($image_filename) {
+    close(ORCA_WRITE) or
+      warn "$0: error in closing '$image_filename' for writing: $!\n";
+    $image_filename = '';
+  }
+}
+
+sub get_time_interval {
+  my $find_times_ref = shift;
+
+  my @time = localtime;
+
+  interval_search($time[2] + $time[1]/60.0, $find_times_ref);
+}
+
+sub watch_data_sources {
+  unless (@_ == 1) {
+    confess "$0: watch_data_sources $INCORRECT_NUMBER_OF_ARGS";
+  }
+  my $config_filename = shift;
+
+  my $rrd_data_files_ref  = {};
+  my $old_found_files_ref = {};
+  my $new_found_files_ref;
+  my $subgroup_fids_ref;
+  my $image_files_ref = {list => [], hash => {}};
+
+  # The first time through we always find new files.  Determine the
+  # time interval that the current time is in, where the intervals are
+  # defined as the times to have Orca find new source data files.
+  my $find_new_files = 1;
+  my $time_interval  = get_time_interval($config_global{find_times});
+
+  # This hash holds the next time to load the data from all the files
+  # in a particular subgroup.
+  my @subgroup_load_time;
+
+  for (;;) {
+    # If Orca is being forced to find new files, then set up the
+    # variables here.  Determine the current time interval we're in.
+    if ($force_find_files) {
+      $force_find_files = 0;
+      $find_new_files   = 1;
+      $time_interval    = get_time_interval($config_global{find_times});
+    }
+
+    my $found_new_files = 0;
+    if ($find_new_files) {
+      $find_new_files = 0;
+      if ($opt_verbose) {
+        print "Finding files and setting up data structures at ",
+              scalar localtime, ".\n";
+      }
+
+      # Get the list of files to watch and the plots that will be
+      # created.  If files have been previously found, then use those
+      # files in the search for new ones.
+      $old_found_files_ref = $new_found_files_ref if $new_found_files_ref;
+      ($found_new_files, $new_found_files_ref, $subgroup_fids_ref) =
+         &find_files($config_filename,
+                     $old_found_files_ref,
+                     $rrd_data_files_ref,
+                     $image_files_ref);
+
+      # Go through all of the subgroups and for each subgroup and all
+      # of the files in the subgroup find the next load time in the
+      # future.
+      undef @subgroup_load_time;
+      for (my $group_index=0;
+           $group_index<@$subgroup_fids_ref;
+           ++$group_index) {
+        my $indexed_subgroup_fids_ref = $subgroup_fids_ref->[$group_index] or
+          next;
+        foreach my $subgroup_name (keys %$indexed_subgroup_fids_ref) {
+          my $subgroup_load_time = 1e20;
+          foreach my $fid (@{$indexed_subgroup_fids_ref->{$subgroup_name}}) {
+            my $load_time       = $new_found_files_ref->{$fid}->next_load_time;
+            $subgroup_load_time = $load_time if $load_time < $subgroup_load_time;
+          }
+          $subgroup_load_time[$group_index]{$subgroup_name} = $subgroup_load_time;
+        }
+      }
+    }
+
+    &print_running_stats if $opt_verbose;
+
+    # Because the amount of data loaded from the source data files can
+    # be large, go through each subgroup of source files, load all of
+    # the data for that subgroup, flush the data, and then go on to
+    # the next subgroup.  For each source file that had new data, note
+    # the RRDs that get updated from that source file.  When going
+    # through each subgroup note the time when the subgroup should be
+    # next examined for updates.  Only note the time to sleep to if it
+    # is in the future.
+    my $sleep_till_time;
+    my $need_to_save_state = $found_new_files;
+    for (my $group_index=0; $group_index<@subgroup_load_time; ++$group_index) {
+      my $subgroup_load_time_ref = $subgroup_load_time[$group_index] or
+        next;
+      foreach my $subgroup_name (sort keys %{$subgroup_load_time_ref}) {
+        # Skip this subgroup if the load time has not been reached and
+        # if no new files were found.
+        my $subgroup_load_time = $subgroup_load_time_ref->{$subgroup_name};
+        if ($subgroup_load_time > time) {
+          $sleep_till_time = $subgroup_load_time unless $sleep_till_time;
+          if ($subgroup_load_time < $sleep_till_time) {
+            $sleep_till_time = $subgroup_load_time;
+          }
+          next unless $found_new_files;
+        }
+
+        my $group_name = $config_groups_names[$group_index];
+        if ($opt_verbose) {
+          print "Loading new data from group $group_name",
+                $subgroup_name ? " for $subgroup_name.\n" : ".\n";
+        }
+
+        my %this_subgroup_rrds;
+        my $number_new_data_points             = 0;
+        my $number_new_data_points_since_flush = 0;
+        $subgroup_load_time                    = 1e20;
+        my $previous_fid;
+        foreach my $fid (@{$subgroup_fids_ref->[$group_index]{$subgroup_name}}) {
+          # Determine if the currently loaded data should be flushed.
+          if (defined $previous_fid) {
+            local $Orca::Config::a = $fid;
+            local $Orca::Config::b = $previous_fid;
+            if (&{$config_groups[$group_index]{filename_compare}} > 1 and
+                $number_new_data_points_since_flush) {
+              if ($opt_verbose) {
+                print "Flushing new data from group $group_name",
+                       $subgroup_name ? " for $subgroup_name" : "", ".\n";
+              }
+              foreach my $rrd (sort values %this_subgroup_rrds) {
+                $rrd->flush_data;
+              }
+              save_old_state($config_global{state_file},
+                             $new_found_files_ref);
+              $number_new_data_points_since_flush = 0;
+              $need_to_save_state                 = 0;
+            }
+          }
+          $previous_fid   = $fid;
+          my $source_file = $new_found_files_ref->{$fid};
+          my $number      = $source_file->load_new_data;
+          $number_new_data_points             += $number;
+          $number_new_data_points_since_flush += $number;
+          if ($number) {
+            foreach my $rrd ($source_file->rrds) {
+              $this_subgroup_rrds{$rrd} = $rrd_data_files_ref->{$rrd};
+            }
+            if ($opt_verbose) {
+              printf "  Read %5d data point%s from '$sfile_fids[$fid]'.\n",
+                $number, $number > 1 ? 's' : '';
+            }
+          }
+          my $load_time       = $source_file->next_load_time;
+          $subgroup_load_time = $load_time if $load_time < $subgroup_load_time;
+        }
+
+        # Update the load time for this subgroup.
+        $subgroup_load_time_ref->{$subgroup_name} = $subgroup_load_time;
+
+        # Now that the source data files have been read, recalculate
+        # the time to sleep to if the load time for this subgroup is
+        # in the future.
+        if (time < $subgroup_load_time) {
+          $sleep_till_time = $subgroup_load_time unless $sleep_till_time;
+          if ($subgroup_load_time < $sleep_till_time) {
+            $sleep_till_time = $subgroup_load_time;
+          }
+        }
+
+        next unless $number_new_data_points;
+
+        # Flush the data that has been loaded for each plot.  To keep
+        # the RRD that was just created in the system's cache, plot
+        # any images that only depend on this RRD, since images that
+        # depend upon two or more RRDs will most likely be generated
+        # more than once and the other required RRDs may not exist
+        # yet.
+        if ($opt_verbose) {
+          print "Flushing new data and updating ", uc($IMAGE_SUFFIX),
+                $subgroup_name ? "s from $subgroup_name" : "s", ".\n";
+        }
+        foreach my $rrd (sort {$a->data_expression cmp $b->data_expression}
+                              values %this_subgroup_rrds) {
+          $rrd->flush_data;
+          next if $opt_no_images;
+          foreach my $image ($rrd->created_images) {
+            next if $image->rrds > 1;
+            $image->plot;
+          }
+        }
+        save_old_state($config_global{state_file}, $new_found_files_ref);
+        $need_to_save_state = 0;
+      }
+    }
+
+    # Save the state if any new data was loaded or new files were found.
+    if ($need_to_save_state) {
+      save_old_state($config_global{state_file}, $new_found_files_ref);
+    }
+
+    # Create the image files now.
+    unless ($opt_no_images) {
+      # Plot the data in each image.
+      print "Updating ", uc($IMAGE_SUFFIX), "s.\n" if $opt_verbose;
+      foreach my $image (@{$image_files_ref->{list}}) {
+        $image->plot;
+      }
+    }
+
+    # Create the HTML files now.
+    if ($found_new_files and !$opt_no_html) {
+      &create_html_files($new_found_files_ref,
+                         $subgroup_fids_ref,
+                         $image_files_ref);
+      $found_new_files = 0;
+    }
+
+    # Return now if this loop is being run only once.
+    last if $opt_once_only;
+
+    # Now decide if we need to find new files.  If the time interval
+    # does change, then find new files only if the new time interval
+    # is not -1, which signifies that the time is before the first
+    # find_times.
+    my $new_time_interval = get_time_interval($config_global{find_times});
+    if ($time_interval != $new_time_interval) {
+      $find_new_files = 1 if $new_time_interval != -1;
+      $time_interval  = $new_time_interval;
+    }
+
+    # Sleep if the sleep_till_time has not passed.  If sleep_till_time
+    # is now defined, then loop immediately.  Sleep at least one
+    # second if we need to sleep at all.
+    if ($sleep_till_time) {
+      my $now = time;
+      if ($sleep_till_time > $now) {
+        if ($opt_verbose) {
+          print "Sleeping at ",
+                scalar localtime($now),
+                " until ",
+                scalar localtime($sleep_till_time),
+                ".\n";
+        }
+        sleep($sleep_till_time - $now + 1);
+      }
+    }
+  }
+}
+
+# Sort subgroup names depending upon the type of characters in the
+# group's name.
+sub sort_subgroup_names {
+  my $a_name = ref($a) ? $a->subgroup_name : $a;
+  my $b_name = ref($b) ? $b->subgroup_name : $b;
+
+  # If both names are purely digits, then do a numeric comparison.
+  if ($a_name =~ /^[-]?\d+$/ and $b_name =~ /[-]?\d+$/) {
+    return $a_name <=> $b_name;
+  }
+
+  # If the names are characters followed by digits, then compare the
+  # characters, and if they match, compare the digits.
+  my ($a_head, $a_digits, $b_head, $b_digits);
+  if (($a_head, $a_digits) = $a_name =~ /^([-a-zA-Z]+)(\d+)$/ and
+      ($b_head, $b_digits) = $b_name =~ /^([-a-zA-Z]+)(\d+)$/) {
+    my $return = $a_head cmp $b_head;
+    if ($return) {
+      return $return;
+    } else {
+      return $a_digits <=> $b_digits;
+    }
+  }
+
+  $a_name cmp $b_name;
+}
+
+# Create all of the different HMTL files with all of the proper HREFs
+# to the images.
+sub create_html_files {
+  my ($found_files_ref,
+      $subgroup_fids_ref,
+      $image_files_ref) = @_;
+
+  my $html_dir         = $config_global{html_dir};
+  my $index_filename   = "$html_dir/index.html";
+
+  # This variable sets the number of groups to place into a single row.
+  my $table_number_columns = 9;
+  my @table_columns;
+
+  # Depending on the number of different timespan plots to make,
+  # create a set of HTML pages labeled 'All' that contains all of the
+  # different timespan plots.  Only make the 'All' pages if there is
+  # more than one timespan plot, otherwise there is no point in making
+  # it.  This array holds the names of the different HTML pages to
+  # create containing different plots.
+  my @html_page_plot_types = @IMAGE_PLOT_TYPES;
+  my $make_html_all_page;
+  if (@html_page_plot_types > 1) {
+    $make_html_all_page = 1;
+    push(@html_page_plot_types, 'all');
+  } else {
+    $make_html_all_page = 0;
+  }
+
+  print "Creating HTML files in '$html_dir/'.\n" if $opt_verbose;
+
+  # Create the main HTML index.html file.
+  my $index_html = Orca::HTMLFile->new($index_filename,
+                                       $config_global{html_top_title},
+                                       $config_global{html_page_header},
+                                       $config_global{html_page_footer});
+  unless ($index_html) {
+    warn "$0: warning: cannot create Orca::HTMLFile object: $@.\n";
+    return;
+  }
+
+  # The first step is to create the HTML files for each different
+  # subgroup.  This is only done if there is more than one subgroup
+  # gathered from the configuration and input data files.  If there
+  # is more than one subgroup first list the different available subgroups
+  # and create for each subgroup an HTML file that contains HREFs to the
+  # images for that subgroup.  Also create an HTML file for different time
+  # span images (i.e., daily, monthly, etc).
+
+  $index_html->print("<h2>Available Targets</h2>\n\n");
+  for (my $group_index=0; $group_index<@$subgroup_fids_ref; ++$group_index) {
+    my $subgroups_ref = $subgroup_fids_ref->[$group_index] or
+      next;
+    my $group_name = $config_groups_names[$group_index];
+    my @subgroups  = sort sort_subgroup_names keys %$subgroups_ref;
+    next unless @subgroups;
+    if (@config_groups > 1) {
+      $index_html->print("<h3>Group $group_name</h3>\n");
+    }
+    $index_html->print("<table>\n");
+
+    foreach my $subgroup_name (@subgroups) {
+      my $html_subgroup_name;
+      my $html_title_name = @config_groups > 1 ? "Group $group_name" : '';
+      if (@subgroups != 1 or $subgroup_name) {
+        $html_subgroup_name  = $subgroup_name;
+        $html_title_name    .= " $subgroup_name";
+      } else {
+        $html_subgroup_name  = '';
+      }
+
+      # Create the HTML code for the main index.html file.
+      my $subgroup_basename = name_to_fsname("${group_name}_$html_subgroup_name",
+                                             $MAX_PLOT_TYPE_LENGTH+6);
+      my $element = "<table border=2>";
+      if ($html_subgroup_name) {
+        $element .= "<tr><td><b>$html_subgroup_name</b></td></tr>\n";
+      }
+      $element .= "<tr><td>\n";
+      foreach my $plot_type (@IMAGE_PLOT_TYPES) {
+        $element      .= "<a href=\"$subgroup_basename-$plot_type.html\">";
+        my $Plot_Type  = capatialize($plot_type);
+        $element      .= "$Plot_Type</a><br>\n";
+      }
+      if ($make_html_all_page) {
+        $element .= "<a href=\"$subgroup_basename-all.html\">All</a></td></tr>\n";
+      }
+      $element .= "</table>\n\n";
+
+      push(@table_columns, "<td>$element</td>");
+      if (@table_columns == $table_number_columns) {
+        $index_html->print("<tr valign=top>" .
+                           join('', @table_columns) .
+                           "</tr>\n");
+        @table_columns = ();
+      }
+
+      # Create the various time span HTML files for this subgroup.
+      my @html_files;
+      foreach my $plot_type (@html_page_plot_types) {
+        my $href      = "$subgroup_basename-$plot_type.html";
+        my $filename  = "$html_dir/$href";
+        my $Plot_Type = capatialize($plot_type);
+        my $fd = Orca::HTMLFile->new($filename,
+                                     "$Plot_Type $html_title_name",
+                                     $config_global{html_page_header},
+                                     $config_global{html_page_footer});
+        unless ($fd) {
+          warn "$0: warning: cannot create Orca::HTMLFile object: $@.\n";
+          next;
+        }
+        push(@html_files, {fd        => $fd,
+                           href      => $href,
+                           plot_type => $plot_type,
+                           Plot_Type => $Plot_Type});
+      }
+
+      # At the top of the various time span HTML files add HREFs to the
+      # other date span HTML files in the same subgroup.
+      my $href_html;
+      foreach my $plot_type (@html_files) {
+        $href_html .= "<a href=\"$plot_type->{href}\">" .
+                      "$plot_type->{Plot_Type} $subgroup_name</a><br>\n";
+      }
+
+      # Add a link back  to the top HTML page.
+      $href_html .= "<br /><a href=\"./\">Back to main page</a><br />\n";
+
+      # Push out the top of the HTML file.
+      foreach my $html_file (@html_files) {
+        $html_file->{fd}->print($href_html);
+      }
+
+      # Use only those images now that have the same subgroup name as
+      # the HTML files that are being created.  Make sure the images
+      # appear in the files in the order listed in the configuration
+      # file.
+      my @images = sort {$a->plot_ref->{index} <=> $b->plot_ref->{index}}
+                   grep {$subgroup_name eq $_->subgroup_name} @{$image_files_ref->{list}};
+      if (@images > 1) {
+        my $href_html = "$html_hr\n";
+        for (my $i=0; $i<@images; ++$i) {
+          $href_html .= "<a href=\"#$i\">[" .
+                        replace_subgroup_name($images[$i]->plot_ref->{title},
+                                              '') .
+                        "]</a>&nbsp;&nbsp;&nbsp;&nbsp;\n";
+        }
+        foreach my $html_file (@html_files) {
+          $html_file->{fd}->print($href_html);
+        }
+      }
+
+      # Add the images to the HTML files.
+      for (my $i=0; $i<@images; ++$i) {
+        my $image      = $images[$i];
+        my $name       = $image->name;
+        my $title      = replace_subgroup_name($image->plot_ref->{title},
+                                               $image->subgroup_name);
+        my $href       = "href=\"" . name_to_fsname($name, 5) . ".html\"";
+        my $image_size = $image->image_src_size;
+
+        foreach my $html_file (@html_files) {
+          $html_file->{fd}->print("$html_hr\n<h2><a ${href} name=\"$i\">$html_file->{Plot_Type} " .
+                                  "$title</a></h2>\n");
+        }
+
+        # Put the proper images into each HTML file.  The all HTML file is
+        # listed last and requires special handling.
+        for (my $j=0; $j<@html_files-$make_html_all_page; ++$j) {
+          my $image_filename = length($subgroup_name) ?
+                               "$subgroup_name/" :
+                               "";
+          $image_filename .= "$name-$html_files[$j]{plot_type}.$IMAGE_SUFFIX";
+          my $html = "<a $href><img src=\"$image_filename\" $image_size " .
+                     "alt=\"$html_files[$j]{Plot_Type} $title\"></a><br /> <br />\n";
+          $html_files[$j]{fd}->print($html);
+          if ($make_html_all_page) {
+            $html_files[-1]{fd}->print($html);
+          }
+        }
+      }
+
+      foreach my $html_file (@html_files) {
+        $html_file->{fd}->print("$html_hr\n");
+      }
+    }
+
+    # If there are any remaining subgroups to display, do it now.
+    if (@table_columns) {
+      $index_html->print("<tr valign=top>" .
+                         join('', @table_columns) .
+                         "</tr>\n");
+      @table_columns = ();
+    }
+
+    $index_html->print("</table>\n\n");
+  }
+
+  $index_html->print("<br>\n$html_hr\n<h2>Available Data Sets</h2>\n\n");
+
+  # Here the different available plots are listed and the HTML files
+  # created that contain the HREFs to the proper images.  The HTML files
+  # created here HREF to the images that are created for a single plot.
+  # There are several steps to do here.  First, get a list of the
+  # different plots.  For each different type of plot, create a list
+  # images that show that plot.  Use the @images_by_type array to keep
+  # the ordering in the type of images and the %images_by_type to hold
+  # references to an array for each type of image.
+  $index_html->print("<table>\n");
+
+  # This sets the number of plot types to place into a single row in
+  # the main index.html.
+  $table_number_columns = 1;
+  @table_columns        = ();
+
+  # Go through all of the configured plots.
+  foreach my $config_plot (@config_plots) {
+    my $created_orca_images = $config_plot->{created_orca_images};
+    next unless @$created_orca_images;
+
+    my $group_index = $config_plot->{source_index};
+    my $group_name  = $config_groups_names[$group_index];
+
+    my $html_title_name = @config_groups > 1 ? " Group $group_name" : '';
+
+    # Create an ordered list of images sorted on the legend name for
+    # each image.  Remember, each image represented here actually
+    # represents the set of time span image files.
+    # %image_legend_no_subgroup is a hash keyed by the image that
+    # contains the legend with no subgroup substitution for the image.
+    # The %legends hash is keyed by the legend name with no subgroup
+    # substitution and contains a reference to an array of image that
+    # have the same legend name.
+    my %image_legend_no_subgroup;
+    my %same_legends_image_list;
+    foreach my $image (@$created_orca_images) {
+      my $legend_no_subgroup = replace_subgroup_name($image->plot_ref->{title},
+                                                     '');
+      $image_legend_no_subgroup{$image} = $legend_no_subgroup;
+      unless (defined $same_legends_image_list{$legend_no_subgroup}) {
+        $same_legends_image_list{$legend_no_subgroup} = [];
+      }
+      push(@{$same_legends_image_list{$legend_no_subgroup}}, $image);
+    }
+
+    # Put together the correctly ordered list of images using the array
+    # references in the legends hash.  Sort the images using the special
+    # sorting routine for subgroup names.
+    my @images;
+    foreach my $legend_no_subgroup (sort keys %same_legends_image_list) {
+      @{$same_legends_image_list{$legend_no_subgroup}} =
+        sort sort_subgroup_names @{$same_legends_image_list{$legend_no_subgroup}};
+      push(@images, @{$same_legends_image_list{$legend_no_subgroup}});
+    }
+
+    # This hash keyed by legend name holds an array of references to a
+    # hash of file descriptor, HREF and plot type.
+    my %legend_html_files;
+
+    # Now for each set of time span (i.e., daily, weekly, etc) images, go
+    # through and create the correct HTML files.
+    foreach my $image (@images) {
+
+      my $no_subgroup_name   = name_to_fsname($image->no_subgroup_name,
+                                              $MAX_PLOT_TYPE_LENGTH+6);
+      my $legend_no_subgroup = $image_legend_no_subgroup{$image};
+
+      # If this is the first time that this legend has been seen in
+      # for creating the proper HTML files, then create the new HTML
+      # files and set up the top of them properly and place into the
+      # main index.html the proper HREFs to these files.
+      unless (defined $legend_html_files{$legend_no_subgroup}) {
+        # Now create the HTML files for the time span plots.  Use the
+        # legend name to create this list.
+        $legend_html_files{$legend_no_subgroup} = [];
+        foreach my $plot_type (@html_page_plot_types) {
+          my $href      = "$no_subgroup_name-$plot_type.html";
+          my $filename  = "$html_dir/$href";
+          my $Plot_Type = capatialize($plot_type);
+          my $fd = Orca::HTMLFile->new($filename,
+                                       "${Plot_Type}${html_title_name} $legend_no_subgroup",
+                                       $config_global{html_page_header},
+                                       "$html_hr\n$config_global{html_page_footer}");
+          unless ($fd) {
+            warn "$0: warning: cannot create Orca::HTMLFile object: $@.\n";
+            next;
+          }
+          push(@{$legend_html_files{$legend_no_subgroup}},
+               {fd        => $fd,
+                href      => $href,
+                plot_type => $plot_type,
+                Plot_Type => $Plot_Type});
+        }
+
+        # For each of the time span HTML files add at the top of the
+        # file HREFs to all of time span HTML files.  Also add HREFs
+        # to the different subgroups later on in the same HTML file.
+        my @legend_html_files = @{$legend_html_files{$legend_no_subgroup}};
+        my $href_html;
+        foreach my $plot_type (@legend_html_files) {
+          $href_html .= "<a href=\"$plot_type->{href}\">" .
+                        "$plot_type->{Plot_Type} $legend_no_subgroup</a><br>\n";
+        }
+
+        # Add to the top of the file HREFs to all of the different
+        # subgroups in the HTML file.  This makes traversing the HTML
+        # page easier.  Do this if there are two or more subgroups in
+        # this HTML page.
+        if (@{$same_legends_image_list{$legend_no_subgroup}} > 1) {
+          $href_html .= "$html_hr\n";
+          foreach my $legend_image (@{$same_legends_image_list{$legend_no_subgroup}}) {
+            my $subgroup = $legend_image->subgroup_name;
+            $href_html  .= "<a href=\"#$subgroup\">[$subgroup]</a><spacer size=10>\n";
+          }
+        }
+
+        # Add a link back  to the top HTML page.
+        $href_html .= "<br /><a href=\"./\">Back to main page</a><br />\n";
+
+        # Push out the top of the HTML file.
+        foreach my $html_file (@legend_html_files) {
+          $html_file->{fd}->print($href_html);
+        }
+
+        # Create the HTML code that goes into the main index.html that links
+        # to these other HTML files.  If the configuration file contains
+        # an href for information on this plot, then include the href here.
+        my $element = "<td><b>$legend_no_subgroup";
+        if (my $legend_href = $config_plot->{href}) {
+          $element .= " [<a href=\"$legend_href\">Info</a>]";
+        }
+        $element .= "</b></td>\n";
+        foreach my $plot_type (@html_page_plot_types) {
+          $element .= "<td><a href=\"$no_subgroup_name-$plot_type.html\">";
+          $element .= capatialize($plot_type) . "</a></td>\n";
+        }
+        push(@table_columns, $element);
+        if (@table_columns == $table_number_columns) {
+          $index_html->print("<tr>" . join('', @table_columns) . "</tr>\n");
+          @table_columns = ();
+        }
+      }
+
+      # At this point the HTML files for this set of images have been
+      # opened.  Now create the summary HTML file that contains only
+      # the images for a particular plot for a particular subgroup.
+      my $with_subgroup_name   = name_to_fsname($image->name, 5);
+      my $legend_with_subgroup = replace_subgroup_name($image->plot_ref->{title},
+                                                       $image->subgroup_name);
+      my $summarize_name       = "$html_dir/$with_subgroup_name.html";
+      my $summarize_html       = Orca::HTMLFile->new($summarize_name,
+                                                     "$html_title_name $legend_with_subgroup",
+                                                     $config_global{html_page_header},
+                                                     $config_global{html_page_footer});
+      unless ($summarize_html) {
+        warn "$0: warning: cannot create Orca::HTMLFile object: $@.\n";
+        next;
+      }
+      my $image_subgroup_name = $image->subgroup_name;
+      my $image_filename      = length($image_subgroup_name) ?
+                                "$image_subgroup_name/" :
+                                "";
+      $image_filename        .= $with_subgroup_name;
+      my $image_size          = $image->image_src_size;
+      foreach my $plot_type (@IMAGE_PLOT_TYPES) {
+        my $Plot_Type    = capatialize($plot_type);
+        $summarize_html->print("$html_hr\n<h2>$Plot_Type $legend_with_subgroup</h2>\n",
+                               "<img src=\"$image_filename-$plot_type.$IMAGE_SUFFIX\"",
+                               $image_size,
+                               "alt=\"$Plot_Type $legend_with_subgroup\">\n");
+      }
+      $summarize_html->print("$html_hr\n");
+
+      # Now add the images into each HTML file.
+      my $name          = $image->name;
+      my $subgroup_name = $image->subgroup_name;
+      my $href          = "href=\"$with_subgroup_name.html\"";
+
+      my @legend_html_files = @{$legend_html_files{$legend_no_subgroup}};
+      if ($make_html_all_page) {
+        $legend_html_files[-1]{fd}->print("$html_hr\n<h2><a ${href} name=\"$subgroup_name\">$subgroup_name $legend_no_subgroup</a></h2>\n");
+      }
+      for (my $i=0; $i<@legend_html_files-$make_html_all_page; ++$i) {
+        my $Plot_Type      = $legend_html_files[$i]{Plot_Type};
+        my $image_filename = length($subgroup_name) ? "$subgroup_name/" : "";
+        $image_filename   .= "$name-$legend_html_files[$i]{plot_type}.$IMAGE_SUFFIX";
+        my $html = "<a $href><img src=\"$image_filename\" $image_size " .
+                   "alt=\"$Plot_Type $subgroup_name $legend_no_subgroup\"></a><br /><br />\n";
+        $legend_html_files[$i]{fd}->print("$html_hr\n<h2><a ${href} name=\"$subgroup_name\">$Plot_Type $subgroup_name $legend_no_subgroup</a></h2>\n");
+        $legend_html_files[$i]{fd}->print($html);
+        if ($make_html_all_page) {
+          $legend_html_files[-1]{fd}->print($html);
+        }
+      }
+    }
+  }
+
+  if (@table_columns) {
+    $index_html->print("<tr>" . join('', @table_columns) . "</tr>\n");
+  }
+  $index_html->print("\n</table>\n$html_hr\n");
+}
+
+# Replace any %g with the subgroup and any %G's with a capitalized
+# version of the subgroup in the title string with the subgroup name.
+sub replace_subgroup_name {
+  my ($title, $subgroup) = @_;
+
+  my $Subgroup = $subgroup;
+  substr($Subgroup, 0, 1) = uc(substr($Subgroup, 0, 1));
+
+  $title =~ s/%g/$subgroup/ge;
+  $title =~ s/%G/$Subgroup/ge;
+  $title =~ s/^\s+//;
+  $title =~ s/\s+$//;
+  $title;
+}
+
+sub find_files {
+  unless (@_ == 4) {
+    confess "$0: find_files $INCORRECT_NUMBER_OF_ARGS";
+  }
+
+  my ($config_filename,
+      $old_found_files_ref,
+      $rrd_data_files_ref,
+      $image_files_ref) = @_;
+
+  my %new_found_files;
+  my @subgroup_fids;
+  my $found_new_files = 0;
+
+  for (my $group_index=0; $group_index<@config_groups; ++$group_index) {
+    my $group_ref  = $config_groups[$group_index];
+    my $group_name = $config_groups_names[$group_index];
+
+    # Find all the readable files matching the regular expression.
+    my @fids;
+    foreach my $regexp (@{$group_ref->{find_files}}) {
+      push(@fids, perl_glob($regexp));
+    }
+    unless (@fids) {
+      warn "$0: warning: no files found for 'find_files' for 'group ",
+           "$group_name' in '$config_filename'.\n";
+      next;
+    }
+
+    # Calculate which subgroup the file belongs in and create a hash listing
+    # the filenames for each group.
+    my %tmp_fids_by_subgroup;
+    my %tmp_subgroup_by_fid;
+    @fids = unique(@fids);
+    foreach my $fid (@fids) {
+      # Find the subgroup that the files belong in.
+      my $filename = $sfile_fids[$fid];
+      my $subgroup = undef;
+      foreach my $regexp (@{$group_ref->{find_files}}) {
+        my @result = ($filename =~ $regexp);
+        if (@result) {
+          # There there are no ()'s in the regexp, then change (1) to
+          # ().
+          @result = () if (@result == 1 and $result[0] eq '1');
+          # Remove any empty matches from @result.
+          $subgroup = join('_', grep {length($_)} @result);
+          last;
+        }
+      }
+      unless (defined $subgroup) {
+        warn "$0: warning: internal error: found '$filename' but no ",
+             "regexp match for it.\n";
+        next;
+      }
+      unless (defined $tmp_fids_by_subgroup{$subgroup}) {
+        $tmp_fids_by_subgroup{$subgroup} = [];
+      }
+      push(@{$tmp_fids_by_subgroup{$subgroup}}, $fid);
+      $tmp_subgroup_by_fid{$fid} = $subgroup;
+    }
+
+    # Create a new list of filenames sorted by subgroup name and
+    # inside each subgroup sorted using the filename_compare
+    # configuration file function or by the default compare function
+    # that uses cmp to compare filenames.  This will cause the created
+    # plots to appear in subgroup order.  Note that the FIDs are not
+    # being sorted, but the filename the FID references.
+    #
+    # The compare subroutine expects the input in the $a and $b
+    # package variables and since the compare subroutine was eval'ed
+    # in the Orca::Config package it will look for these variables in
+    # Orca::Config.  Also, since sort cannot be passed a reference to
+    # a sorting subroutine stored in a hash (i.e. sort $a{b} @c), use
+    # a temporary variable.  Some versions of Perl will complain that
+    # fc is used only once, so declare the variable and set it in two
+    # separate statements.
+    @fids = ();
+    {
+      package Orca::Config;
+      local *fc;
+      *fc = $group_ref->{filename_compare};
+      foreach my $subgroup (sort keys %tmp_fids_by_subgroup) {
+        push(@fids, sort fc @{$tmp_fids_by_subgroup{$subgroup}});
+      }
+    }
+
+    # Now for each file, create the Orca::SourceDataFile object that
+    # manages that file and the images that are generated from the
+    # file.  Delete from the list of filenames those files that have
+    # not successfully created Orca::SourceDataFile objects.
+    for (my $j=0; $j<@fids;) {
+      my $fid = $fids[$j];
+      # Create the object that contains this file.  Take care if the
+      # same file is being used in another group.
+      unless (defined $new_found_files{$fid}) {
+        if (defined $old_found_files_ref->{$fid}) {
+          $new_found_files{$fid} = $old_found_files_ref->{$fid};
+        } else {
+          print "  $sfile_fids[$fid]\n" if $opt_verbose > 2;
+          my $data_file = Orca::SourceFile->new($group_index, $fid);
+          unless ($data_file) {
+            warn "$0: warning: cannot process '$sfile_fids[$fid]'.\n";
+            splice(@fids, $j, 1);
+            next;
+          }
+          $new_found_files{$fid} = $data_file;
+          $found_new_files = 1;
+        }
+      }
+      ++$j;
+    }
+
+    # Register with each source data file the groups that use it.
+    foreach my $fid (@fids) {
+      $new_found_files{$fid}->add_groups($group_index);
+    }
+
+    # Go through each source data file and register the new plots to
+    # create.
+    foreach my $fid (@fids) {
+      my $subgroup_name = $tmp_subgroup_by_fid{$fid};
+      $new_found_files{$fid}->add_plots($group_index,
+                                        $subgroup_name,
+                                        $rrd_data_files_ref,
+                                        $image_files_ref);
+      unless (defined $subgroup_fids[$group_index]{$subgroup_name}) {
+        $subgroup_fids[$group_index]{$subgroup_name} = [];
+      }
+      push(@{$subgroup_fids[$group_index]{$subgroup_name}}, $fid);
+    }
+  }
+  my @found_files = keys %new_found_files;
+
+  unless (@found_files) {
+    die "$0: no data files found.  Make sure 'find_files' parameter is set ",
+        "properly.\n";
+  }
+
+  # Now that all the source data files have been loaded, empty the state
+  # object loaded from disk.
+  undef %$orca_old_state;
+
+  return ($found_new_files, \%new_found_files, \@subgroup_fids);
+}
+
+__END__
+
+=pod
+
+=head1 NAME
+
+orca - Make HTML & PNG plots of daily, weekly, monthly & yearly data
+
+=head1 SYNOPSIS
+
+  orca [-gifs] [-no-html] [-o] [-r] [-v [-v [-v]]] configuration_file
+
+=head1 DESCRIPTION
+
+Orca is a tool useful for plotting arbitrary data from text files onto
+a directory on Web server.  It has the following features:
+
+  * Reads white space separated data files.
+  * Watches data files for updates and sleeps between reads.
+  * Finds new files at specified times.
+  * Can plot the same type of data from different files into different
+    or the same PNGs.
+  * Different plots can be created based on the filename.
+  * Parses the date from the text files.
+  * Create arbitrary plots of data from different columns.
+  * Ignore columns or use the same column in many plots.
+  * Add or remove columns from plots without having to deleting RRDs.
+  * Plot the results of arbitrary Perl expressions, including
+    mathematical ones, using one or more columns.
+  * Group multiple columns into a single plot using regular
+    expressions on the column titles.
+  * Creates an HTML tree of HTML files and PNG plots.
+  * Creates an index of URL links listing all available targets.
+  * Creates an index of URL links listing all different plot types.
+  * No separate CGI set up required.
+  * Remembers the last modification times for files so they do not
+    have to be reread continuously.
+  * Can be run under cron or it can sleep itself waiting for file
+    updates based on when the file was last updated.
+
+=head1 INDEX
+
+This is an index of this manual:
+
+  Name
+  Synopsis
+  Description
+  Index
+  Examples
+  Command Line Options
+  Mailing Lists
+  Plot Prefixes
+  Author, Comments and Bugs
+  Recognized Signals
+  Architecture Issues
+  Installation and Configuration
+    Required Global Parameters
+    Optional Global Parameters
+    Group Parameters
+      Required Group Parameters
+      Optional Group Parameters
+    Plot Parameters
+      Required Plot Parameters
+      Data Source Optional Plot Parameters
+    Plotting Parameters
+    Multiple Plot Plotting Parameters
+  Implementation Notes
+
+=head1 EXAMPLES
+
+A static example of Orca is at
+
+  http://www.orcaware.com/orca/orca-example/
+
+Please inform me of any other sites using Orca and I will include them
+here.
+
+=head1 COMMAND LINE OPTIONS
+
+Orca has only five command line options.  They are:
+
+B<-gifs>: Tell Orca to generate GIFs instead of PNGs.  Most likely,
+you will not want to generate GIFs since PNGs are 1/3 the size of GIFs
+and take less time to generate.  The only reason to do this is if you
+are using a browser that does not support PNGs and only supports GIFs.
+
+B<-no-html>: Do not generate any HTML files and only update the
+images.
+
+B<-o>: Once.  This tells Orca to go through the steps of finding
+files, updating the RRDs, updating the PNGs, and creating the HTML
+files once.  Normally, Orca continuously loops reading new data from
+updated data files and sleeping waiting for the data files to be
+updated.
+
+B<-r>: RRD only.  Have Orca only update its RRD files.  Do not
+generate any HTML or PNG files.  This is useful if you are loading in
+a large amount of data in several invocations of Orca and do not want
+to create the HTML and PNG files in each run since it is time
+consuming.
+
+B<-v>: Verbose.  Have Orca spit out more verbose messages.  As you add
+more B<-v>'s to the command line, more messages are sent out.  Any
+more than three B<-v>'s are not used by Orca.
+
+After the command line options are listed, Orca takes one more
+argument which is the name of the configuration file to use.  Actual
+configuration files can be found in the data_gatherers directory
+distributed with Orca.
+
+=head1 MAILING LISTS
+
+Four mailing lists exist for Orca.  To subscribe to any of the mailing
+lists, please visit the URL listed below.  You have the option of
+choosing a digest form of the mailing list when you subscribe to the
+mailing list or anytime thereafter.  To send email to any of these
+lists you must first subscribe to the list.
+
+B<orca-announce@orcaware.com>
+
+    The orca-announce@orcaware.com mailing list is a *low* volume
+    moderated mailing list for announcing stable releases of Orca and
+    affiliated data measurement tools used with Orca.
+
+    Home Page
+        http://www.orcaware.com/mailman/listinfo/orca-announce
+    Subscribe via web
+        http://www.orcaware.com/mailman/listinfo/orca-announce
+    Subscribe via email
+        orca-announce-request@orcaware.com
+        with subject "subscribe"
+    Archive
+        http://www.orcaware.com/pipermail/orca-announce/
+
+B<orca-users@orcaware.com>
+
+    The orca-users@orcaware.com is a general discussion mailing list
+    for Orca users.  This mailing list is appropriate for almost any
+    Orca discussion except for the development of Orca, as those
+    discussions belong on the orca-dev@orcaware.com mailing list.  So
+    issues relating to the installation of, configuring of, and
+    understanding of Orca are welcome.  So are questions relating to
+    the Perl module's that Orca requires.
+
+    Home Page
+        http://www.orcaware.com/mailman/listinfo/orca-users
+    Subscribe via web
+        http://www.orcaware.com/mailman/listinfo/orca-users
+    Subscribe via email
+        orca-users-request@orcaware.com
+        with subject "subscribe"
+    Archive
+        http://www.orcaware.com/pipermail/orca-users/
+
+B<orca-dev@orcaware.com>
+
+    The orca-dev@orcaware.com mailing list is for Orca developers who
+    develop Orca or its affiliated data gathering tools.
+
+    Home Page
+        http://www.orcaware.com/mailman/listinfo/orca-dev
+    Subscribe via web
+        http://www.orcaware.com/mailman/listinfo/orca-dev
+    Subscribe via email
+        orca-dev-request@orcaware.com
+        with subject "subscribe"
+    Archive
+        http://www.orcaware.com/pipermail/orca-dev/
+
+B<orca-checkins@orcaware.com>
+
+    The orca-checkins@orcaware.com is a publically accessible,
+    moderated list which is used to disseminate version control
+    check-in messages made by the Orca maintainers, to the Orca
+    developer community.  This list is an adjunct to the publically
+    available Subversion tree currently residing on OrcaWare. If you
+    intend to follow the Subversion checkins, you should also join the
+    orca-dev@orcaware.com mailing list for discussions.
+
+    Home Page
+        http://www.orcaware.com/mailman/listinfo/orca-checkins
+    Subscribe via web
+        http://www.orcaware.com/mailman/listinfo/orca-checkins
+    Subscribe via email
+        orca-checkins-request@orcaware.com
+        with subject "subscribe"
+    Archive
+        http://www.orcaware.com/pipermail/orca-checkins/
+
+=head1 PLOT PREFIXES
+
+RRDtool generates the actual PNG or GIF plots and sometimes will need
+to scale the Y axis of the plot to have normal looking like numbers,
+such as 1 M instead of 1,000,000.  If you see a letter following the
+numbers in the bottom of the plot, then use that letter to scale the Y
+axis appropriately:
+
+  a  10e-18 Ato
+  f  10e-15 Femto
+  p  10e-12 Pico
+  n  10e-9  Nano
+  u  10e-6  Micro
+  m  10e-3  Milli
+  k  10e3   Kilo
+  M  10e6   Mega
+  G  10e9   Giga
+  T  10e12  Terra
+  P  10e15  Peta
+  E  10e18  Exa
+
+=head1 AUTHOR, COMMENTS, AND BUGS
+
+Please direct all Orca comments and bugs to one of the above mailing
+lists.
+
+If you wish to contact the author of Orca, Blair Zajac, directly,
+please email me at blair@orcaware.com.
+
+=head1 RECOGNIZED SIGNALS
+
+Orca, when it received the HUP signal, will look for new source data
+files the next time it runs through the main loop.  If you have a
+constantly running Orca, this is a simpler and faster solution than
+restarting Orca, which takes time to reread all the source files.
+
+=head1 ARCHITECTURE ISSUES
+
+Because Orca is extremely IO intensive, I recommend that the host that
+locally mounts the RRD data files be the same machine that runs Orca.
+In addition, the HTML and image files that Orca creates also require a
+good amount of IO.  The machine running Orca should always have the
+B<rrd_dir> directory locally mounted.  It is more important this
+B<rrd_dir> be locally stored than B<html_dir> for performance
+concerns.  The two parameters B<html_dir> and B<rrd_dir> are described
+in more detail below.
+
+=head1 INSTALLATION AND CONFIGURATION
+
+The first step in using Orca is to set up a configuration file that
+instructs Orca on what to do.  The configuration file is based on a
+key/value pair structure.  The key name must start at the beginning of
+a line.  Lines that begin with whitespace are concatenated onto the
+last key's value.
+
+There are three main groups of parameters in a Orca configuration
+file: global parameters, file specific parameters, and plot specific
+parameters.  Global parameters may be used by the group and plot
+specific parameters.  If a parameter is required, then it is only
+placed one time into the configuration file.
+
+Global parameters break down into two main groups, required and
+optional.  These are the required parameters:
+
+=head2 Required Global Parameters
+
+=over 4
+
+=item B<base_dir> I<directory>
+
+If B<base_dir> is set, then it is used to prepend to any file or
+directory names that do not begin with /.  These are currently
+B<state_file>, B<html_dir>, B<rrd_dir>, and the B<find_files>
+parameter in the B<group> section.
+
+=item B<state_file> I<filename>
+
+For Orca to work efficiently, it saves the last modification time of
+all input data files and the Unix epoch time when they were last read
+by Orca into a state file.  The value for B<state_file> must be a
+valid, writable filename.  If I<filename> does not begin with a / and
+the B<base_dir> parameter was set, then the B<base_dir> directory will
+be prepended to the I<filename>.
+
+Each entry for a data input file is roughly 100 bytes, so for small
+sites, this file will not be large.
+
+=item B<html_dir> I<directory>
+
+B<html_dir> specifies the root directory for the main index.html and
+all underlying HTML and PNG files that Orca generates.  This should
+not be a directory that normal users will edit.  Ideally this
+directory should be on a disk locally attached to the host running
+Orca, but is not necessary.
+
+If I<directory> does not begin with a / and the B<base_dir> parameter
+was set, then the B<base_dir> directory will be prepended to
+I<directory>.
+
+=item B<rrd_dir> I<directory>
+
+B<rrd_dir> specifies the root directory for the location of the RRD
+data files that Orca generates.  For best performance, this directory
+should be on a disk locally attached to the host running Orca.
+Otherwise, the many IO operations that Orca performs will be greatly
+slowed down.  It is more important this B<rrd_dir> be locally stored
+than B<html_dir> for performance concerns.
+
+If I<directory> does not begin with a / and the B<base_dir> parameter
+was set, then the B<base_dir> directory will be prepended to
+I<directory>.
+
+If B<rrd_dir> is not defined, then B<base_dir> will be used as
+B<rrd_dir>.  Orca will quit with an error if both B<rrd_dir> and
+B<base_dir> are not set.
+
+=back
+
+=head2 Optional Global Parameters
+
+=over 4
+
+=item B<require> I<package name> I<version number>
+
+The B<require> parameter allows the configuration file to specify the
+minimum required version of a package to run.  Both I<package name>
+and I<version number> are required and I<version number> must be a
+version number, not a general Perl expression.  Valid styles of
+version numbers include: '1', '1.', '.28', '0.28.3'.
+
+Currently, only the minimum required version of Orca can be specified
+and I<package name> must be set to Orca.
+
+=item B<warn_email> I<email_address> [I<email_address> ...]
+
+B<warn_email> takes a list of email addresses of people to email when
+something goes wrong with either Orca or the input data files.
+Currently email messages are sent out the following circumstances:
+
+  1) When a file did exist and now is gone.
+  2) When a file was being updated regularly and then no longer is updated.
+
+The only way to disable these email messages is by commenting out
+warn_email or by not giving it an argument:
+
+  #warn_email  root@localhost
+
+or
+
+  warn_email
+
+=item B<late_interval> I<Perl expression>
+
+B<late_interval> is used to calculate the time interval between a
+file's last modification time and the time when that file is
+considered to be late for an update.  When this happens, an email
+message will be sent out using the B<warn_email> addresses.  Because
+different input files may be updated at different rates,
+B<late_interval> takes an arbitrary Perl expression, including
+mathematical expressions, as its argument.  If the word I<interval>
+occurs in the mathematical expression it is replaced with the sampling
+interval of the input data file in question.
+
+This is useful for allowing the data files to update somewhat later
+than they would in an ideal world.  For example, to add a 10% overhead
+to the sampling_interval before an input file is considered late, this
+would be used
+
+  late_interval 1.1*interval
+
+By default, the input file's sampling interval is used as the
+late_interval.
+
+=item B<expire_images> 1
+
+If B<expire_images> is set then .meta files will be created for all
+generated PNG files.  If the Apache web server 1.3.2 or greater is
+being used, then the following modifications must added to Apache's
+httpd.conf file.
+
+  <
+  < #MetaDir .web
+  ---
+  >
+  > MetaFiles on
+  > MetaDir .
+
+  < #MetaSuffix .meta
+  ---
+  > MetaSuffix .meta
+
+By default, expiration of images is not enabled.
+
+=item B<find_times> I<hours:minutes> [I<hours:minutes> ...]
+
+The B<find_times> parameter is used to tell Orca when to find new
+files.  This particularly useful when new input data files are created
+at midnight.  In this case, something like this may work:
+
+  # Find files at the following times:
+  #    0:10 to pick up new orcallator files for the new day.
+  #    1:00 to pick up late comer orcallator files for the new day.
+  #    6:00 to pick up new files before the working day.
+  #   12:00 to pick up new files during the working day.
+  #   19:00 to pick up new files after the working day.
+  find_times 0:10 1:00 6:00 12:00 19:00
+
+If you add too many different times to find_times, then Orca may spend
+a large amount of time finding files, so it's best just to have it
+find files when you know that they will appear.
+
+By default, files are only searched for when Orca starts up.
+
+=item B<html_top_title> I<text> ...
+
+This sets the text, that should not be HTML markup, that is used only
+in the main index.html file.  It is placed in the <title></title>
+element and also placed in the HTML body after the html_page_header in
+a <h1></h1> element.  By default, this text is empty.
+
+=item B<html_page_header> I<html> ...
+
+The I<html> is placed at the top of every HTML file that Orca creates.
+It can be HTML markup.  By default, I<html> is empty is empty so no
+additional HTML markup is added to the file.
+
+=item B<html_page_footer> I<html> ...
+
+The I<html> is placed at the bottom of every HTML file that Orca
+creates.  It can be HTML markup.  By default, I<html> is empty is
+empty so no additional HTML markup is added to the file.
+
+=item B<generate_hourly_plot> I<value>
+
+This tells Orca if it should or should not create a hourly plot of the
+data.  By default, the daily plot is always created, unless I<value>
+is set to 0.  This may be useful if it does not make any sense
+plotting the data on this timescale.
+
+=item B<generate_daily_plot> I<value>
+
+This tells Orca if it should or should not create a daily plot of the
+data.  By default, the daily plot is always created, unless I<value>
+is set to 0.  This may be useful if it does not make any sense
+plotting the data on this timescale.
+
+=item B<generate_weekly_plot> I<value>
+
+This tells Orca if it should or should not create a weekly plot of the
+data.  By default, the weekly plot is always created, unless I<value>
+is set to 0.  This may be useful if it does not make any sense
+plotting the data on this timescale.
+
+=item B<generate_monthly_plot> I<value>
+
+This tells Orca if it should or should not create a monthly plot of
+the data.  By default, the monthly plot is always created, unless
+I<value> is set to 0.  This may be useful if it does not make any
+sense plotting the data on this timescale.
+
+=item B<generate_quarterly_plot> I<value>
+
+This tells Orca if it should or should not create a quarterly plot of
+the data.  By default, the quarterly plot is always created, unless
+I<value> is set to 0.  This may be useful if it does not make any
+sense plotting the data on this timescale.
+
+=item B<generate_yearly_plot> I<value>
+
+This tells Orca if it should or should not create a yearly plot of the
+data.  By default, the yearly plot is always created, unless I<value>
+is set to 0.  This may be useful if it does not make any sense
+plotting the data on this timescale.
+
+=item B<max_filename_length> I<value>
+
+When creating plots and HTML files Orca can create filenames that have
+an individual path element up to 235 bytes long.  Some web servers
+and/or web browsers cannot handle filenames this long and this
+configuration file parameter allows the user to reduce the length of
+the filenames that Orca creates.  The default I<value> is 235 and
+I<value> must be greater than 63.
+
+=back
+
+=head2 Group Parameters
+
+The next step in configuring Orca is telling where to find the files
+to use as input, a description of the columns of data comprising the
+file, the interval at which the file is updated, and where the
+measurement time is stored in the file.  This is stored into a group.
+
+A generic example of a group and its parameters are:
+
+  group GROUP_NAME1 {
+  find_files            filename1 filename2 ...
+  column_description    column1_name column2_name ...
+  date_source           file_mtime
+  interval              300
+  .
+  .
+  .
+  }
+
+  group GROUP_NAME2 {
+  .
+  .
+  }
+
+The key for a group, in this example groups GROUP_NAME1 and
+GROUP_NAME2, is a descriptive name that is unique for all groups and
+is used later when the plots are defined.  Files that share the same
+format, i.e. the same column names, may be grouped together.  The
+parameters for a particular group must be enclosed in the curly
+brackets {}'s.  An unlimited number of groups may be listed.
+
+=head2 Required Group Parameters
+
+=over 4
+
+=item B<find_files> I<path|regexp> [I<path|regexp> ...]
+
+The B<find_files> parameter tells Orca what data files to use for its
+input.  The arguments to B<find_files> may be a simple filename, a
+complete path to a filename, or a regular expression to match multiple
+files.  The regular expression match is not the normal shell globbing
+that the Bourne shell, C shell or other shells use.  Rather, Orca uses
+Perl regular expressions to find files.  For example:
+
+  find_files /data/source10 /data/source20
+
+will have Orca use /data/source10 and /data/source20 as the inputs to
+Orca.  This could have also been written as
+
+  find_files /data/source\d+
+
+and both data files will be used.
+
+In the two above examples, Orca will assume that both data files
+represent data from the same source are in the same 'subgroup'.  If
+this is not the case, such as source10 is data from one source and
+source20 is data from another source, then Orca needs to be told to
+treat the data from each file as a distinct data source.  This be
+accomplished in two ways.  The first is by creating another group {
+... } set.  However, this requires copying all of the text in the
+configuration file and their maintenance harder.  The second and
+recommend approach is to place ()'s around parts of the regular
+expression to tell Orca how to distinguish the two data files:
+
+  find_files /data/(source\d+)
+
+This creates two subgroups, one named source10 and the other named
+source20 which will be plotted separately.  If there are multiple
+()'s, then the subgroup name is the joining of each matched string
+with _'s.  So if
+
+  find_files /data/os_(.*)/(.*)/orcallator.data
+
+matches
+
+  /data/os_linux/host1/orcallator.data
+  /data/os_macosx/host2/orcallator.data
+
+then there are two subgroups, linux_host1 and macosx_host2.
+
+One more example:
+
+  find_files /data/solaris.*/(.*)/percol-\d{4}-\d{2}-\d{2}(?:\.(?:Z|gz|bz2))?
+
+will use files of the form
+
+  /data/solaris-2.6/olympia/percol-1998-12-01
+  /data/solaris-2.6/olympia/percol-1998-12-02.Z
+  /data/solaris-2.5.1/sunridge/percol-1998-12-01.gz
+  /data/solaris-2.5.1/sunridge/percol-1998-12-02
+
+and treat the files in the olympia and sunridge directories as
+distinct, but the files within each directory as from the same data
+source.
+
+You'll notice that all but the first () has the form (?:...).  This
+tells Perl to match the expression but not save the matched text in
+Perl's $1, $2, variables.  Here, only the hostname should be used to
+generate a subgroup name, hence all the (?:...) for grouping anything
+else.
+
+If any of the paths or regular expressions given to B<find_files> do
+not begin with a / and the B<base_dir> parameter was set, then the
+B<base_dir> directory will be prepended to the path or regular
+expression.
+
+=item B<interval> I<seconds>
+
+The B<interval> parameters is the number of seconds between updates
+for the input data files listed in this group.
+
+This value is very important, because the generated RRD data files are
+created with this value.  If the interval is incorrect, then you may
+find empty plots, even though Orca did read the data.  If the interval
+needs to be changed, then the RRD data files will either need to be
+deleted so that Orca can recreate them or they will need to be modifed
+by an external tool.
+
+=item B<column_description> I<column_name> [I<column_name> ...]
+
+=item B<column_description> first_line
+
+For Orca to plot the data, it needs to be told what each column of
+data means.  This is done by creating a text description for each
+column.  There are two ways this may be configured into Orca.  If the
+input data files for a group do not change, then the column names can
+be listed after B<column_description>:
+
+  column_description date in_packets/s out_packets/s
+
+Files that have a column description as the first line of the file may
+use the argument "first_line" to B<column_description>:
+
+  column_description first_line
+
+This informs Orca that it should read the first line of all the input
+data files in this group for the column description.  Orca can handle
+different files in the same group that have different columns and
+column descriptions.  The only limitation here is that column
+descriptions are white space separated and therefore, no spaces are
+allowed in the column descriptions.
+
+=item B<date_source> column_name I<column_name>
+
+=item B<date_source> file_mtime
+
+The B<date_source> parameter tells Orca where to get the time in
+seconds since the Unix epoch when the measurement was taken.
+
+The first form of the B<date_source> parameters lists the column name
+as given to B<column_description> that contains the Unix epoch time.
+The second form with the file_mtime argument tells Orca that the date
+and time for any new data in the file is the last modification time of
+the file.
+
+=item B<date_parse> I<Perl subroutine>
+
+To support converting arbitrary strings in the input source data files
+that somehow represent time into an Unix epoch time usable by Orca,
+the B<date_source> parameter can be used.  The value for B<date_parse>
+is a Perl subroutine that accepts two arguments, the first being the
+name of the file where the data is loaded and the second the string
+from the 'date_source' column that contains some time information.
+The subroutine should return the Unix epoch time.  If this parameter
+is not specified, then Orca assumes that the string holds the Unix
+epoch time in integer seconds form.
+
+This Perl subroutine is only used if the file's date source is not
+specified to be the file's last modified time as indicated to Orca by
+use of the B<date_source> file_mtime configuration file parameter.
+
+=back
+
+=head2 Optional Group Parameters
+
+=over 4
+
+=item B<filename_compare> I<Perl subroutine>
+
+The B<filename_compare> parameter is used to sort the filenames found
+from the B<find_files> parameter in a particular group.  This function
+must be written as though it were being passed to the Perl sort()
+function, which takes the two items to compare in the package global
+$a and $b variables instead of the @_ array.
+
+Use of this parameter has an additional effect on letting Orca know
+when it can flush data to the RRD files.  This is very important when
+a large amount of data is being loaded into Orca, so that data is
+flushed continuously to disk instead of increasing Orca's memory usage.
+
+Orca determines when to flush data to disk when it compares the
+previously loaded filename to the filename about to be loaded using
+the B<filename_compare> function.  If the result of the comparison is
+greater than 1, then the data is flushed.  If the comparison is equal
+to or less than 1, then the data is not flushed.  Orca uses a value of
+1 instead of 0 since there are cases when the filenames should still
+be ordered but not flushed.
+
+For example, the orcallator.cfg file uses the following subroutine for
+filenames of the form "orcallator-2000-02-14":
+
+  sub {
+    my ($ay, $am, $ad) = $a =~ /-(\d{4})-(\d\d)-(\d\d)/;
+    my ($by, $bm, $bd) = $b =~ /-(\d{4})-(\d\d)-(\d\d)/;
+    if (my $c = (( $ay       <=>  $by) ||
+                 ( $am       <=>  $bm) ||
+                 (($ad >> 3) <=> ($bd >> 3)))) {
+      return 2*$c;
+    }
+    $ad <=> $bd;
+  }
+
+When Orca is about to load a new data file it compares the new
+filename with the previous name.  Using this function, if the year, or
+month is different, then data gets flushed.  If these two are equal
+but the day divided by 8 is different, then the data gets flushed.  So
+loading orcallator-2000-02-14 followed by orcallator-2000-02-15 will
+not cause a flush but when orcallator-2000-02-16 is about to be
+loaded, previously loaded data will be flushed.
+
+If the B<filename_compare> parameter is not used, then the filenames
+are sorted using the Perl <=> operator and data is not flushed until
+all input data files are loaded, which could consume a large amount of
+memory.
+
+=item B<late_interval> I<Perl expression>
+
+Each group can have its own B<late_interval> that overrides the
+late_interval global parameter.  If the group's late_interval is not
+specified, then the global one is used.
+
+=item B<reopen> 1
+
+Using the B<reopen> parameter for a group instructs Orca to close and
+reopen any input data files when there is new data to be read.  This
+is used when an input data file is erased and rewritten by some other
+process and Orca needs to reread the file from the beginning.
+
+=back
+
+=head2 Plot Parameters
+
+The final step to configure Orca is to configure the plots.  The
+general format for creating a plot is:
+
+  plot {
+  title         Plot title
+  source        GROUP_NAME1
+  data          column_name1
+  data          1024 * column_name2 + column_name3
+  legend        First column
+  legend        Some math
+  y_legend      Counts/sec
+  data_min      0
+  data_max      100
+  .
+  .
+  }
+
+Unlike a group, there is no key name for a plot.  An unlimited number
+of plots can be created.
+
+The B<title> and B<legend> plot parameters, described below, may
+contain either the string %g or the string %G.  Here, the 'g' refers
+to the 'g' in subgroup.  A subgroup name is generated by joining with
+a _ character all the strings that matched ()'s in the find_files
+parameter for the group name given to the B<source> plot parameter.
+All %g's are replaced with the subgroup name and all %G's are replaced
+with the subgroup name with the first character capitalized.
+
+For example, if
+
+  find_files /(olympia)/data
+
+was used to find a file, then %g will be replaced with olympia and %G
+replaced with Olympia.
+
+=head2 Required Plot Parameters
+
+=over 4
+
+=item B<source> I<group_name>
+
+The B<source> argument must be one of the group names from which data
+will be plotted.  Currently, only data from a single group may be put
+into a single plot.
+
+=item B<data> I<Perl expression>
+
+=item B<data> I<regular expression>
+
+The B<data> plot parameter tells Orca which the data sources to use in
+a single plot.  At least one B<data> parameter is required for a plot.
+There is no limit on how many B<data>s may be placed in a plot.
+
+Two forms of arguments to B<data> are allowed.  The first form allows
+arbitrary Perl expressions that return a number to plot.  The
+expression may contain the names of the columns as found in the group
+given to the B<source> parameter.  The column names must be separated
+with white space from any other characters in the expression.  For
+example, if you have the input and output number of bytes per second
+and you want to plot the total number of bits per second, you could do
+this:
+
+  plot {
+  source        bytes_per_second
+  data          8 * ( in_bytes_per_second + out_bytes_per_second )
+  }
+
+The second form allows for matching column names that match a regular
+expression and plotting all of those columns that match the regular
+expression in a single plot.  To tell Orca that a regular expression
+is being used, then only a single non whitespace separated argument to
+B<data> is allowed.  In addition, the argument must contain at least
+one set of parentheses ()'s.  When a regular expression matches a
+column name, the portion of the match in the ()'s is placed into the
+normal Perl $1, $2, etc variables.  Take the following configuration
+for example:
+
+  group throughput {
+  find_files /data/solaris.*/(.*)/percol-\d{4}-\d{2}-\d{2}
+  column_description hme0Ipkt/s hme0Opkt/s
+                     hme1Ipkt/s hme1Opkt/s
+                     hme0InKB/s hme0OuKB/s
+                     hme1InKB/s hme1OuKB/s
+                     hme0IErr/s hme0OErr/s
+                     hme1IErr/s hme1OErr/s
+  .
+  .
+  }
+
+  plot {
+  source        throughput
+  data          (.*\d)Ipkt/s
+  data          $1Opkt/s
+  .
+  .
+  }
+
+  plot {
+  source        throughput
+  data          (.*\d)InKB/s
+  data          $1OuKB/s
+  .
+  .
+  }
+
+  plot {
+  source        throughput
+  data          (.*\d)IErr/s
+  data          $1OErr/s
+  .
+  .
+  }
+
+If the following data files are found by Orca
+
+  /data/solaris-2.6/olympia/percol-1998-12-01
+  /data/solaris-2.6/olympia/percol-1998-12-02
+  /data/solaris-2.5.1/sunridge/percol-1998-12-01
+  /data/solaris-2.5.1/sunridge/percol-1998-12-02
+
+then separate plots will be created for olympia and sunridge, with
+each plot containing the input and output number of packets per
+second.
+
+By default, when Orca finds a plot with a regular expression, it will
+only find one match, and then go on to the next plot.  After it
+reaches the last plot, it will go back to the first plot with a
+regular expression and look for the next data that matches it.  The
+net result of this is that the generated HTML files using the above
+configuration will have the plots listed in this order:
+
+  hme0 Input & Output Packets per Second
+  hme0 Input & Output Kilobytes per Second
+  hme0 Input & Output Errors per Second
+  hme1 Input & Output Packets per Second
+  hme1 Input & Output Kilobytes per Second
+  hme1 Input & Output Errors per Second
+
+If you wanted to have the links listed in order of hme0 and hme1, then
+you would add the B<flush_regexps> parameter to tell Orca to find all
+regular expression matches for a particular plot and all plots before
+the plot containing B<flush_regexps> before continuing on to the next
+plot.  For example, if
+
+  flush_regexps 1
+
+were added to the plot for InKB/s and OuKB/s, then the order would be
+
+  hme0 Input & Output Packets per Second
+  hme0 Input & Output Kilobytes per Second
+  hme1 Input & Output Packets per Second
+  hme1 Input & Output Kilobytes per Second
+  hme0 Input & Output Errors per Second
+  hme1 Input & Output Errors per Second
+
+If you wanted to have all of the plots be listed in order of the type
+of data being plotted, then you would add "flush_regexps 1" to all the
+plot and the order would be
+
+  hme0 Input & Output Packets per Second
+  hme1 Input & Output Packets per Second
+  hme0 Input & Output Kilobytes per Second
+  hme1 Input & Output Kilobytes per Second
+  hme0 Input & Output Errors per Second
+  hme1 Input & Output Errors per Second
+
+=back
+
+=head2 Data Source Optional Plot Parameters
+
+The following parameters are optional.  Like the B<data> parameter,
+multiple copies of these may be specified.  The first parameter of a
+particular type sets the parameter for the first B<data> parameter,
+the second parameter refers to the second B<data> parameter, etc.
+
+=over 4
+
+=item B<data_type> I<type>
+
+When defining data types, Orca uses the same data types as provided by
+RRD.
+
+These are (a direct quote from the RRDcreate manual page):
+
+=over 4
+
+=item B<GAUGE>
+
+is for things like temperatures or number of people in a room or value
+of a RedHat share.
+
+=item B<COUNTER>
+
+is for continuous incrementing counters like the InOctets counter in a
+router. The B<COUNTER> data source assumes that the counter never
+decreases, except when a counter overflows.  The update function takes
+the overflow into account.  The counter is stored as a per-second
+rate. When the counter overflows, RRDtool checks if the overflow
+happened at the 32bit or 64bit border and acts accordingly by adding
+an appropriate value to the result.
+
+=item B<DERIVE>
+
+will store the derivative of the line going from the last to the
+current value of the data source. This can be useful for gauges, for
+example, to measure the rate of people entering or leaving a
+room. Internally, derive works exactly like COUNTER but without
+overflow checks. So if your counter does not reset at 32 or 64 bit you
+might want to use DERIVE and combine it with a MIN value of 0.
+
+=item B<ABSOLUTE>
+
+is for counters which get reset upon reading. This is used for fast
+counters which tend to overflow. So instead of reading them normally
+you reset them after every read to make sure you have a maximal time
+available before the next overflow.
+
+=back
+
+If there are no B<data_type>'s specified for a plot, then all of the
+data_types for the data's default to GAUGE.  If at least one data_type
+is specified and there are more data's than data_types's, then the
+last specified data_type will be used for all of the data's were not
+given a data_type.  In the following example, there are three data's
+and only two data_types's.  The data_type of COUNTER will be applied
+to column3 and column4.
+
+  plot {
+  data          column1
+  data          column2
+  data          column3
+  data          column4
+  data_type     DERIVE
+  data_type     COUNTER
+  }
+
+
+The B<data_type> is only used once when the RRD files are created as a
+parameter to rrdcreate.  If you want to change B<data_type> after the
+RRD files have been created and you want to change these values, then
+you have to modify Orca's configuration file, remove the RRD files and
+let Orca rebuild them.
+
+If there are multiple plots that refer to the same RRD and if the
+different plots have different data_types, then the first plot that
+creates the RRD file will set the data_type.
+
+=item B<data_min> I<number>
+
+=item B<data_max> I<number>
+
+B<data_min> and B<data_max> are optional entries defining the expected
+range of the supplied data and used by RRDtool and not by Orca to
+limit the range of data stored in the RRD files.  If the input value
+that Orca passes to RRDtool is less than B<data_min> or greater than
+B<data_max> then RRD will store I<*UNKNOWN*> in its place instead.
+
+These values are only used once when the RRD files are created as a
+parameter to rrdcreate.  If you want to change either B<data_min> or
+B<data_max> after the RRD files have been created, then you have to
+modify Orca's configuration file and either remove the RRD files and
+let Orca rebuild them or find a separate RRD program that will modify
+the minimum and maximum values.
+
+If you want to specify the second data source's minimum and maximum
+values but do not want to limit the first data source, then set the
+I<number>'s to U.  For example:
+
+  plot {
+  data          column1
+  data          column2
+  data          column3
+  data_min      U
+  data_max      U
+  data_min      0
+  data_max      100
+  }
+
+If there are no minimum or maximum values specified for a particular
+plot, then there will no limits applied to any input data given to the
+RRD file since the value 'U' is passed to rrdcreate.
+
+If at least one data_min or data_max is specified and there are more
+data's than data_*'s, then the last specified data_* will be used for
+all of the data's were not given a data_*'.  In the example above,
+there are three data's and only two data_*'s.  The minimum of 0 and
+maximum of 100 will be applied to column3.
+
+If there are multiple plots that refer to the same input data and if
+the different plots have different data_min's and data_max's, then the
+first plot that creates the RRD file will set the data_min and
+data_max.
+
+=item B<color> I<rrggbb>
+
+The optional B<color> parameter specifies the color to use for a
+particular plot.  The color should be of the form I<rrggbb> in
+hexadecimal.
+
+=item B<flush_regexps> 1
+
+Using the B<flush_regexps> parameter tells Orca to make sure that the
+plot set including this parameter and all previous plot sets have
+matched all of the columns with their regular expressions.  See the
+above description of using regular expressions in the B<data>
+parameter for an example.
+
+=item B<required> 1
+
+Because some of the input data files may not contain the column names
+that are listed in a particular plot, Orca provides two ways to handle
+missing data.  By default, Orca will ignore data that does not exist
+or if a data item cannot be eval'ed or returns invalid data.  In this
+case, the plot may never be created.  However, if a plot is required,
+then set the required flag for a plot by placing
+
+  required 1
+
+in the parameters for a particular plot.  In this case, Orca will
+record a I<*UNKNOWN*> value for all invalid data.
+
+=back
+
+=head2 Plotting Parameters
+
+=over 4
+
+=item B<base> I<number>
+
+If memory is being plotted (and not network traffic) this value should
+be set to 1024 so that one Kb is 1024 bytes.  For traffic
+measurements, 1 Kb/s is 1000 b/s.  By default, a base of 1000 is used.
+
+=item B<plot_width> I<number>
+
+Using the B<plot_width> parameter specifies how many pixels wide the
+drawing area inside the PNG is.
+
+The default plot width is 500 pixels.
+
+=item B<plot_height> I<number>
+
+Using the B<plot_height> parameter specifies how many pixels high the
+drawing area inside the PNG is.
+
+The default plot height is 125 pixels.
+
+=item B<plot_min> I<number>
+
+By setting the B<plot_min> parameter, the minimum value to be graphed
+is set.  By default this will be auto-configured from the data you
+select with the graphing functions.
+
+=item B<plot_max> I<number>
+
+By setting the B<plot_max> parameter, the minimum value to be graphed
+is set.  By default this will be auto-configured from the data you
+select with the graphing functions.
+
+=item B<rigid_min_max>
+
+Normally Orca will automatically expand the lower and upper limit if
+the graph contains a value outside the valid range.  By setting the
+B<rigid_min_max> parameter, this is disabled.
+
+=item B<logarithmic>
+
+Normally Orca will use a linear scale for the Y axis.  If a plot
+contains this parameter, then a logarithmic scale will be used.
+
+=item B<title> <text>
+
+Setting the B<title> parameter sets the title of the plot.  If you
+place %g or %G in the title, it is replaced with the text matched by
+any ()'s in the group B<find_files> parameter.  %g gets replaced with
+the exact text matched by the ()'s and %G is replaced with the same
+text, except the first character is capitalized.
+
+=item B<y_legend> I<text>
+
+Setting B<y_legend> sets the text to be displayed along the Y axis of
+the PNG plot.
+
+=item B<hrule> I<value>#I<rrggbb>[:I<legend>]
+
+Draw a horizontal line (rule) into the graph at the vertical Y
+I<value> with the specified color I<rrggbb> and optionally add a
+I<legend> for it.
+
+An arbitrary number of B<hrule>'s may be added to a plot.
+
+=back
+
+=head2 Multiple Plot Plotting Parameters
+
+=over 4
+
+The following parameters should be specified multiple times for each
+data source in the plot.
+
+=item B<line_type> I<type>
+
+The B<line_type> parameter specifies the type of line to plot a
+particular data set with.  The available parameters are: LINE1, LINE2,
+and LINE3 which generate increasingly wide lines, AREA, which does the
+same as LINE? but fills the area between 0 and the graph with the
+specified color, and STACK, which does the same as LINE?, but the
+graph gets stacked on top of the previous LINE?, AREA, or STACK graph.
+Depending on the type of previous graph, the STACK will either be a
+LINE? or an AREA.
+
+If there are no line_type's specified for a plot, then the default
+line_type of LINE1 will be used for all of the data line_type's.
+
+If at least one line_type is specified and there are more data's than
+line_type's, then the last specified line_type will be used for all of
+the remaining data's that do not have a specified line_type.
+
+=item B<legend> I<text>
+
+The B<legend> parameter specifies for a single data source the comment
+that is placed below the PNG plot.
+
+=item B<summary_format> I<format>
+
+The B<summary_format> option specifies the format for the summary
+values, as passed to the RRDtool GPRINT function.  In the format
+string there should be a '%lf' or '%le' marker in the place where the
+number should be printed.
+
+If an additional '%s' is found AFTER the marker, the value will be
+scaled and an appropriate SI magnitude unit will be printed in place
+of the '%s' marker.  The scaling will take the base of the plot into
+consideration.
+
+If a '%S' is used instead of a '%s', then instead of calculating the
+appropriate SI magnitude unit for this value, the previously
+calculated SI magnitude unit will be used.  This is useful if you want
+all the values in a PRINT statement to have the same SI magnitude
+unit.  If there was no previous SI magnitude calculation made, then
+'%S' behaves like a '%s', unless the value is 0, in which case it does
+not remember a SI magnitude unit and a SI magnitude unit will only be
+calculated when the next '%s' is seen or the next '%S' for a non-zero
+value.
+
+The same format is used for each number within a single summary line,
+but you can specify multiple summary_format options if there are
+multiple plots on the graph:
+
+  plot {
+  source                things
+  data                  some
+  data                  other
+  data                  things
+  data                  something_else
+  summary_format        %.0lf
+  summary_format        %4.1f %s
+  color                 0000ff
+  color                 ff0000
+  }
+
+If there are no summary format specifiers, then the default format of
+'%9.3lf %S' will be used for all of the data summary lines.
+
+If at least one summary_format is specified and there are more data's
+than summary_format's, then the last specified summary_format will be
+used for all of the data summary lines that were not given a
+summary_format.  In the example above, there are four data's and only
+two summary_format's.  The format '%4.1f %s' will be used for the
+'things' and 'something_else' data summary lines.
+
+=back
+
+=head1 IMPLEMENTATION NOTES
+
+Orca makes very heavy use of references to hashes and arrays to store
+all of the different data it uses.
+
+The I<Digest::MD5> module is used to cache the result of some
+expensive calculations that commonly could be performed more than
+once.  In particular, this arises when the same code is used to pull
+data from many different input data files into the same type of data
+structures.  In this case, the code to be evaluated is run through
+MD5, where the resulting binary code is used as a key in a hash with
+the value being the anonymous subroutine array.  This saves in memory
+and in processing time.
+
+=cut
+
+These are hexadecimal forms of GIFs used by Orca.
+
+OPEN orca_logo.gif
+749464839316ab00d2007fff00ffffff1f0f8f2e1e2f4d1dbe5c2c4e7b3bed8a4a7da9
+490dc858ace7774c0776db16856b35940b44a39a63a22a72b1c991c059000000000000
+0000000000000000000000000000000000000000000000000000000000000000000000
+0000000000000000000000000000000000000000000000000000000000000000000000
+0000000000000000000000000000000000000000000000000000000000000000000000
+0000000000000000000000000000000000000000000000000000000000000000000000
+0000000000000000000000000000000000000000000000000000000000000000000000
+0000000000000000000000000000000000000000000000000000000000000000000000
+0000000000000000000000000000000000000000000000000000000000000000000000
+0000000000000000000000000000000000000000000000000000000000000000000000
+0000000000000000000000000000000000000000000000000000000000000000000000
+0000000000000000000000000000000000000000000000000000000000000000000000
+0000000000000000000000000000000000000000000000000000000000000000000000
+0000000000000000000000000000000000000000000000000000000000000000000000
+0000000000000000000000000000000000000000000000000000000000000000000000
+0000000000000000000000000000000000000000000000000000000000000000000000
+0000000000000000000000000000000000000000000000000000000000000000000000
+0000000000000000000000000000000000000000000000000000000000000000000000
+0000000000000000000000000000000000000000000000000000000000000000000000
+0000000000000000000000000000000000000000000000000000000000000000000000
+0000000000000000000000000000000000000000000000000000000000000000000000
+0000000000000000000000000000000000000000000000000000000000000000000000
+0000000000000000000000129f401000000000c200000000ab00d2000480ff001080c1
+840b02081080610387001a1e3060a0e0c003841b2a5cb88133a642830e042060d0a124
+0700152e6c3982352542022b5abc6882304846051952d469f2376a45001e1808b88337
+ab4493081a3800a2506007024b1e184a10a1edc6a3439208300121014b900282558065
+1003080406023d9af51668d39c31100010c03de8c39804a6759b063c23df9209ba75aa
+65bee281860ceefd6ab6f26186856906d57020972ed6c71500ad4b941b2dc28e71f248
+60849260040c4b7a18b81060f161a9431c7e281081a28d883bcea61a38736a64c53718
+3c20a1b3bc5b8204273c60708fe9c00ea9575410802e6280d50d7f1d4cc3377969bacd
+0e0809cbd221ff81b018105fa95efee0fa8d11c340507e53e08dea31828f60dd317d57
+949daa28bcf5145c0d44b55a77bdb465135402160020698d94208763b1a44e5381e525
+361562c16618140e6100bf958ecd38515c6e1200c3d664f155e3964339a7c1625c3d96
+30d68106c412530609f6226d742e04c3d575151601cf4bf9c5f1264300e5bcd850a1a7
+d32282051017d209f5a4b4ea7b11f4f0c2835a76d49b5112e50952610010866c7f3ea9
+c6a2586210756b927e6430097e292776e10a04c5fe5c9b2918066e4e0820608a9a2517
+93db986610808d9d7ec9b8984e7a55545c8a4235d5a8708a69a42874326444ed891110
+c0d30df955e86b40cda56b139921e475adff8e02a407140f927403a8a7219aba6a436e
+75942a4a95ea3bafaa65d8b9a5a4bec530d29156553761431dfa96d66b15884ce58a2d
+1b77d3bd258557d788397b2254b409d93b99827d3068a145166b322684612b4e27b929
+282016b7024b27e89f96d5a3a85e9d4ad7916ea625b460c507db975a457d3040d89c0f
+c9f07c9581bb0043727dda6054831725585e64f2cb935bbed97a2ad3442b49a2910e5e
+04f22645b1001a6a53120570be61250b32febd29c4f5530c1bcc93b64b45652d634c33
+64efe14e995b615dc1fa5445e766277bb23fb356c5f002075f54600f9353b71256a505
+5c16d859ea8dc2e7d405109a635d531c609caad698608f6d2d2d8151ff0a7bc5c04fa6
+0d1d05fa557d66177357a2b7b7ac5e042047b4bc08655723069f5e8976e90020c93a93
+7a0090ca824d3e19fa5ff130c7398ccddd301cd225aec952bf5d2ac973aee534a0c2ea
+b96cc23c6608d90bb5574b8422ff85961b6116532dbc1bf7c5994666b6416bea61de71
+dfa54da84587855ba2b8a5e8deadd36f54299eec151d7155a7dba419a0a42afc5e6c4c
+01fd2ebf8725cc8e17a2f9c6d16bd65900aa14f964c535cb5856deb5a29169146630f3
+b79e60558792d1c64678c3abcb7a9770c8f5201967e27e99bec5e913f954e54d0c689a
+4c7328baf5feee55420215095727a5a025c83961116ddc06af32acb6a7620cb6140e92
+0088acb0ff7c7d6ac25b8e849691a5544f5d3cd80358a3a24da1a42c5f5a12adf6e471
+3c9c444a64590ed04ed552c5b46887893c39c85655c4c23ea9e13849a5595ad763bc80
+81b98a1913a103c894913d042d8edb53d850a662a3d4903d3711e325f252cda8222035
+218446951758b626acdc602743139764162a1c16f173258994a22538729c21fc812e1c
+f15da067c41da8ab2d2242a8c0b0f8a2112e97e39e0cfe53489758925e38072a442848
+42d52a31a06ca22ff9c06d2532c49351d21205041dc19a79022d5a1d8127a25e9d0fb8
+48cbdd75625da2536af6047346859ae3530064dde81019b980c2349c8928437428000b
+e804217241b1ea3be848c07a133f249a3c688306109c159cd3332eb9721805a299b482
+6ea437d9e72550a9433f66144000e3d49703004e9ea9bd2a6215284008b4f2b3ad2041
+542d29294f168414220b466c6392e449c339482de3543a1b7004e0161c405a33912d00
+6ed89cb844b61a2f0941c906257ec46086c5346a34b974ab43269001bd0a010cc31f42
+e4a56e419430cc78311cdffad9c5c6a4c499697b06e4ecbaf1449010a15e004ba1d29a
+ad4f721a0e9965d8404000b3
+CLOSE
+
+OPEN rrdtool_logo.gif
+749464837316870022003f0000000066003399046699e375c864284bf7f73b9a9a9a08
+99ccfbccccffffccffffff7f7f7f7e7e7e000000000000000000c20000000087002200
+0040ef099c94badb83be9b63fbd57c882e866790ac4abe93e292c5032016fd87eafe97
+d44d04b5050342a1f88c4627020663f9fc184b92daa5fa2d0c0201010081cb0b87c4e2
+39d7fb4bad8f302b78965e1fb6eabdbd7cd11b7b777e3ed61727d738a44763909806c3
+905040b077c360984990b390b7738928399043d78784694090e458445a947840c0e890
+70c30b4a5370b9a78386a3d84050e6969a7460e73963b274e430c060d53060304ad505
+a58c250090c5c564ba8920214080e8cafdb8b9d21e2460c080f360cadaa330691421db
+20909e2cdd80f62fd469fc8fe9922109e05579f4dd0c841a10669dc0a1c46bd1851f3e
+5df084504ed20a53a0705436efb2a04d24304645d86491b71ac4080a917bd30c2e93bb
+74a69923203023a0c007f40618c883d351892694854c544ae0c4cd761de55ca844642e
+a7989491aac424af940225071839254ac49e4229cc041410913082362c3506a3e265b9
+130e93d4a06200cc65d6444ddad93dfbb9a06e8d4e4f6a35041f4885528c02e139878a
+c49db86c376872906379900e98a65079bc899ee3e004aa4d15d403bbd1045f4de119c8
+85d5f5d5cf23d426ea4320020a16ade13106efa08617df61b9ad56b525d5b47f5c00e5
+cb2a3b0086ea542ea8d780ee1540c43a6a035cd8c35956d48ef2a23bcdeed4afe0c1da
+afb7d5ed7395f40ad243ec6f0db69b6b9de6647ee547ef7408250b00160ca350af5cac
+b6c0ca617cc09fcf4c51c1401e140895d6895de8319f8114a973f89c534d6181600ec4
+333c907409102c533875519e4b830c71425f0088f00acb17a4121a0212914184c43465
+f73585157d07b5c616c17195c610d55143a919b40248cd0b36e154c597cc09f854154e
+79946d594e513d80900453206f884801a6a6964cf827488d5e5134631b4a5145819b42
+6355861b7639650d8200c240e25a45d314028a412080c1a04e0acbc10f3d1a831c9dc8
+4af356aa9ef454271fdc20a0083c42999dc441ae10c7af9db832e8c8a36200b19e3408
+20a04b27008a4b22a3b6234be2a4b6da15820e80dab04108001b32e137c6dab0ef4b4f
+be2b37561be0dace4fa3a2636c2302c2a54b220c4271a0c584b227242a9c443aba920b
+a545a0c2009811a04d07ca09de670d54005c6ab8ae618be108cc667048b1081bef68a7
+66dae763b00820a4e0cdde7ba61300ba079d0da371635c6f22c6d5e50a9440ab40f11e
+e20bb958bec2231038a448a529e73ef631504bb1ee41b99a3c505a6c27150c2007514a
+0c29327b810c253ba17f508aed2719fecad1f89e1b0002babf6e8cd259c8696b8c4cca
+27dc22dca8aad95fec546523958843ca7bb584c30cfceec99b99a523363c6320b08bdb
+5cdaa2700b07e460c6c85cc8f943a204fae1acc5f400f3b6bf3395a5f2ea696caee07a
+6d8ce56f9600aaeff0763ab51cb1fb034b1e30fc584be6de2f25f2aa88f334d699faa7
+53080e7ceab4485ce402e4a18a49d2b83d660e0faf57dc1437c67a1b004cc80c99a4e6
+4fab0c3d1e5d83aadb70c70c373dd0eeea4c8fe660a6d7e4f3d40e32efa411bb926b71
+bf3b7a5b27fc5b4ab0ceb96f8ceeb71f6b1b71e10947531e6ab2e2da5348d4787baea9
+55ea6d63235a14d6d65004e93d0652e36452342547bd8d1101750af9de6ad5c4a59538
+cf5da823db0cf6e4b189dfea6562bd1d0406b2b2e58d4d230a91c4f6436d3051e5ad7b
+c01810acc53005ac73485b6ba71dca46303cd5ac4108c9c24b26051933260d097df1d9
+5b4266713cf1a52062c1bf1aa688ec1078ef9ecb54035d9bb8760b2d286b88416a911f
+ce57c934553e0d60632dd9fae5c03f0e05ca55d183629a96b502ed3c2b0622cc54eca8
+ab1acd780651aa1a13ac160a2a8dbb657e7ab79915b0d8a1054e0f523bdd59c000ca05
+00e56650aa86d614b81331a12e0457d83259d6f13b24b539e76b3bb81710007c2cd18b
+0d27c28ecdc466f6bdb40c8b794af910e029a418adeb8398bba248b6e8e7af025ce173
+4140c234768bcb65f9eb12c891c99a197baa1e29a298d222e0ea163ac94e2ce7288baf
+06c2a516c7c1c229807bbe139e76a41f5671ce80791097d0b1a8337a19aa16fbf902cc
+840bcf990c8b0bca71a3926641c756cc016e72685b32c50d1d61adc92d9aeaeb5da8d2
+38bf593440a4b252d71e751f2859956c584c67dbda94524a7cfae5416a18d241c1adae
+0af94946aba5dc02753aa17e2ba3002547e91f709d022543890cd3200472f4145f0d66
+e53ce81a0b4ff6b58a3191bf49d83090ee944aac903aad185d8a6434e05d11b1896cad
+d38a6917f96c13befd66aa6df35b5fe466d992b5ba190c6e9d5fea87dcbae57fac7deb
+af5ffa08d0c200220000b3
+CLOSE
+
+OPEN rothschild_image_logo.png
+9805e474d0a0a1a0000000d094844425000010e400000051806000000092d6709e0000
+00407614d41400001be8c7bf153900000002368425d40000a7520000083800009fff00
+00088e000057030000ae060000a379000071f6799a994d000090219444144587c926c3
+7de60ffffef8f4c04d202be153c02e61984533f8ed0e3f3839c0737144115a69d50468
+18d404a9189938f818751cc1c89b424b86ce2c1503a08870fce0c4202e98875d8a72c2
+307add1504c3008002613ca83f8552ec43823e5d80a0860508f844025e09f04c970663
+8a0a5055c302afeea8c40714a0aac364b00d1503a068f20080026a18670c05700aa044
+043c51c585ae61c146016380606b853a91edc585b30de4b1503a06410d80004001bc04
+b3068b1011061c9c521a90e2c314d59726ab04f3f3c3168f5f1e9289d0a61b284fd054
+00a6573c0082c00434814a08f6f2ea10b5fef99c6df3a08af004db92252e18455f8c0e
+1fe861073048c504fc4f30010443b283143e488c91909101a135109e58d0300eb13a18
+d8132e2b360a008ab9ea2113381e1c682307b241b100520b79726103cb506bc4145072
+8abff0200a8c70512a0a65ca8b5420c32f14d28d7b86da8df6f2ea330ea1f9609b1899
+3871ec7099302731eb0f44e1280c60093e50600417cf2f4cc768f07367389f0aa838d0
+81f2021309f348d0280fe89738cfefc18e6a7f04dfc2047328a5ce0200273282318810
+3c0440a268c00fd0529943cd5c927027f2803ccf94c6a35a42d3312df0b8b205c1182c
+00417f02c3810cd951910e4734c61240a4f50a83325b2f785a3209d38f2d02a30273df
+0800131728d4c1458b30400d09e61728209849046a7208d46118a0c34f883051237f18
+58a2271a78eef009e305ba5142e0ac4402330ddc1c711f0a8c5a5f08f38a5800a4ce03
+002bf4120ab0ec7855e07d668f238656c66c0df8e58838a59088078c341dfae90b478d
+6b04193ea04501cbdb0be0c1ea0a0bc18ced708cd20a4f50a4ba0a2c39010851e7c90c
+87467302dcdd0a4b402002df8cd060c708699e7805ef10800a1d13e4a120051870b698
+1c008a04405d2e48652308a0940546384ff06c1f25052074e2431400491704d2668108
+5be14120a3134f38a53e4866b7195f3821f38232f07700a28214e76056cdb50ca83193
+c39ed0069671443a7c53a3005a7605c922be326108cc689f31658d11204a4af1058525
+b3df00400d861c943400aa1b09b5480a88385dca4c00054c38a5d10beecf0620fa0742
+e60dac204fa410d758109a591084f382c18490bb1ae004e765e889e30ae7605bc71600
+4ee0c758838a5f70b43a4a41c90a4b202db8a66d44cb9ed94d4f30ac78290c2049a916
+90010434abbaef9f1c9006023679385759702108a0e34e244041174eca995851a14c47
+798e500752c60983868810f57d8ee34b5624a081c01f94f600a2c314db61c63cd34b60
+0a47a8e50528a2540d09b0a7cb2cab8e8c00458b1133e4b8b2f4086cd21978d709dd54
+e4af1c634d58f008a1b28b681c043e6f00108a73365100040188e6dffff96b735db140
+194328c2ab1322484f2d3de90176464de02aea53a77cb68678080567b481188ec5c919
+9a9754f01109ecfb8d4e1972107e197242072f3c5cc063381d863c6e2f1d4d20d853ac
+ccbd4c9572ebacd7b5db35798ea14c7fa8839d3e56e8ca3d3c0b1fd8d59def300d96db
+95c6c7fbb00a1092831f93a040049189810c644e27f918200a481037f15a5150821128
+cc02570dd94104869f41271cf0a44d8f6c890751e9f58a051621208fcf0fde50f2c79c
+ac05100a59324bea431d10eaa4e163ed90b59218cd547475748696111a13a409c3afa2
+e0a74af1010059f48f2d110400d0841c948c153c50082181ca6d54e6da1930049968a1
+da47c708055448cbc330433f90acc18f6cdb0b51e94f81ba52496b86d1e84d600acf20
+a4f34fc2831f58118ab7d0a036055048b62d8041fc0a8f7c5d04205b829751c20ce72c
+5dae409b10dbbcf3856caf10208684f817e066009916ebe38a6c529a90023175d90e28
+11f57d90499788d5ec23a060700051650a20d0f55a8f0634938b2250d0120eb28f0b51
+c90a4f20a9c540d87928a024c731d30a24a94d53da8f622b04510186ce492d68b10400
+d8ecaa3d000822d04b4e841181140b6961ea58af4a89949a914d600ac414ccaf834e95
+0d1aabb2a60210db3ee141f50a56c30bd4918bcd402970d2037c5009765e19108ab7f0
+be6c3469f51e6b70db06526ec080099d0ae2e363c0a2039a1169001043a5072910e30e
+910a68d2c57054e127d49496d078c3e5a389001b5872c69f21fc024f3c0670301dd470
+5a53051e98b2dc186c83167a181ea8b78c618cf4812602c8c6e21a50fe8c33fe496e10
+05f209a1169001043a5072910041980a2c1145082c6c160419b79728d38791508ab5a8
+e3b0a0a8c2277b1d1c6c5760b6b6d8892c316d572058b09bef0c6b8ee78b3009f714bc
+f58e5006dab585c526bde690b54af03028872d53afcec382f90af233224bdc219715c3
+82f01529e78a5b5951020864b0e42300c6ba7286cee04bde116b7c61672421eaa51142
+f4ec6b140d27f0a4e0f30a7002458722726727cf20ac0d0aeaf1db795ec042009f9145
+923d3fc7bdf0736f0872d60600676c10230504a1282010c758112fcec38a7360a4728d
+a0e309f11f51880ac360b6040529e74c1fc0d209200020864b0e42310821b08607b145
+8428ab250b3e5e0f10052c02522d1453d286ca45892865a1da0086d612af00c3ce0731
+c604819a0c38dedb726108ce10d2eb60d464d07ddfae8e006e76a775890a28e0db2e78
+47bd123e090be2a3abc3e200b9d9705a5605f6c02b2d22a0b26c736f803df0203812df
+0040067ee8e40048188108e78b28bffa5ee2e79cba6040b6bf12a80add0ce5a1b796e2
+ffbaaf5858cc80ec0c6e658a824c27dabc95182daa6f6e5ddfd99e28909f87bd202406
+4488b7d8a2ab7de9457ca481b8b5b0bf35bcbc7961d8fa7d8f1e712c1a312f1035f4f7
+37c244532245fb9b4a87d1b5ae16b447aa97f35d075bdad456ce1b7487da0ea1762c9f
+ac80e6f0f377ee5e2200577e69200480241dd1dcef797dc12e08f1a511cc05ef6418f8
+4c4ab7dba317674025df95eff2a693960cc4674215b20dce995cad3fe39e32dac98679
+84b27723320114845cd8e04fb714a6118c11aa7aef55542c524af772d281a7b670cfa2
+d28d9e39608ebd564146884346babfd42491b94d7d2334bf46018450f175f96edeb4fa
+8f19ac6743ab60b597e451f3e4460488f9d1b5ecc7ad40013ef702029d4d15087108a0
+e0854c1133e353c1e023646f30821c1935bbf8e146c3c3108a02bf304c4be47d4fc4f3
+001060005898127b09b00863000000009454e444ea240628
+CLOSE

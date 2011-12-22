@@ -1,0 +1,10 @@
+{{extend 'layout.html'}}
+[ {{=A('Home', _href=URL('index'))}} ]
+[ {{=A('admin', _href=URL('admin'))}} ]
+
+<h3> All Open Projects </h3>
+<ul>{{for project in projects:}}
+     <li>
+   		  {{=(A(project.name, _href=URL('showproject', args=project.id)))}}
+     </li>
+{{pass}}</ul>

@@ -1,0 +1,146 @@
+{{response.files.append(URL(r=request,c='static',f='tooltip/script.js'))}}
+{{response.files.append(URL(r=request,c='static',f='tooltip/style.css'))}}
+{{extend 'layout.html'}}
+
+
+<h1> Servers Statistics <span class="hotspot" onmouseover="tooltip.show('Click into the graphs to change the timeshow');" onmouseout="tooltip.hide();"><img src="{{=URL('../static/tooltip.gif')}}" border="0"></span>
+</h1>
+<br><br>
+<!--
+<script type="text/javascript">
+    $(document).ready(function() {
+    $("select").custSelectBox();
+        $("#btnEnviar").bind("click", function(e) {
+            var params = "platform=" + $("#platform option:selected").val();
+            params = params + "&time=" + $("input[name=time]").val();
+            $("select[name=type_graph] option:selected").each(function() {
+                params = params + "&type_graph=" + $(this).val();
+            });
+            $.ajax({
+                type: "POST",
+                data: params,
+                url: "orca",
+                dataType: "html",
+                success: function(data) {
+                    $("#result").html(data);
+                }
+            });
+        });
+    });
+</script>
+
+-->
+
+
+<script type="text/javascript" src="../static/cust_selectbox_plugin_0/cust_select_plugin.js"></script>
+<link rel="stylesheet" type="text/css" href="../static/cust_selectbox_plugin_0/style.css">
+        
+    <!--[if lt IE 8]>
+            <link rel="stylesheet" type="text/css" href="../static/cust_selectbox_plugin_0/ie_style.css" >
+    <![endif]-->
+<!--
+<script type="text/javascript">
+
+    $(document).ready(function() {
+        $("select").custSelectBox();
+        $("#btnEnviar").bind("click", function(e) {
+            var params = "platform=" + $("input[name=platform]").val();
+            params = params + "&time=" + "hourly"
+            params = params + "&server=" + $("input[name=server]:checked").val();
+            $("input[name=type_graph]").each(function() {
+		if($(this).val()!= ""){
+                params = params + "&type_graph=" + $(this).val();
+		}
+            });
+            $.ajax({
+                type: "POST",
+                data: params,
+                url: "orca",
+                dataType: "html",
+                success: function(data) {
+                    $("#result").html(data);
+                }
+            });
+        });
+    });
+-->
+
+<script type="text/javascript">
+
+    $(document).ready(function() {
+        $("select").custSelectBox();
+        $("#btnEnviar").bind("click", function(e) {
+            var params = "platform=" + $("input[name=platform]").val();
+            params = params + "&time=" + "hourly"
+            params = params + "&server=" + $("input[name=server]:checked").val();
+	    params = params + "&filter=" + $("input[name=filter]").val();
+            $.ajax({
+                type: "POST",
+                data: params,
+                url: "orca",
+                dataType: "html",
+                success: function(data) {
+                    $("#result").html(data);
+                }
+            });
+        });
+    });
+
+$(".select_field").custSelectBox();
+</script> 
+
+
+
+<table style="text-align: left;  width: 90%;" border="0" cellpadding="2" cellspacing="2">
+
+    <tr>
+        <td style="text-align: left; top; width: 30%;">
+	  <div class="select_wrap select_field">
+	    <form onclick="ajax('select_servers_platform',['platform'],'servers');">
+		  <SELECT  id="platform" name="platform">
+		      <OPTION>Select Platform</OPTION>
+		      {{for platform in platforms:}}
+			  <OPTION  value={{=platform.id}}>{{=platform.name}}</OPTION>
+		      {{pass}}
+		  </SELECT>
+	      </form>
+	  </div>
+        </td>
+
+	  <td style="text-align: left; top; width: 30%;">
+           
+                <div id="servers" class="select_wrap" ></div>
+           </td>
+
+	    <td style="text-align: left; top; width: 30%;">
+	    
+                 <div class="select_wrap select_field">
+                       <select  id="filter" name="filter">
+                       <OPTION>Filters</OPTION>
+		      {{for group in groups:}}
+			  <OPTION  value={{=group.id}}>{{=group.name}}</OPTION>
+		      {{pass}}
+                </div>	
+            </td>           
+        </tr>
+         
+         <tr>
+	    <td style="text-align: left; top; width: 30%;"><br><br><br><br><br><br>
+	      <INPUT type="button" value="View Graphs" id="btnEnviar"/>
+	    </td>
+
+	     <td style="text-align: left; top; width: 30%;"></td>
+
+            <td style="text-align: left; top; width: 30%;"><br><br><br><br><br><br>
+	    
+		
+            </td>
+	  
+        </tr>
+    
+</table>
+
+
+<div  style="text-align: center" id="result"></div>
+
+

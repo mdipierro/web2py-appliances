@@ -1,0 +1,25 @@
+{{extend 'layout.html'}}
+<html>
+<head>
+</head>
+<body>
+
+<h1> Movies2 movie reviews</h1>
+
+
+<h2>{{=T( request.args(0).replace('_',' ').capitalize() )}}</h2>
+{{=form}}
+{{if request.args(0)=='login':}}
+{{if not 'register' in auth.settings.actions_disabled:}}
+<br/><a href="{{=URL(r=request,args='register')}}">register</a>
+{{pass}}
+{{if not 'request_reset_password' in auth.settings.actions_disabled:}}
+<br/><a href="{{=URL(r=request,args='request_reset_password')}}">lost password</a>
+{{pass}}
+{{pass}}
+
+</br>
+<a href="{{=URL("movies")}}">Movies</a></br>
+<a href="{{=URL("newmovie")}}">New Movie</a></br>
+</body>
+</html>

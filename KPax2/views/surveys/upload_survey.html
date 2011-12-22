@@ -1,0 +1,10 @@
+{{extend 'layout.html'}}
+<h1>Upload Suvey</h1>
+
+<p>Here you can upload into the system an existing survey you have previously saved from this system. The survey title, description, start and stop dates, security code and questions will be uploaded from the file. You will be able to later edit the survery.</p>
+
+<h2>Upload form</h2><br/>
+<form enctype="multipart/form-data" method="POST">
+File to upload: <input type="file" name="file"/>
+<input type="submit" value="upload"/>
+</form>

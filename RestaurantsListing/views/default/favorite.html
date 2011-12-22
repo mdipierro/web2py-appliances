@@ -1,0 +1,8 @@
+{{extend 'layout.html'}}
+<h1>My Favorites</h1>
+
+<ul>
+{{for list in lists:}}
+<li style="font-size:2.0em;"><a href="{{=URL('show',args=list.id)}}">{{=list.name}}</a></li>
+{{pass}}
+</ul>

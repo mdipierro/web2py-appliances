@@ -1,0 +1,35 @@
+{{extend 'layout.html'}}
+
+<h1>Folder: {{=folder.name}}</h1>
+
+<table width="100%">
+<tr><td width="200px">
+<ul>
+  {{for item in pages:}}
+    {{=LI(A(item.title,_href=URL(r=request,args=[request.args[0],item.id])))}}
+  {{pass}}
+</ul>
+</td><td>
+<h2 onclick="$('#body').slideToggle();">{{=page.title}}</h2>
+[{{=A('edit',_href=URL('edit_page',args=request.args))}}]
+<div id="body">
+{{=XML(page.body)}}
+</div><br/><br/>
+{{if len(documents):}}
+<h2 onclick="$('#docs').slideToggle();">Attached Documents</h2>
+<ul id="docs">
+  {{for item in documents:}}
+     {{=LI(A(item.name))}}
+  {{pass}}
+</ul><br/><br/>
+{{pass}}
+<h2 onclick="$('#coms').slideToggle();">Comments</h2>
+<div id="coms">
+  {{for item in comments:}}
+     <div class="comment">{{=item.auth_user.name+' on '+item.comment.posted_on.strftime('%m/%d/%Y at %H:%M')+' says:'}}<br/>{{=item.comment.body}}</div><br/>
+  {{pass}}
+  {{if not len(comments):}}No comments yet{{pass}}
+  {{=form}}
+</div>
+</td></tr>
+</table>

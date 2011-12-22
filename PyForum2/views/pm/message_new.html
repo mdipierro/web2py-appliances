@@ -1,0 +1,66 @@
+{{extend 'zlayout.html'}}
+
+<h2 class="fancy">{{=XML(T('Messages - Create a new message'))}}</h2>
+
+{{if view_info['errors']:}}
+    <p class="err">{{=XML(T('There was one or more errors while processing your request, please correct the following'))}}</p>
+    <ul>
+        {{for error in view_info['errors']:}}
+            <li class="err">{{=XML(T(error))}}</li>
+        {{pass}}
+    </ul>
+{{pass}}
+
+<div class="subnav">
+    <a href="{{=URL(r=request, c='pm', f='index')}}" title="{{=XML(T('Back to Messages'))}}">{{=XML(T('Back to Messages'))}}</a>
+</div>
+
+<form id="add_message_form" method="post" action="">
+    <fieldset id="add_message_form_fields">
+        <input type="hidden" id="form_submitted" name="form_submitted" value="1" />
+        <table cellspacing="0" cellpadding="0" style="width:100%;" class="zf-table">
+            <tbody>
+                <tr class="shadedarker">
+                    <td class="cell3d" style="width:15%;"><b>{{=XML(T('From'))}}:</b></td>
+                    <td class="cell3d" style="width:85%;">{{=forumhelper.get_display_name(auth_user.get_user_id())}}</td>
+                </tr>
+                <tr class="shadedarker">
+                    <td class="cell3d" style="width:15%;"><b>{{=XML(T('To'))}}:</b></td>
+                    <td class="cell3d" style="width:85%;">
+                        {{=forumhelper.get_display_name(request.vars.get('mto', mto))}}
+                        <input type="hidden" id="mto" name="mto" value="{{=request.vars.get('mto', mto)}}" />
+                    </td>
+                </tr>
+                <tr class="shadedarker">
+                    <td class="cell3d" style="width:15%;"><b>{{=XML(T('Subject'))}}:</b></td>
+                    <td class="cell3d" style="width:85%;">
+                        <input type="text" id="subject" name="subject" value="{{=request.vars.get('subject', '')}}" style="width:400px;" />
+                    </td>
+                </tr>
+                <tr class="shadedarker">
+                    <td class="cell3d" style="width:15%;"><b>{{=XML(T('Date'))}}:</b></td>
+                    <td class="cell3d" style="width:85%;">{{=request.now.strftime(str(T('%b %d, %Y - %I:%M %p')))}}</td>
+                </tr>
+                <tr class="shadedarker">
+                    <th class="cell3d" colspan="2">{{=XML(T('Content'))}}</th>
+                </tr>
+                <tr class="shadelight">
+                    <td class="cell3d" style="text-align:center;" colspan="2">
+                        <textarea id="new_msg" name="new_msg" cols="0" rows="0" style="width:98%;height:200px;">{{=request.vars.get('new_msg', '')}}</textarea>
+                    </td>
+                </tr>
+                <tr class="shadedark">
+                    <td class="cell3d" style="text-align:center;" colspan="2">
+                        <input type="submit" id="new_b" name="new_b" value="{{=XML(T('Send'))}}" />
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </fieldset>
+</form>
+
+<script type="text/javascript">
+<!--
+document.getElementById('subject').focus();
+//-->
+</script>

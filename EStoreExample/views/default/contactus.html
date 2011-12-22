@@ -1,0 +1,22 @@
+{{extend 'layout.html'}}
+
+{{import cgi}}
+
+<h1>Contact Us</h1>
+
+<h2>Address</h2>
+
+<p>{{=XML(cgi.escape(mystore.address).replace(', ','<br/>').replace('\n','</p><p>'))}}<br/>
+{{=A('directions',_href='http://maps.google.com/maps?f=q&hl=en&geocode=&time=&date=&ttype=&q=%s' % cgi.escape(mystore.address))}}</p>
+
+<h2>Fax Number</h2>
+
+<p>{{=mystore.fax}}</p>
+
+<h2>Phone Number</h2>
+
+<p>{{=mystore.phone}}</p>
+
+<h2>Email</h2>
+
+<p>{{=A(mystore.email,_href='mailto:%s' % mystore.email)}}</p>

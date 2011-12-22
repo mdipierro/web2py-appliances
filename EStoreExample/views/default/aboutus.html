@@ -1,0 +1,17 @@
+{{extend 'layout.html'}}
+
+{{import cgi}}
+
+<h1>About Us</h1>
+
+<h2>Our Store</h2>
+
+<p>{{=XML(cgi.escape(mystore.description).replace('\n','</p><p>'))}}</p>
+
+<h2>Why Buy From Us?</h2>
+
+<p>{{=XML(cgi.escape(mystore.why_buy).replace('\n','</p><p>'))}}</p>
+
+<h2>Return Policy</h2>
+
+<p>{{=XML(cgi.escape(mystore.return_policy).replace('\n','</p><p>'))}}</p>

@@ -1,0 +1,233 @@
+body {
+  border: 0 0 0 0;
+  text-align: center;
+  color:#666666;
+  background-color: #E0E0E0;
+}
+
+LI {list-style-type: none}
+
+A:link {
+	COLOR: #0000FF; text-decoration: none;
+}
+A:visited {
+	COLOR: #0000FF; text-decoration: none;
+}
+A:active {
+	COLOR: #0000FF; text-decoration: none;
+}
+A:hover {
+	COLOR: #FF0000; text-decoration: underline;
+}
+
+#page_wrapper {
+  margin-left: auto; 
+  margin-right: auto;
+  width: 800px;
+  text-align: left;
+  background: #FFFFFF;
+  border: 8px solid #FFFFFF;
+}
+
+#header_wrapper {
+  background: #4E7DD1 url('img/menu_bg.gif') bottom left repeat-x;
+  margin:0px; padding:0px;
+}
+
+#header {
+  height: 60px;
+  padding:15px;
+  background: url('img/header_bg.gif') top right no-repeat;
+  margin:0px;
+}
+
+#header h1 {
+  margin:0px;
+  font-family: verdana, arial, sans-serif;
+  font-size: 28px;
+  color:#ffffff;
+  letter-spacing: -1px;
+}
+
+#header h2 {
+  margin:0px;
+  font-family: verdana, arial, sans-serif;
+  font-size: 14px;
+  color:#B1C6EB;
+  letter-spacing: 1px;
+}
+
+#content {
+   padding: 20px 20px 20px 20px;
+}
+
+#footer {
+  height: 50px;
+  background-color: #4E7DD1;
+  clear: both;
+  text-align: center;
+  padding-top:12px;
+  color: #B6CEF9;
+  font-family: verdana, arial, sans-serif;
+  font-size: 11px;
+  line-height: 18px;
+}
+
+#footer A:link {
+	COLOR: #FFFFFF; text-decoration: none;
+}
+#footer A:visited {
+	COLOR: #FFFFFF; text-decoration: none;
+}
+#footer A:active {
+	COLOR: #FFFFFF; text-decoration: none;
+}
+#footer A:hover {
+	COLOR: #FFFFFF; text-decoration: underline;
+}
+
+#left_side p, #right_side p {
+  margin:10px;margin-top:15px;margin-bottom:15px;
+  font-family: verdana, arial, sans-serif;
+  font-size: 11px;
+  line-height: 16px;
+  color: #333333;
+}
+
+#left_side h3, #right_side h3 {
+  margin-top:5px; margin-bottom:10px; margin-left:5px; margin-right:5px;
+  padding:4px;
+  font-family: verdana, arial, sans-serif;
+  font-size: 14px;
+  font-weight: bold;
+  line-height: 14px;
+  color: #FFFFFF;
+  border:1px solid #0F3974;
+  background-color: #2153AA;
+}
+
+#left_side h4, #right_side h4 {
+  margin-top:0px;margin-bottom:0px;margin-left:10px;
+  font-family: verdana, arial, sans-serif;
+  font-size: 12px;
+  font-weight: bold;
+  line-height: 12px;
+  color: #2153AA;
+}
+
+#content p {
+  margin-top:15px; margin-bottom: 15px;
+  font-family: verdana, arial, sans-serif;
+  font-size: 12px;
+  line-height: 18px;
+  color: #333333;
+}
+
+#content h3 {
+  margin-top:5px; margin-bottom: 10px;
+  font-family: verdana, arial, sans-serif;
+  font-size: 18px;
+  font-weight: bold;
+  line-height: 18px;
+  color: #2153AA;
+}
+
+#content h4 {
+  margin-top:0px;margin-bottom:0px;
+  font-family: verdana, arial, sans-serif;
+  font-size: 14px;
+  font-weight: bold;
+  line-height: 12px;
+  color: #2153AA;
+}
+
+#menu
+{
+  height: 30px;
+  margin-top:-25px;
+  margin-bottom:0px;
+  float: right;
+  text-align:center;
+  padding: 5px 0;
+  margin-right: 20px;  
+  font: bold 14px Verdana, sans-serif;
+}
+
+#menu li
+{
+  list-style: none;
+  line-height: 30px;
+  display: inline;
+}
+
+.myQuestions {
+  width: 180px;
+  padding: 15px 15px 15px 15px;
+  margin-left: 3px;
+  border: 1px solid #0F3974;
+  background-color: #e7e7e7;
+}
+
+#menu li a
+{
+  color: #F1F6FE;
+  padding: 5px 15px;
+  margin-left: 3px;
+  border: 1px solid #0F3974;
+  border-bottom: none;
+  background: #2153AA url('img/tab_bg.gif') bottom left repeat-x;
+  text-decoration: none;
+}
+
+#menu li a:link { color: #F1F6FE; }
+
+#menu li a:visited { color: #F1F6FE; }
+
+#menu li a:hover
+{
+  color: #FFFFFF;
+  background: #3364BB;
+}
+
+#menu li a#current
+{
+  color: #000;
+  background: #FFFFFF;
+  border-bottom: 1px solid #FFFFFF;
+}
+
+.float_left {
+  float: left;
+  margin-right: 10px;
+}
+
+.float_right {
+  float: right;
+  margin-left: 10px;
+}
+
+.flash{
+  background-color: #f03030;
+  margin:0px;
+  padding:10px;
+  border: 2px solid #DFE8F7;
+  font-family: verdana, arial, sans-serif;
+  font-size: 11px;
+  line-height: 18px;
+  color: #fff;
+}
+
+.featurebox_side {
+  background-color: #fffff6;
+  margin:0px;margin-left:10px;margin-right:10px;margin-bottom:15px;
+  padding:10px;
+  border: 1px solid #DFE8F7;
+  font-family: verdana, arial, sans-serif;
+  font-size: 11px;
+  line-height: 18px;
+  color: #333333;
+}
+
+TD {text-align: left; vertical-align: top;}
+
+div.error { background-color: red; color: white; padding: 3px}

@@ -1,0 +1,26 @@
+{{extend 'layout.html'}}
+
+{{=DIV(menu)}}
+
+{{=DIV(H1(title))}}
+
+{{for i, row in enumerate(rows):}}
+    {{if i == items_per_page: break}}
+
+    {{=DIV(A(row.title, 
+             _href = URL(show_link, 
+                         args = row.id), 
+             _title = row.title))}}
+{{pass}}
+
+{{if page:}}
+    {{=A(T('Previous'), 
+         _href = URL(args = [page - 1]), 
+         _title = T('Previous'))}}
+{{pass}}
+
+{{if len(rows) > items_per_page:}}
+    {{=A(T('Next'), 
+         _href = URL(args = [page + 1]), 
+         _title = T('Next'))}}
+{{pass}}

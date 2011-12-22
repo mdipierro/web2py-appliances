@@ -1,0 +1,46 @@
+{{extend 'layout_sleek.html'}}
+
+<table width="100%">
+<tr><td width="200px">
+<ul>
+  {{for item in pages:}}
+    {{=LI(A(item.title,_href=URL(r=request,args=[request.args[0],item.id])))}}
+  {{pass}}
+</ul>
+</td><td>
+<h1 onclick="$('#body').slideToggle();">{{=page.title}}</h1>
+<div id="body">
+{{=XML(page.body)}}
+<br/><br/></div>
+
+{{if len(documents):}}
+<h1 onclick="$('#docs').slideToggle();">Attached Documents</h1>
+<div id="docs">
+<ul>
+  {{for item in documents:}}
+     <li>
+     {{if item.file[-4:].lower() in ['.flv','.pm3','.swf','.png','.jpg','.gif']:}}
+     {{=A(item.title,_href=URL(r=request,c='media',f='player_open',args=[item.id,item.file]))}} [{{=A('download',_href=URL('download',args=[item.id,item.file]))}}]
+     {{else:}}
+     {{=A(item.title,_href=URL('download',args=[item.id,item.file]))}}
+     {{pass}}
+     </li>
+  {{pass}}
+</ul><br/><br/></div>
+<script>$('#docs').slideToggle();</script>
+{{pass}}
+{{if page.comments_enabled and len(comments):}}
+<h1 onclick="$('#coms').slideToggle();">Comments</h1>
+<div id="coms">
+  <ul>
+  {{for item in comments:}}
+     <li class="comment">{{=item.auth_user.name+' on '+item.comment.posted_on.strftime('%m/%d/%Y at %H:%M')}} said "<i>{{=item.comment.body}}</i>"</li>
+  {{pass}}
+  </ul>
+<script>$('#coms').slideToggle();</script>
+{{pass}}
+</div>
+</td></tr>
+</table>
+<br/><br/>
+{{=XML(folder.description)}}

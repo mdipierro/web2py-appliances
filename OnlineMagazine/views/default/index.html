@@ -1,0 +1,69 @@
+{{extend 'layout.html'}}
+{{def trunc(t): return t if len(t)<50 else t[:50]+'...'}}
+<div  id="article">
+{{if magazine:}}
+  <h2>{{=magazine.title}}</h2>
+  <div style="width:100%; text-align:right">
+    <a class="a2a_dd" href="http://www.addtoany.com/share_save?linkname=&amp;linkurl=book.web2py.com"><img src="http://static.addtoany.com/buttons/share_save_171_16.png" width="171" height="16" border="0" alt="Share/Bookmark"/></a><script type="text/javascript">a2a_linkurl="book.web2py.com";</script><script type="text/javascript" src="http://static.addtoany.com/menu/page.js"></script>
+  </div>
+
+  <h3>Volume {{=magazine.volume}} Issue {{=magazine.issue}} ({{=magazine.pub_date}})</h3>
+  <table>
+    {{for article in articles:}}
+    <tr>
+      <td>
+	{{=magazine.volume}}
+      </td>
+      <td>
+	{{=magazine.issue}}
+      </td>
+      <td>
+	{{=A(trunc(article.title),_href=article.link,_class="button",_style="width:400px")}}<br/>
+      </td>
+      <td>
+	{{for author in db(db.author.article==article.id).select():}}
+	{{=A(author.name,_href='')}}
+	{{pass}}
+      </td>
+    </tr>
+  {{pass}}
+  </table>
+
+  {{if auth.user:}}
+  <br/><br/>
+  <h3>Comments</h3>
+  {{=plugin_wiki.widget('comments','magazine',magazine.id)}}  
+  {{pass}}
+
+{{elif articles!=None:}}
+  <h3>Search results: {{=request.vars.keywords}}</h3>
+  {{if not articles:}}No results{{pass}} 
+  <table>
+    {{for article in articles:}}
+    <tr>
+      <td>
+	{{=article.magazine.volume}}
+      </td>
+      <td>
+	{{article.magazine.issue}}
+      </td>
+      <td>
+	{{=A(trunc(article.title),_href=article.link,_class="button",_style="width:400px")}}<br/>
+      </td>
+      <td>
+        {{for author in db(db.author.article==article.id).select():}}
+        {{=A(author.name,_href='')}}
+        {{pass}}
+      </td>
+    </tr>
+  {{pass}}
+  </table>
+{{pass}}
+</div>
+
+<div id="myImageFlow" class="imageflow">
+  {{for m in db(db.magazine).select(orderby=db.magazine.pub_date):}}
+  <img src="{{=URL('static','covers/cover.1.1.gif')}}" longdesc="{{=URL('index',args=m.id)}}" width="130" height="177" alt="{{=m.title}}" />
+  {{pass}}  
+</div>
+

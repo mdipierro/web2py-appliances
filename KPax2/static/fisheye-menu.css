@@ -1,0 +1,30 @@
+/* Fisheye Menu Styles */
+#fisheye_menu {
+	list-style: none;
+	padding: 0;
+	margin: 0px;
+}
+#fisheye_menu li {
+	position: relative;
+	display: block;
+	float: left;
+}
+#fisheye_menu span {
+        width: 400px;
+	position: absolute;
+	top: 100%;
+	left: 0;
+	text-align: center;
+	padding: 3px;
+	margin: 0px solid;
+	border: solid 1px green;	
+	color: white;
+	background: #4EBC18;
+}
+#fisheye_menu a {
+	text-decoration: none;
+}
+#fisheye_menu img {
+	border: 0;
+	vertical-align: top;
+}

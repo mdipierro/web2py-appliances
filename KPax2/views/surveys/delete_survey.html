@@ -1,0 +1,7 @@
+{{extend 'layout.html'}}
+<h1>Delete survey?</h1>
+<center>
+<h2>Think again... sure you want to delete {{=survey.title}}</h2>
+<a href="{{=URL(r=request,args=request.args,vars=dict(check='yes'))}}"><img src="{{=URL(r=request,c='static',f='surveys/yes.png')}}"/></a>
+<a href="{{=URL(r=request,args=request.args,vars=dict(check='no'))}}"><img src="{{=URL(r=request,c='static',f='surveys/no.png')}}"/></a>
+</center>

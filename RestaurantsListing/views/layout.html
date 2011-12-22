@@ -1,0 +1,79 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<!--
+Design by Free CSS Templates
+http://www.freecsstemplates.org
+Released for free under a Creative Commons Attribution 2.5 License
+
+Name       : Unqualified
+Description: A two-column, fixed-width design.
+Version    : 1.0
+Released   : 20071220
+
+-->
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>
+   {{=response.title or request.application}}
+  </title>
+  {{response.files.append(URL(request.application,'static','plugin_layouts/layouts/Unqualified/default.css'))}}
+  {{response.files.append(URL('static','plugin_layouts/superfish.js'))}}
+  {{include 'web2py_ajax.html'}}
+  <style>
+ul.web2py-menu-vertical { width: 150px; position: relative; top:1em; left:1em;  z-index:30; border:0; margin:0; padding: 0; list-style: none; text-decoration: none;}
+ul.web2py-menu-vertical li { margin:0; padding:0; border:0; width: 150px; background: black; text-align:left;}
+ul.web2py-menu-vertical li a { margin:0; padding: 1px 3px 1px 3px; border:0; width: 144px; color: white; font-size:12px;}
+div.flash { position: fixed; float: right; padding: 10px; top: 10px; right: 30px; opacity: 0.75; margin: 10px 10px 10px 10px; text-align: center; clear: both; color: #fff; font-size: 11pt; text-align: center; vertical-align: middle; cursor: pointer; background: black; border: 2px solid #fff; -moz-border-radius: 5px; -webkit-border-radius: 5px; z-index: 2; }
+div.error { background-color: red; color: white; padding: 3px; }
+.auth_navbar { text-align:right; z-index:20; position: absolute; top: 2px; right:30px; border:0; padding:0 }
+  </style>
+ </head>
+ <body>
+  <!-- start header -->
+  {{try:}}{{=auth.navbar(action=URL('default','user'))}}{{except:pass}}
+
+  <!-- start header -->
+  <div id="header">
+   <div id="logo">
+    <h1>
+     {{=response.title or request.application}}
+    </h1>
+    <p>
+     今日は何を食べようか？
+    </p>
+   </div>
+   <div id="menu">
+    {{=MENU(response.menu,_class='web2py-menu')}}
+    <script>
+      jQuery(document).ready(function(){jQuery('ul.web2py-menu').superfish({delay:400});});
+    </script>
+   </div>
+  </div>
+  <!-- end header -->
+  <!-- start page -->
+  <div id="page">
+   <!-- start content -->
+   <div id="content">
+    <div class="flash">{{=response.flash or ''}}</div>
+    {{include}}
+   </div>
+   <!-- end content -->
+   <!-- start sidebar -->
+   <div id="sidebar">
+    
+  </div>
+  <!-- end page -->
+  <div id="footer">
+   <p>
+    &copy;2007 All Rights Reserved. &nbsp;&bull;&nbsp; Design by
+    <a href="http://www.freecsstemplates.org/">
+     Free CSS Templates
+    </a>
+    &nbsp;&bull;&nbsp; Icons by
+    <a href="http://www.famfamfam.com/">
+     FAMFAMFAM
+    </a>
+    .
+   </p>
+  </div>
+ </body>
+</html>

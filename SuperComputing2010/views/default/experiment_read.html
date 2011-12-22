@@ -1,0 +1,10 @@
+{{extend 'layout.html'}}
+
+<h2>Read experiment</h2>
+{{=A(T('edit experiment'),_href=URL('experiment_update',args=request.args(0)))}}
+<br/>
+
+{{=form}}
+{{for t,f in db.t_experiment._referenced_by:}}{{if not t[-8:]=='_archive':}}[{{=A(t[2:],_href=URL('%s_select'%t[2:],args=(f,form.record.id)))}}]{{pass}}{{pass}}
+
+{{=table}}

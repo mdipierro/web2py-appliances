@@ -1,0 +1,59 @@
+{{extend 'zlayout.html'}}
+
+<h2 class="fancy">{{=XML(T('Create a new Forum Account'))}}</h2>
+
+{{if view_info['errors']:}}
+    <p class="err">{{=XML(T('There was one or more errors while processing your request, please correct the following'))}}</p>
+    <ul>
+        {{for error in view_info['errors']:}}
+            <li class="err">{{=XML(T(error))}}</li>
+        {{pass}}
+    </ul>
+{{pass}}
+
+{{if view_info['allow_registration']:}}
+    <form id="login" method="post" action="">
+        <fieldset id="login_form_fields">
+            <input type="hidden" id="form_submitted" name="form_submitted" value="1" />
+            <input type="hidden" id="c" name="c" value="{{=view_info['anon_captcha_base64']}}" />
+            <table cellspacing="2" cellpadding="1">
+            <tbody>
+                <tr>
+                    <td><span class="required">*</span> {{=XML(T('Email'))}}:</td>
+                    <td><input class="formelem" type="text" id="auth_email" name="auth_email" value="{{=request.vars.get('auth_email', '')}}" style="width:200px;" /></td>
+                </tr>
+                <tr>
+                    <td><span class="required">*</span> {{=XML(T('Password'))}}:</td>
+                    <td><input class="formelem" type="password" id="auth_passwd" name="auth_passwd" value="" style="width:200px;" /></td>
+                </tr>
+                <tr>
+                    <td><span class="required">*</span> {{=XML(T('Confirm Password'))}}:</td>
+                    <td><input class="formelem" type="password" id="auth_passwd_c" name="auth_passwd_c" value="" style="width:200px;" /></td>
+                </tr>
+                <tr>
+                    <td><span class="required">*</span>
+                        {{=XML(T('Verify your humanity'))}}:
+                    </td>
+                    <td>
+                        <input type="text" id="captcha_response" name="captcha_response" value="" style="width:100px;" />
+                        <b>{{=view_info['anon_captcha']}}</b>
+                        <span class="warning">({{=XML(T('Please Enter the acces code shown in order to subscribe'))}}.)</span>
+                    </td>
+                </tr>
+            </tbody>
+            </table>
+
+            <p class="required">* - {{=XML(T('Denotes a required field'))}}</p>
+
+            <input type="submit" id="register_b" name="register_b" value="{{=XML(T('Create Account'))}}" />
+            <input type="submit" id="cancel_b" name="cancel_b" value="{{=XML(T('Cancel'))}}" />
+
+        </fieldset>
+    </form>
+{{else:}}
+    <p class="error">Our Apologies.</p>
+
+    <p>Registrations are currently disabled.</p>
+
+    <p><a href="{{=URL(r=request, c='default', f='contact_admin')}}" title="{{=XML(T('Contact the Administrator directly'))}}">{{=XML(T('Contact the Administrator'))}}</a>.</p>
+{{pass}}

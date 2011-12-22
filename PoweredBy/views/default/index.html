@@ -1,0 +1,25 @@
+{{extend 'layout.html'}}
+
+<center>
+<table>
+{{k=0}}
+{{for k,site in enumerate(sites):}}
+{{if k % 3==0:}}<tr>{{pass}}
+<td>
+<a href="{{=site.f_url}}"><img src="{{=URL('download',args=site.f_image)}}" height="200" width="250" border="0" /></a>
+<br/>
+<a href="{{=site.f_url}}" target="_blank">
+{{=site.f_name}}
+</a>
+{{if site.f_created_by==auth.user_id or (auth.user and auth.user.editor):}}
+[{{=A('read',_href=URL('site_read',args=site.id))}}]
+[{{=A('edit',_href=URL('site_update',args=site.id))}}]
+{{pass}}
+<br/><br/>
+</td>
+{{if k % 3==2:}}</tr>{{pass}}
+{{pass}}
+{{for i in range(k%3+1,3):}}<td></td>{{pass}}
+{{if not k%3==2:}}</tr>{{pass}}
+</table>
+</center>

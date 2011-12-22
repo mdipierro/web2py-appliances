@@ -1,0 +1,8 @@
+{{extend 'zlayout.html'}}
+
+<h2 class="fancy">{{=XML(T('Invalid Resource Access'))}}</h2>
+
+<p>{{=XML(T('The resource you are trying to access is not available in the way it was requested, if you think this is an error, please contact the forum administrator'))}}.</p>
+
+<p><a href="{{=URL(r=request, c='default', f='index')}}" title="{{=XML(T('Forum Home Page'))}}">{{=XML(T('Forum Home Page'))}}</a></p>
+

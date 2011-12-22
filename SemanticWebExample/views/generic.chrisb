@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+{{response.headers['Content-Type']='text/xml'}}
+<rdf:RDF
+{{for key in response._vars['namespaces'].keys():}}
+    {{=key}}="{{=response._vars['namespaces'][key]}}"
+{{pass}}
+>
+
+{{for node in response._vars['nodes']:}}
+    <{{=node['name']}}
+    {{for key in node.keys():}}
+        {{if key != 'name':}}
+            {{=key}}="{{=node[key]}}"
+        {{pass}}
+    {{pass}}
+    />
+{{pass}}
+</rdf:RDF>

@@ -1,0 +1,8 @@
+mkdir web2py-appliances
+cd web2py-appliances
+git init
+touch README
+git add README
+git commit -m 'first commit'
+git remote add origin git@github.com:mdipierro/web2py-appliances.git
+git push -u origin master

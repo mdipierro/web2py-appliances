@@ -1,0 +1,87 @@
+{{extend 'layout.html'}}
+
+<h1>Surveys</h1>
+
+<img src="{{=URL(r=request,c='static',f='surveys/survey.png')}}" align="right"/>
+
+<table><tr><td class="gsearch">{{include 'gsearch.html'}}</td><td>
+
+<h2>You created these Surveys/Assignments</h2>
+[{{=A('create survey',_href=URL('create_survey'))}}]
+[{{=A('upload survey',_href=URL('upload_survey'))}}]
+<br/>
+{{if len(surveys_owned):}}
+<table>
+{{for a in surveys_owned:}}
+<tr class="myitems" id="{{=a.survey.title}}"><td>[A{{=a.survey.id}}]</td><td><a onclick="$('#boxa{{=a.survey.id}}').slideToggle();">{{=a.survey.title}}</a> posted on {{=a.survey.start}} expires on {{=a.survey.stop}}
+<div id="boxa{{=a.survey.id}}" class="box">
+<span style="visibility:hidden">{{=''.join(['[G%s]'%i for i in a.accessible_to])}}</span>
+{{=XML(a.survey.description)}}
+<br/>
+   [{{=A('take',_href=URL('take_survey',args=[a.survey.id]))}}]
+   {{if a.survey.owner==auth.user_id:}}
+   [{{=A('change permissons',_href=URL(r=request,c='access',f='change',args=['survey',a.survey.id],vars=dict(forward=URL(r=request))))}}]
+   [{{=A('edit info',_href=URL('edit_survey',args=[a.survey.id]))}}]
+   [{{=A('edit questions',_href=URL('edit_questions',args=[a.survey.id]))}}]
+   [{{=A('report',_href=URL('report',args=[a.survey.id]))}}]
+   [{{=A('stats',_href=URL('stats',args=[a.survey.id]))}}]
+   [{{=A('save',_href=URL('save',args=[a.survey.id,'survey_%i.pickle'%a.survey.id]))}}]
+   {{pass}}
+</div>
+<script><!--
+$('#boxa{{=a.survey.id}}').hide();
+//--></script>
+</td></tr>
+{{pass}}
+</table>
+{{else:}}
+No surveys
+{{pass}}
+<br/><br/>
+
+<h2>You started these Surveys/Assignments</h2>
+{{if len(surveys_todo):}}
+<table>
+{{for a in surveys_todo:}}
+<tr class="myitems" id="{{=a.survey.title}}"><td>[A{{=a.survey.id}}]</td><td><a onclick="$('#boxb{{=a.survey.id}}').slideToggle();">{{=a.survey.title}}</a> created by <a href="mailto:{{=a.auth_user.email}}">{{=a.auth_user.name}}</a> expires on {{=a.survey.stop}}
+<div id="boxb{{=a.survey.id}}" class="box">
+<span style="visibility:hidden">{{=''.join(['[G%s]'%i for i in a.accessible_to])}}</span>
+{{=XML(a.survey.description)}}
+<br/>
+   [{{=A('take',_href=URL('take_survey',args=[a.survey.id]))}}]
+</div>
+<script><!--
+$('#boxb{{=a.survey.id}}').hide();
+//--></script>
+</td></tr>
+{{pass}}
+</table>
+{{else:}}
+No surveys
+{{pass}}
+
+<br/><br/>
+
+<h2>You completed these Surveys/Assignments</h2>
+{{if len(surveys_done):}}
+<table>
+{{for a in surveys_done:}}
+<tr class="myitems" id="{{=a.survey.title}}"><td>[A{{=a.survey.id}}]</td><td><a onclick="$('#boxc{{=a.survey.id}}').slideToggle();">{{=a.survey.title}}</a> created by <a href="mailto:{{=a.auth_user.email}}">{{=a.auth_user.name}}</a> expires on {{=a.survey.stop}}
+<div id="boxc{{=a.survey.id}}" class="box">
+<span style="visibility:hidden">{{=''.join(['[G%s]'%i for i in a.accessible_to])}}</span>
+{{=XML(a.survey.description)}}
+<br/>
+   [{{=A('take',_href=URL('take_survey',args=[a.survey.id]))}}]
+</div>
+<script><!--
+$('#boxc{{=a.survey.id}}').hide();
+//--></script>
+</td></tr>
+{{pass}}
+</table>
+{{else:}}
+No surveys
+{{pass}}
+
+
+</td></tr></table>

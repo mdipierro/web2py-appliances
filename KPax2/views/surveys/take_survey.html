@@ -1,0 +1,47 @@
+{{extend 'layout.html'}}
+<script src="/{{=request.application}}/static/nicEdit.js" type="text/javascript"></script>
+<script><!--
+$(document).ready(function(){
+{{if question.type=='long text':}}
+new nicEditor({fullPanel : true, iconsPath : '/{{=request.application}}/static/nicEditorIcons.gif'}).panelInstance('answer_long_text');
+{{pass}}
+new nicEditor({fullPanel : true, iconsPath : '/{{=request.application}}/static/nicEditorIcons.gif'}).panelInstance('answer_comment');
+$('#question').hide().fadeIn('slow');
+$('#comment_slide').slideUp();
+});
+//--></script>
+<h1>{{=survey.title}}</h1>
+<table width="100%"><tr><td>
+{{k=0}}
+{{for i,q in enumerate(questions):
+  if q.id==question.id: k=i
+pass}}
+{{if k>0:}}
+{{=A(IMG(_src=URL(r=request,c='static',f='surveys/previous.png'),_align="left"),_href=URL(r=request,args=[survey.id,questions[k-1].id]))}}
+{{pass}}
+{{if k<len(questions)-1:}}
+{{=A(IMG(_src=URL(r=request,c='static',f='surveys/next.png'),_align="right"),_href=URL(r=request,args=[survey.id,questions[k+1].id]))}}
+{{else:}}
+{{=A(IMG(_src=URL(r=request,c='static',f='surveys/done.png'),_align="right"),_href=URL('done_survey',args=[survey.id]))}}
+{{pass}}
+</td></tr></table>
+<table width="100%">
+<tr><td width="300px">
+<ul class="myQuestions" id="myQuestions">
+{{for i,q in enumerate(questions):}}
+{{=LI(A('%i) %s'%(i+1,q.title),_href=URL(r=request,args=[survey.id,q.id])),_class='myQuestionOn' if q.id==question.id else 'myQuestion')}}
+{{pass}}
+</ul>
+</td><td><div id="question">
+<h2>{{=k+1}}) {{=question.title}}</h2>
+<p>{{=XML(question.body)}}</p>
+<div>
+<i>(ATTENTION: For each answer you need to press the submit button below)</i>
+{{=form}}
+</div>
+</td></tr>
+</table>
+
+
+
+

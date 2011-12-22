@@ -1,0 +1,41 @@
+{{extend 'layout.html'}}
+
+<i>Works with Chrome, problems have been reported with FF and IE. :-(</i>
+
+<script src="{{=URL('static','js/coffeescript.js')}}"></script> 
+{{cs=not 'function()' in source}}
+<script type="text/{{if cs:}}coffeescript{{else:}}javascript{{pass}}">
+{{=XML(source)}}
+{{=XML(OTHER_CODE_CS if cs else OTHER_CODE_JS)}}
+</script>
+
+<script language="Javascript" type="text/javascript" src="{{=URL('static','edit_area/edit_area_full.js')}}"></script>
+
+<center>
+<canvas id="canvasElement" width="800px" height="600px" style="border:1px black solid"></canvas><br/>
+<button onclick="reset_balls()">reset</button>
+<button onclick="play_pause(false)">play</button>
+<button onclick="play_pause(true)">pause</button>
+<button onclick="set_speed(dt/2)">slower</button>
+<button onclick="set_speed(dt*2)">faster</button>
+<button onclick="reverse_time()">reverse</button>
+<button onclick="tail_on(true)">tail on</button>
+<button onclick="tail_on(false)">tail off</button>
+<button onclick="info_on(true)">info on</button>
+<button onclick="info_on(false)">info off</button>
+<button onclick="set_gravity(0.5)">gravity on</button>
+<button onclick="set_gravity(0.0)">gravity off</button>
+
+{{=form}}
+{{if not auth.user:}}
+(must be logged in to save a program)
+{{pass}}
+</center>
+
+<script language="Javascript" type="text/javascript">
+jQuery(function(){
+  jQuery('#code_source').css('width','800px').css('height','600px');
+  editAreaLoader.init({id: "code_source",start_highlight: true,allow_resize: "both", language: "en",syntax: "js"});
+  jQuery(this).scrollTop(0);
+});
+</script>

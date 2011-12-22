@@ -1,0 +1,4 @@
+<h3>Description</h3>
+<p><p>VideoTest lets you upload videos in different formats and they are converter server side in flv video. It includes a player. It requires ffmpeg, flvtool2.
+VideoTest is intended solely as a tutorial detailing one method of uploading and streaming videos using the web2py framework. LICENSE: BSD; AUTHOR: mike.hamer at gmail.com</p>
+

@@ -1,0 +1,27 @@
+VideoTest was developed using Web2Py (www.web2py.com)
+
+
+
+To run VideoTest:
+	1) Add it to the web2py applications list through the web2py administration panel.
+	2)	# cd /path/to/web2py/
+			# nohup python web2py.py -S VideoTest -M -R applications/VideoTest/modules/video_to_flv.py
+			(the above command executes the daemon process that handles video conversion)
+
+
+
+VideoTest utilises the services of:
+	ffmpeg			www.ffmpeg.org (for video conversion)
+	flvtool2		www.inlet-media.de/flvtool2 (for metadata)
+	flowplayer	www.flowplayer.org (for video playback)
+
+VideoTest requirements:
+	>	flash plugin for your webbrowser
+	>	ffmpeg compiled with support for libmp3lame (you need to have liblame installed prior to making ffmpeg)
+	>	flvtool2 (for adding metadata to flvs)
+
+
+
+VideoTest specific code is provided to you without warranty of any kind and provision of this code to you in no way implies that the code is secure, finished or production-ready.
+
+VideoTest is intended solely as a tutorial detailing one method of uploading and streaming videos using the web2py framework. VideoTest is not intended to be used in a commercial setting. In saying that, I take no responsibility for what you do with this code or any legal ramifications of you using this code in a commercial setting without paying due licensing fees to the relevant parties.

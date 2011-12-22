@@ -1,0 +1,29 @@
+{{if len(results):}}
+    <span onclick = "jQuery('.comments_{{=page.id}}').slideToggle('slow');">
+    {{=A(T('Comments (%s)' % len(results)), 
+         _href = '#')}}
+    </span>
+        
+    <div class = "comments_{{=page.id}} hidden">
+    {{for blog_comment in results:}}
+        {{=SPAN(db.auth_user[blog_comment.created_by].first_name, 
+                T(' on '), 
+                blog_comment.created_on, 
+                T(' Said '),  
+                blog_comment.comment)}}
+        {{=BR()}}
+        {{=SPAN(blog_comment.like, 
+                _id = 'blog_comment_like_%s' % blog_comment.id)}}
+        {{=SPAN(T('People Like This'))}}
+            
+        <span onclick="jQuery('#id').val('{{=blog_comment.id}}');
+                       ajax('{{=URL('blog_comment_like.load')}}', ['id'], 'blog_comment_like_{{=blog_comment.id}}');">
+        {{=A(T('Like'), 
+             _href = '#')}}
+        </span>
+        {{=BR()}}
+    {{pass}}
+    </div>
+{{else:}}
+    {{=DIV(B(T('No Comment Posted Yet')))}}
+{{pass}}

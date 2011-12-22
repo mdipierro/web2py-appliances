@@ -1,0 +1,19 @@
+{{extend 'layout.html'}}
+[ {{=A('Projects', _href=URL('allprojects'))}} ]
+[ {{=A('Admin', _href=URL('admin'))}} ]
+
+<h3>New Project Posts</h3>
+<ul>{{for post in posts:}}
+     <li> 
+   		  {{=post.created_on}},
+   		  {{=(A(post.post, _href=URL('showproject', args=post.page_id)))}}
+     </li>
+{{pass}}</ul>
+
+
+
+
+<br />
+<br />
+
+

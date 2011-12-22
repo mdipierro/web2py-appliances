@@ -1,0 +1,37 @@
+{{extend 'layout.html'}}
+[ {{=A('Home', _href=URL('index'))}} ]
+[ {{=A('Admin', _href=URL('admin'))}} ]
+[ {{=A('Clients', _href=URL('clients'))}} ]
+[ {{=A('Edit Client', _href=URL('editclient',  args=client.id))}} ]
+
+<h4>Name</h4>
+<p>
+{{=client.name }}
+{{pass}}
+</p>
+
+<h4>Company</h4>
+<p>
+{{=client.company }}
+{{pass}}
+</p>
+
+<h4>Contact Info</h4>
+<ul>
+<li>{{=client.email }}</li>
+<li>{{=client.phone}}</li>
+{{pass}}
+</ul>
+
+<h4>Client Information</h4>
+<p>
+{{=client.info }}
+{{pass}}
+</p>
+
+
+
+
+
+
+

@@ -1,0 +1,20 @@
+{{from gluon.tools import prettydate}}
+<table class="comments">
+  {{for comment in comments:}}
+  <tr>
+    <td class="comment">
+      {{=MARKMIN(comment.body)}}
+      <div class="right">by {{=db.plugin_wiki_comment.created_by.represent(comment.created_by)}} {{=prettydate(comment.created_on)}}</div>
+    </td>
+  </tr>
+  {{pass}}
+  <tr>
+    <td>
+      {{if auth.user:}}
+      {{=form.custom.begin}}<label>Your comment:</label> {{=form.custom.widget.body}}{{=form.custom.submit}}{{=form.custom.end}}
+      {{else:}}
+      {{=form}}
+      {{pass}}
+    </td>    
+  </tr>
+<table>

@@ -1,0 +1,7 @@
+{{extend 'layout.html'}}
+
+<h1>Available image shows</h1>
+
+{{for show in shows:}}
+{{=A(show.name,_href=URL('show',args=[show.id]))}}<br/>
+{{pass}}

@@ -1,0 +1,63 @@
+{{extend 'zlayout.html'}}
+
+<h2 class="fancy">{{=XML(T('pyForum Administration - Manage Administration Messages'))}}</h2>
+
+{{include 'zadmin/admin_options.html'}}
+
+{{if messages:}}
+    <form id="msg_form" method="post" action="">
+        <fieldset id="msg_form_fields">
+            <input type="hidden" id="form_submitted" name="form_submitted" value="1" />
+
+            <table cellspacing="0" cellpadding="0" class="zf-table max-width">
+                <thead>
+                    <tr class="shadedarker">
+                        <th class="cell3d">&nbsp;</td>
+                        <th class="cell3d">{{=XML(T('From'))}}</td>
+                        <th class="cell3d">{{=XML(T('Subject'))}}</th>
+                        <th class="cell3d">{{=XML(T('Message'))}}</th>
+                        <th class="cell3d">{{=XML(T('Date'))}}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{for idx, message in enumerate(messages):}}
+                        <tr class="{{if idx%2:}}shadedark{{else:}}shadelight{{pass}}">
+                            <td class="cell3d center-xy">
+                                <input type="checkbox" id="msg_id_{{=message.id}}" name="msg_id_{{=message.id}}" value="{{=message.id}}" />
+                            </td>
+                            <td class="cell3d center-xy">
+                                {{if message.user_id:}}
+                                    <a href="{{=URL(r=request, c='pm', f='message_new', args=[message.user_id])}}"
+                                    title="{{=XML(T('Notify User'))}}" class="linkb">{{=forumhelper.get_display_name(message.user_id)}}</a>
+                                {{else:}}
+                                    <b>{{=XML(T('Anonymous User'))}}</b>
+                                {{pass}}
+                            </td>
+                            <td class="cell3d center-xy">{{=message.subject}}</a></td>
+                            <td class="cell3d center-xy">{{=message.message}}</a></td>
+                            <td class="cell3d center-xy">{{=message.creation_date.strftime(str(XML('%d/%m/%Y')))}}</td>
+                        </tr>
+                    {{pass}}
+                </tbody>
+            </table>
+
+            <div class="both-separator">
+                <input type="submit" id="read_b" name="read_b" value="{{=XML(T('Remove from list'))}}" />
+                {{if view_info['purge']:}}
+                    <input type="submit" id="purge_b" name="purge_b" value="{{=XML(T('Purge DB'))}} ({{=view_info['purge']}})" onclick="return confirm('Please Confirm');" />
+                {{pass}}
+            </div>
+
+        </fieldset>
+    </form>
+{{else:}}
+    <p class="warning">{{=XML(T('No messages intended for administrators were found'))}}.</p>
+    {{if view_info['purge']:}}
+        <form id="msg_form" method="post" action="">
+            <fieldset id="msg_form_fields">
+                <input type="hidden" id="form_submitted" name="form_submitted" value="1" />
+                <input type="submit" id="purge_b" name="purge_b" value="{{=XML(T('Purge DB'))}} ({{=view_info['purge']}})" onclick="return confirm('Please Confirm');" />
+            </fieldset>
+        </form>
+    {{pass}}
+{{pass}}

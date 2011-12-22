@@ -1,0 +1,354 @@
+<!-- !NEW VIEW: edit_profile 
+         This page shows the user their current profile information
+         and allows them to edit it. -->
+
+{{extend 'zlayout.html'}}
+<!-- Title information and indicators the page has been updated -->
+<h2 class="fancy">{{=XML(T('Edit Profile'))}}</h2>
+{{if request.vars.upd:}}<p class="note">* {{=XML(T('Preferences have been updated'))}}. *</p>{{pass}}
+{{if request.vars.up_topics_1:}}<p class="note">* {{=XML(T('Profile topics have been updated'))}}. *</p>{{pass}}
+{{if request.vars.up_topics_2:}}<p class="note">* {{=XML(T('Bookmarked topics have been updated'))}}. *</p>{{pass}}
+
+<!-- Updating user information -->
+<form method="post" id="my_profile" action="" enctype="multipart/form-data">
+        <input type="hidden" id="form_details_submitted" name="form_details_submitted" value="1" />
+        <input type="hidden" id="user_id" name="user_id" value="{{=user_id}}" />
+
+        <table cellspacing="2" cellpadding="2">
+            <tbody>
+                <tr class="shadedarker">
+                    <th class="cell3d" style="width:5%;max-width:5%">{{=XML(T('Hidden'))}}</th>                
+                    <th class="cell3d">&nbsp;</th>
+                    <th class="cell3d">&nbsp;</th>
+                </tr>
+                <tr>
+                    <td></td>
+                    <td>{{=XML(T('Email'))}}:</td>
+                    <td><a href="mailto:{{=user_email}}" title="{{=XML(T('Email'))}} {{=user_email}}">{{=user_email}}</a></td>
+                    
+                </tr>
+                <tr>
+                    <td></td>
+                    <td>{{=XML(T('Username'))}}:</td>
+                    <td><input type="text" style="width:200px;" class="formelem"
+                               name="username"
+                               id="username"
+                               value="{{=forumhelper.get_member_property('zfmp_display_name', user_id, 'user_%s' % (user_id))}}" />
+                    <i class="note">* {{=XML(T('This will display in your postings, search, etc'))}}.</i>
+                    </td>
+                </tr>
+                <tr>
+                    <td></td>
+                    <td>{{=XML(T('New Password'))}}:</td>
+                    <td><input type="password" style="width:500px;" class="formelem" name="new_passwd" id="new_passwd"
+                    value="" /> <i class="note">* {{=XML(T('Leave empty for no change'))}}</i></td>
+                </tr>
+                <tr>
+                    <td></td>
+                    <td>{{=XML(T('New Password Confirmation'))}}:</td>
+                    <td><input type="password" style="width:500px;" class="formelem" name="new_passwd_confirm" id="new_passwd_confirm"
+                    value="" /> <i class="note">* {{=XML(T('Leave empty for no change'))}}</i></td>
+                </tr>
+                <tr>
+                    <td><input type="checkbox" id="cb_real_name" name="cb_real_name" value="cb_real_name" {{if view_info['props']['real_name_hidden']:}}checked{{pass}}/></td>
+                    <td>{{=XML(T('Real Name'))}}:</td>
+                    <td><input type="text" style="width:500px;" class="formelem" name="real_name" id="real_name"
+                    value="{{=request.vars.get('real_name', view_info['props']['real_name'])}}" /></td>
+                </tr>
+                <tr>
+                    <td><input type="checkbox" id="cb_web_page" name="cb_web_page" value="cb_web_page" {{if view_info['props']['web_page_hidden']:}}checked{{pass}}/></td>                
+                    <td>{{=XML(T('Web Page'))}}:</td>
+                    <td><input type="text" style="width:500px;" class="formelem" name="web_page" id="web_page"
+                    value="{{=request.vars.get('web_page', view_info['props']['web_page'])}}" /></td>
+                </tr>
+                <tr>
+                    <td><input type="checkbox" id="cb_country" name="cb_country" value="cb_country" {{if view_info['props']['country_hidden']:}}checked{{pass}}/></td>                
+                    <td>{{=XML(T('City/Country'))}}:</td>
+                    <td><input type="text" style="width:500px;" class="formelem" name="country" id="country"
+                    value="{{=request.vars.get('country', view_info['props']['country'])}}" /></td>
+                </tr>
+                <tr>
+                    <td><input type="checkbox" id="cb_user_info" name="cb_user_info" value="cb_user_info" {{if view_info['props']['user_info_hidden']:}}checked{{pass}}/></td>                
+                    <td>{{=XML(T('User Info'))}}:</td>
+                    <td>
+                        <textarea id="user_info" name="user_info" cols="0" rows="0" class="formelem code"
+                        style="width:500px;height:100px;">{{=request.vars.get('user_info', view_info['props']['user_info'])}}</textarea>
+                    </td>
+                </tr>                
+                <tr>
+                    <td><input type="checkbox" id="cb_signature" name="cb_signature" value="cb_signature" {{if view_info['props']['signature_hidden']:}}checked{{pass}}/></td>                
+                    <td>{{=XML(T('Signature'))}}:</td>
+                    <td>
+                        <textarea id="signature" name="signature" cols="0" rows="0" class="formelem code"
+                        style="width:500px;height:100px;">{{=request.vars.get('signature', view_info['props']['signature'])}}</textarea>
+                    </td>
+                </tr>
+                <tr>
+                    <td></td>
+                    <td>{{=XML(T('Display Language'))}}:</td>
+                    <td>
+                        <select id="lang_code" name="lang_code">
+                            <option value="">{{=XML(T('System Default'))}}</option>
+                            {{if available_languages:}}
+                                {{for lang in available_languages:}}
+                                    <option value="{{=lang.language_code}}"
+                                        {{if request.vars.get('lang_code', view_info['props']['locale']) == lang.language_code:}}
+                                            selected="selected"
+                                        {{pass}}>{{=XML(lang.language_desc)}}</option>
+                                {{pass}}
+                            {{pass}}
+                        </select>
+                    </td>
+                </tr>
+                <tr>
+                    <td></td>
+                    <td><label for="allow_pm_use">{{=XML(T('Allow contact via PM'))}}:</label></td>
+                    <td>
+                        <input type="checkbox" id="allow_pm_use" name="allow_pm_use"
+                        {{if request.vars.get('allow_pm_use', view_info['props']['allow_pm_use']):}}checked="checked"{{pass}} />
+                    </td>
+                </tr>
+                <tr>
+                    <td></td>
+                    <td>{{=XML(T('Posts'))}}:</td>
+                    <td>{{=view_info['props']['postings']}}</td>
+                </tr>
+                <tr>
+                    <td></td>
+                    <td>{{=XML(T('Last Login'))}}:</td>
+                    <td>{{=view_info['props']['last_login']}}</td>
+                </tr>
+                <tr>
+                    <td></td>
+                    <td>{{=XML(T('Forum Subscriptions'))}}:</td>
+                    <td>
+                        {{if len(forum_subscriptions):}}
+                            <select id="remove_forum_subscription" name="remove_forum_subscription"
+                            multiple="multiple"
+                            style="width:500px;height:100px;">
+                                {{for f_sub in forum_subscriptions:}}
+                                    <option value="{{=f_sub.id}}">{{=f_sub.forum_title}}</option>
+                                {{pass}}
+                            </select>
+                        {{else:}}
+                            {{=XML(T('User is not subscribed to any forum'))}}
+                        {{pass}}
+                    </td>
+                </tr>
+                <tr>
+                    <td></td>
+                    <td>{{=XML(T('Topic Subscriptions'))}}:</td>
+                    <td>
+                        {{if len(topic_subscriptions):}}
+                            <select id="remove_topic_subscription" name="remove_topic_subscription" multiple="multiple"
+                                    style="width:500px;height:100px;">
+                                {{for f_sub in topic_subscriptions:}}
+                                    <option value="{{=f_sub.id}}">{{=f_sub.title}}</option>
+                                {{pass}}
+                            </select>
+                        {{else:}}
+                            {{=XML(T('User is not subscribed to any topics'))}}
+                        {{pass}}
+                    </td>
+                </tr>
+                <tr>
+                    <td></td>
+                    <td>{{=XML(T('Avatar'))}}:</td>
+                    <td>
+                        {{if forumhelper.has_member_avatar(user_id):}}
+                            <img src="{{=URL(r=request, c='zadmin', f='get_avatar_image', args=[user_id])}}" alt="" />
+                            <label for="remove_avatar">{{=XML(T('Disable'))}}:</label>
+                            <input type="checkbox" id="remove_avatar"
+                            name="remove_avatar"
+                            {{if request.vars.get('remove_avatar', ''):}}checked="checked"{{pass}} />
+                            <br />
+                        {{pass}}
+                        <input type="file" id="avatar_data" name="avatar_data" />
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+
+        <p class="note">{{=XML(T('For Forums/Topics subscriptions, select the ones you wish to unsubscribe from and submit your form'))}}.</p>
+
+        <div class="both-separator">
+            <input type="submit" id="update_b" name="update_b" value="{{=XML(T('Update Profile'))}}" />
+            <input type="submit" id="cancel_b" name="cancel_b" value="{{=XML(T('Cancel'))}}" />
+        </div>
+
+
+<!-- Updating profile threads and bookmarked threads -->
+<h2 class="fancy">{{=XML(T('Topics'))}}</h2>
+<br />
+<div class="subnav">
+    {{=len(my_threads)+len(my_ref_threads)}} {{=XML(T('Topic(s) Found'))}}
+    <span class="sep">|</span>
+    <a href="{{=URL(r=request, c='default', f='add_profile_topic')}}" title="{{=XML(T('Add New Topic'))}}">{{=XML(T('Add New Topic'))}}</a>
+</div>
+
+<div>{{=XML(view_info['pagination_widget_1'])}}</div>
+    {{if my_threads:}}
+        <!-- Display profile threads -->
+        <input type="hidden" id="form_submitted" name="form_submitted" value="1" />
+
+        <table cellspacing="0" cellpadding="0" class="zf-table" class="max-width" style="width:100%;">
+            <thead>
+                <tr class="shadedarker">
+                    <th class="cell3d" style="width:5%;max-width:5%">{{=XML(T('Delete'))}}</th>
+                    <th class="cell3d" style="width:5%;max-width:5%">{{=XML(T('Hidden'))}}</th>
+                    <th class="cell3d" style="text-align:left;">{{=XML(T('My Topics'))}}</th>
+                    <th class="cell3d">{{=XML(T('By'))}}</th>
+                    <th class="cell3d" style="width:5%;max-width:5%">{{=XML(T('Replies'))}}</th>
+                    <th class="cell3d" style="width:5%;max-width:5%">{{=XML(T('Views'))}}</th>
+                    <th class="cell3d" style="width:20%;max-width:20%;white-space:nowrap;">{{=XML(T('Last Updated'))}}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{for row, this_topic in enumerate(my_threads):}}
+                    <tr class="{{if row%2:}}shadedark{{else:}}shadelight{{pass}}">
+                        <td class="cell3d center-xy">
+                            <input type="checkbox" id="del_topic_1_{{=this_topic.id}}" name="del_topic_1_{{=this_topic.id}}" value="{{=this_topic.id}}" />
+                        </td>
+                        <td class="cell3d center-xy">
+                            <input type="checkbox" id="hide_topic_1_{{=this_topic.id}}" name="hide_topic_1_{{=this_topic.id}}" value="{{=this_topic.id}}" {{if this_topic.profile_hidden:}}checked{{pass}}/>
+                        </td>
+                        <td class="cell3d">
+                            <a href="{{=URL(r=request, c='default', f='view_topic', args=[this_topic.id])}}" title="" class="linkb">{{=XML(parse_content(this_topic.title))}}</a>
+                            {{if view_info['zfsp_topic_teaser_length']:}}
+                                <br /><span class="small">{{=parse_content(this_topic.content[:view_info['zfsp_topic_teaser_length']], mode='forumpreview')}} ..</span>
+                            {{pass}}
+                        </td>
+                        <td class="cell3d center-xy">{{if this_topic.creation_user_id:}}<a href="{{=URL(r=request, c='pm', f='message_new', args=[this_topic.creation_user_id])}}" title="">{{=forumhelper.get_display_name(this_topic.creation_user_id, 'Anonymous User')}}</a>{{else:}}Anonymous User{{pass}}</td>
+                        <td class="cell3d center-xy">{{=topic_1_replies_info[this_topic.id]}}</td>
+                        <td class="cell3d center-xy">{{=this_topic.hits}}</td>
+                        <td class="cell3d center-xy">
+                            <div class="{{if (request.now - this_topic.modifying_date).days == 0:}}important{{else:}}small{{pass}}">
+                                <span class="small">
+                                    {{=this_topic.modifying_date.strftime(str(T('%b %d, %Y - %I:%M %p')))}}
+                                </span>
+                                <br /><span class="small">{{=XML(T('By'))}}</span>
+                                {{if not this_topic.modifying_user_id:}}
+                                    <b class="small">{{=XML(T('Anonymous User'))}}</b>
+                                {{else:}}
+                                    {{if auth_user.is_auth():}}
+                                        <a href="{{=URL(r=request, c='pm', f='message_new', args=[this_topic.modifying_user_id])}}"
+                                           title=""
+                                           class="{{if (request.now - this_topic.modifying_date).days == 0:}}smallb-new{{else:}}smallb{{pass}}">{{=forumhelper.get_member_property('zfmp_display_name', this_topic.modifying_user_id, 'user_%s' % (this_topic.modifying_user_id))}}</a>
+                                    {{else:}}
+                                        <b class="small">{{=forumhelper.get_member_property('zfmp_display_name', this_topic.modifying_user_id, 'user_%s' % (this_topic.modifying_user_id))}}</b>
+                                    {{pass}}
+                                {{pass}}
+                            </div>
+                        </td>
+                    </tr>
+                {{pass}}
+            </tbody>
+        </table>
+        <div class="top-separator">
+            <input type="submit"
+            id="top_up_topics_1"
+            name="up_topics_1"
+            value="{{=XML(T('Update Checked Topics'))}}" />
+        </div>        
+    {{else:}}
+        <p class="warning">{{=XML(T('No profile topics found in this forum'))}}.</p>    
+    {{pass}}     
+    <br />   
+    <hr />
+    <br />
+    <div>{{=XML(view_info['pagination_widget_2'])}}</div>
+    {{if my_ref_threads:}}         
+            <!-- Display bookmarked threads -->
+            <table cellspacing="0" cellpadding="0" class="zf-table" class="max-width" style="width:100%;">
+                <thead>
+                    <tr class="shadedarker">
+                        <th class="cell3d" style="width:5%;max-width:5%">{{=XML(T('Delete'))}}</th>
+                        <th class="cell3d" style="width:5%;max-width:5%">{{=XML(T('Hidden'))}}</th>
+                        <th class="cell3d" style="text-align:left;">{{=XML(T('Bookmarked Topics'))}}</th>
+                        <th class="cell3d">{{=XML(T('By'))}}</th>
+                        <th class="cell3d" style="width:5%;max-width:5%">{{=XML(T('Replies'))}}</th>
+                        <th class="cell3d" style="width:5%;max-width:5%">{{=XML(T('Views'))}}</th>
+                        <th class="cell3d" style="width:20%;max-width:20%;white-space:nowrap;">{{=XML(T('Last Updated'))}}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{for row, this_topic in enumerate(my_ref_threads):}}
+                        <tr class="{{if row%2:}}shadedark{{else:}}shadelight{{pass}}">
+                            <td class="cell3d center-xy">
+                                <input type="checkbox" id="del_topic_2_{{=this_topic.zf_topic.id}}" name="del_topic_2_{{=this_topic.zf_topic.id}}" value="{{=this_topic.zf_topic.id}}" />
+                            </td>
+                            <td class="cell3d center-xy">
+                                <input type="checkbox" id="hide_topic_2_{{=this_topic.zf_topic.id}}" name="hide_topic_2_{{=this_topic.zf_topic.id}}" value="{{=this_topic.zf_topic.id}}" {{if this_topic.zf_referenced_topic.profile_hidden:}}checked{{pass}} />
+                            </td>
+                            <td class="cell3d">
+                                <a href="{{=URL(r=request, c='default', f='view_topic', args=[this_topic.zf_topic.id])}}" title="" class="linkb">{{=XML(parse_content(this_topic.zf_topic.title))}}</a>
+                                {{if view_info['zfsp_topic_teaser_length']:}}
+                                    <br /><span class="small">{{=parse_content(this_topic.zf_topic.content[:view_info['zfsp_topic_teaser_length']], mode='forumpreview')}} ..</span>
+                                {{pass}}
+                            </td>
+                            <td class="cell3d center-xy">{{if this_topic.zf_topic.creation_user_id:}}<a href="{{=URL(r=request, c='pm', f='message_new', args=[this_topic.zf_topic.creation_user_id])}}" title="">{{=forumhelper.get_display_name(this_topic.zf_topic.creation_user_id, 'Anonymous User')}}</a>{{else:}}Anonymous User{{pass}}</td>
+                            <td class="cell3d center-xy">{{=topic_2_replies_info[this_topic.zf_topic.id]}}</td>
+                            <td class="cell3d center-xy">{{=this_topic.zf_topic.hits}}</td>
+                            <td class="cell3d center-xy">
+                                <div class="{{if (request.now - this_topic.zf_topic.modifying_date).days == 0:}}important{{else:}}small{{pass}}">
+                                    <span class="small">
+                                        {{=this_topic.zf_topic.modifying_date.strftime(str(T('%b %d, %Y - %I:%M %p')))}}
+                                    </span>
+                                    <br /><span class="small">{{=XML(T('By'))}}</span>
+                                    {{if not this_topic.zf_topic.modifying_user_id:}}
+                                        <b class="small">{{=XML(T('Anonymous User'))}}</b>
+                                    {{else:}}
+                                        {{if auth_user.is_auth():}}
+                                            <a href="{{=URL(r=request, c='pm', f='message_new', args=[this_topic.zf_topic.modifying_user_id])}}"
+                                               title=""
+                                               class="{{if (request.now - this_topic.zf_topic.modifying_date).days == 0:}}smallb-new{{else:}}smallb{{pass}}">{{=forumhelper.get_member_property('zfmp_display_name', this_topic.zf_topic.modifying_user_id, 'user_%s' % (this_topic.zf_topic.modifying_user_id))}}</a>
+                                        {{else:}}
+                                            <b class="small">{{=forumhelper.get_member_property('zfmp_display_name', this_topic.zf_topic.modifying_user_id, 'user_%s' % (this_topic.zf_topic.modifying_user_id))}}</b>
+                                        {{pass}}
+                                    {{pass}}
+                                </div>
+                            </td>
+                        </tr>
+                    {{pass}}
+                </tbody>
+            </table>
+            <div class="top-separator">
+                <input type="submit"
+                id="top_up_topics_2"
+                name="up_topics_2"
+                value="{{=XML(T('Update Checked Topics'))}}" />
+            </div>
+{{else:}}
+    <p class="warning">{{=XML(T('No bookmarked topics found in this forum'))}}.</p>
+{{pass}}
+
+{{if len(friendslist):}}
+    <h2 class="fancy">{{=XML(T('Friendslist'))}}</h2>
+    <table cellspacing="0" cellpadding="0" class="zf-table">
+        <thead>
+            <tr class="shadedarker">
+                <th class="cell3d">{{=XML(T('Delete'))}}</th>
+                <th class="cell3d">{{=XML(T('Friend'))}}</th>
+            </tr>
+        </thead>
+        <tbody>
+        {{for row, friend in enumerate(friendslist):}}
+        <tr class="{{if row%2:}}shadedark{{else:}}shadelight{{pass}}">
+            <td class="cell3d center-xy">
+                <input type="checkbox" id="del_friend_{{=friend.target_id}}" name="del_friend_{{=friend.target_id}}" value="{{=friend.target_id}}" />
+            </td>
+            <td class="cell3d center-xy">
+                {{=forumhelper.get_display_name(friend.target_id, 'Anonymous User')}}
+            </td>
+        </tr>
+        {{pass}}
+        </tbody>
+    </table>
+    <div class="top-separator">
+        <input type="submit"
+            id="top_up_friend"
+            name="up_friend"
+            value="{{=XML(T('Update Friendslist'))}}" />
+    </div>
+{{pass}}
+</form>

@@ -1,0 +1,12 @@
+{{extend 'layout.html'}}
+<script src="/{{=request.application}}/static/nicEdit.js" type="text/javascript"></script>
+<script>
+$(document).ready(function(){
+new nicEditor({fullPanel : true, iconsPath : '/{{=request.application}}/static/nicEditorIcons.gif'}).panelInstance('survey_description');
+});
+</script>
+<h1>Create New Survey</h1>
+
+<h2>Create Form</h2>
+
+{{=form}}

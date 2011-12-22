@@ -1,0 +1,65 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<meta name="author" lang="en" content="{{=response.author}}" />
+<meta name="keywords" content="{{=response.keywords}}" />
+<meta name="description" content="{{=response.description}}" />
+<title>{{=response.title or URL(r=request)}}</title>
+<link rel="stylesheet" media="screen,projection" type="text/css" href="{{=URL(r=request,c='static',f='styles.css')}}" />
+{{include 'web2py_ajax.html'}}
+</head>
+<body>
+<div class="header">
+	<div class="outernav">
+		<div class="nav">
+			<div class="innernav">
+   <ul>
+    {{for _name,_active,_link in response.menu or []:}}
+     <li><a href="{{=_link}}">{{=_name}}</a></li>
+     {{pass}}
+   </ul>
+			</div>
+		</div>
+	</div>
+		
+	<div class="clear"></div>
+	
+	<div class="title">
+		<div class="innertitle">
+			
+			<!-- TITLE -->
+			<h1><a href="#">{{=response.title or ''}}</a></h1>
+			<h2>{{=response.subtitle or ''}}</h2>
+			<!-- END TITLE -->
+			
+		</div>
+	</div>
+</div>
+<div id="wrap">
+	<div class="pagewrapper">
+		<div class="innerpagewrapper">
+			<div class="page">
+				<div class="content">
+
+        {{if response.flash:}}
+        <div class="flash">{{=response.flash}}</div>
+        {{pass}}
+				
+
+				  {{include}}
+					
+				</div>
+				
+				<div class="sidebar">	
+				</div>
+				
+				<div class="footer">
+					<p><a href="http://validator.w3.org/check/referer" title="valid XHTML">XHTML</a> | <a href="http://jigsaw.w3.org/css-validator/check/referer" title="valid CSS">CSS</a> &nbsp;&nbsp; &copy; Powered by <a href="http://www.web2py.com">web2py</a></p>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+</body>
+</html>

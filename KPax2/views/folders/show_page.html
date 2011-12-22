@@ -1,0 +1,59 @@
+{{extend 'layout.html'}}
+
+<h1>Folder: {{=folder.name}}</h1>
+
+<table width="100%">
+<tr><td width="200px">
+{{if folder.owner==auth.user_id or not page.readonly:}}
+{{=A(IMG(_src=URL(r=request,c='static',f='folder/edit_page.png')),_href=URL('edit_page',args=request.args))}}
+{{pass}}
+{{if folder.is_open:}}
+{{=A(IMG(_src=URL(r=request,c='static',f='folder/public_access.png')),_href=URL('public',args=request.args))}}
+{{pass}}
+<ul>
+  {{for item in pages:}}
+    {{=LI(A(item.title,_href=URL(r=request,args=[request.args[0],item.id])))}}
+  {{pass}}
+</ul>
+</td><td>
+<h2 onclick="$('#body').slideToggle();">{{=page.title}}</h2>
+<div id="body">
+{{=XML(page.body)}}
+
+{{if len(old_pages):}}
+  <br/><form action="{{=URL('compare')}}">Old Versions: <select name="id">
+  {{for op in old_pages:}}
+    <option value="{{=op.old_page.id}}">{{=op.old_page.modified_on}} modified by {{=op.auth_user.name}} (u{{=op.auth_user.id}})</option>
+  {{pass}}
+  </select>    <input type="submit" value="compare"/></form>
+{{pass}}
+<br/><br/></div>
+
+{{if len(documents):}}
+<h2 onclick="$('#docs').slideToggle();">Attached Documents</h2>
+<div id="docs">
+<ul>
+  {{for item in documents:}}
+     <li>
+     {{if item.file[-4:].lower() in ['.flv','.pm3','.swf','.png','.jpg','.gif']:}}
+     {{=A(item.title,_href=URL(r=request,c='media',f='player',args=[item.id,item.file]))}} [{{=A('download',_href=URL('download',args=[item.id,item.file]))}}]
+     {{else:}}
+     {{=A(item.title,_href=URL('download',args=[item.id,item.file]))}}
+     {{pass}}
+     </li>
+  {{pass}}
+</ul>
+<br/><br/></div>
+{{pass}}
+{{if page.comments_enabled:}}
+<h2 onclick="$('#coms').slideToggle();">Comments</h2>
+<div id="coms">
+  {{for item in comments:}}
+     <div class="comment">{{=item.auth_user.name+' on '+item.comment.posted_on.strftime('%m/%d/%Y at %H:%M')}} said "<i>{{=item.comment.body}}</i>"</div><br/>
+  {{pass}}
+  {{if not len(comments):}}No comments yet{{pass}}
+  {{=form}}
+{{pass}}
+</div>
+</td></tr>
+</table>

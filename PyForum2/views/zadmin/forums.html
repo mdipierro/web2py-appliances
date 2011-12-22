@@ -1,0 +1,88 @@
+{{extend 'zlayout.html'}}
+
+<h2 class="fancy">{{=XML(T('pyForum - Manage Forums'))}}</h2>
+
+{{include 'zadmin/admin_options.html'}}
+
+{{if view_info.has_key('sort_saved'):}}<p class="information">{{=XML(T('Forums have been re-sorted'))}}</p>{{pass}}
+
+{{if view_info['errors']:}}
+    <p class="error">{{=XML(T('There were some errors while processing your request, please correct the following'))}}:</p>
+    <ul>
+        {{for err in view_info['errors']:}}
+            <li class="error">{{=err}}</li>
+        {{pass}}
+    </ul>
+{{pass}}
+
+{{if cats:}}
+    <form id="sel_cat_form" name="sel_cat_form" method="post" action="">
+    <fieldset id="sel_cat_form_fields">
+        <p>{{=XML(T('Category Selected'))}}:
+        <select id="new_cat_id" name="new_cat_id" onchange="location.href=this.value;">
+            {{for sel_cat in cats:}}
+                <option value="{{=URL(r=request, c='zadmin', f='forums', args=[sel_cat.id])}}"
+                        {{if selected_category:}}
+                            {{if selected_category.id==sel_cat.id:}}
+                                selected="selected"{{pass}}{{pass}}>
+                                {{=sel_cat.cat_name}}</option>
+            {{pass}}
+        </select>
+    </fieldset>
+    </form>
+{{pass}}
+
+{{if selected_category:}}
+    <form id="forum_handling_form" method="post" action="">
+    <fieldset id="forum_handling_form_fields">
+        <input type="hidden" id="form_submitted" name="form_submitted" value="1" />
+        <input type="hidden" id="cat_id" name="cat_id" value="{{=selected_category.id}}" />
+
+        {{if cat_forums:}}
+            <table cellspacing="0" cellpadding="0" class="zf-table max-width">
+            <thead>
+                <tr class="shadedarker">
+                    <th class="cell3d">{{=XML(T('Order'))}}</th>
+                    <th class="cell3d">{{=XML(T('Title'))}}</th>
+                    <th class="cell3d">{{=XML(T('Moded'))}}</th>
+                    <th class="cell3d">{{=XML(T('Anon Read'))}}</th>
+                    <th class="cell3d">{{=XML(T('Min Roles Add'))}}</th>
+                    <th class="cell3d">{{=XML(T('Min Roles Reply'))}}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{for idx, this_forum in enumerate(cat_forums):}}
+                    <tr class="{{if idx%2:}}shadedark{{else:}}shadelight{{pass}}">
+                        <td class="cell3d">
+                            <input type="text" id="forum_id_{{=this_forum.id}}" name="forum_id_{{=this_forum.id}}" value="{{=this_forum.forum_sort}}" style="width:50px;" />
+                        </td>
+                        <td class="cell3d">
+                            {{=this_forum.forum_title}}
+                            <br /><a href="{{=URL(r=request, c='zadmin', f='edit_forum', args=[this_forum.id])}}"
+                                     title="{{=XML(T('Edit forum properties'))}}" class="smallb">{{=XML(T('Edit forum properties'))}}</a>
+                            <span class="sep">|</span>
+                            <a href="{{=URL(r=request, c='default', f='view_forum', args=[this_forum.id])}}"
+                               title="{{=XML(T('View/Edit topics in this forum'))}}" class="smallb">{{=XML(T('View/Edit topics in this forum'))}}</a>
+                        </td>
+                        <td class="cell3d center-xy">{{=this_forum.moderation_flag}}</td>
+                        <td class="cell3d center-xy">{{=this_forum.anonymous_viewaccess}}</td>
+                        <td class="cell3d center-xy">{{=', '.join(this_forum.add_postings_access_roles.split(',')) or XML(T('Anyone'))}}</td>
+                        <td class="cell3d center-xy">{{=', '.join(this_forum.reply_postings_access_roles.split(',')) or XML(T('Anyone'))}}</td>
+                    </tr>
+                {{pass}}
+            </tbody>
+            </table>
+        {{else:}}
+            <p class="warning">{{=XML(T('This category does not have any forums'))}}.</p>
+        {{pass}}
+
+        <div class="top-separator">
+            <input type="submit" id="add_forum" name="add_forum" value="{{=XML(T('Add New Forum'))}}" />
+            {{if cat_forums:}}<input type="submit" id="save_sort" name="save_sort" value="{{=XML(T('Save Sort Order'))}}" />{{pass}}
+        </div>
+    </fieldset>
+    </form>
+{{else:}}
+    <p class="warning">{{=XML(T('No categories have been created. You must have at least one category to allow forum management'))}}.</p>
+{{pass}}
+

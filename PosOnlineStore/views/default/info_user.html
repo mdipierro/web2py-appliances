@@ -1,0 +1,24 @@
+{{extend 'layout.html'}}
+<h1>User Info</h1>
+{{=form}}
+<h2>User Orders</h2>
+<table>
+   <tr>
+   <th>invoice</th>
+   <th>datetime</th>
+   <th>product name</th>
+   <th>product price</th>
+   <th>product quantity</th>
+   <th>product shipped</th>
+   </tr>
+{{for order in orders:}}{{p=db.product(order.product)}}
+   <tr>
+     <td>{{=A(order.invoice,_href=URL('edit_order',args=order.id))}}</td>
+     <td>{{=order.created_on}}</td>
+     <td>{{=p.name}} (#{{=p.id}})</td>
+     <td>${{=p.price}}</td>
+     <td>{{=order.quantity}}</td>
+     <td>{{=order.shipped and order.tracking_number}}</td>
+   </tr>
+{{pass}}
+</table>

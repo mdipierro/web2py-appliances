@@ -1,0 +1,277 @@
+//
+// Copyright (c) 1993-2001 by Richard Pettit. All rights reserved.
+//
+// Some of this work was derived from include files containing the following
+// copyrights.
+//
+//   Copyright (c) 1986-1994 by Sun Microsystems, Inc.
+//   Copyright (c) 1983-1989 by AT&T
+//   Copyright (c) 1980-1993 by The Regents of the University of California.
+//
+// The work as a whole represents unique intellectual property and is
+// copyright by Richard Pettit as shown on the first line.
+//
+
+#ifndef _TAPEINFO_SE_
+#define _TAPEINFO_SE_
+
+#include <stdio.se>
+#include <string.se>
+#include <ctype.se>
+#include <stdlib.se>
+#include <unistd.se>
+#include <kstat.se>
+#include <sysdepend.se>
+#include <dirent.se>
+#include <se_trees.se>
+
+#define PATH_TO_INST     "/etc/path_to_inst"
+
+// sterr is not defined in kstat.se, so define here
+kstat struct "sterr:" ks_sterr {
+    int    number$;              // linear counter
+    string name$;                // name of error
+    int    instance$;            // instance number
+
+    uint64_t "Soft Errors";
+    uint64_t "Hard Errors";
+    uint64_t "Transport Errors";
+    string    Vendor;
+    string    Product;
+    string    Revision;
+    string   "Serial No";
+};
+
+struct tape_info_t {
+  string   short_name;
+  string   long_name;
+  ks_sterr errors;
+};
+
+// this is a global array to keep similarity with diskinfo.se
+// use functions provided below as access methods
+
+tape_info_t GLOBAL_tape_info[];
+int         GLOBAL_tapeinfo_size = 1;
+ulong_t     GLOBAL_tapeinfo_short_tree;
+ulong_t     GLOBAL_tapeinfo_long_tree;
+
+int	    tapeinfo_inst_initialized;	// set when data exists
+
+ks_sterr
+find_tape_error(string name)
+{
+  ks_sterr    sterr;
+  string      short_name;
+
+  if (name =~ "^st.*") {
+    sterr.number$ = 0;
+    for(refresh$(sterr); sterr.number$ != -1; sterr.number$++,refresh$(sterr)) {
+      short_name = sterr.name$;
+      strtok(short_name, ",");
+      if (short_name == name) {
+        break;
+      }
+    }
+    return sterr;
+  }
+}
+
+int
+setup_tapeinfo_inst()   // return 1 if OK, 0 if not
+{
+  char buf[BUFSIZ];
+  char points_at[MAXNAMELEN];
+  string p;
+  string full;
+  string path;
+  string tape_dirs[2] = { "/dev/rmt", nil };
+  int count = 0;
+  int i;
+  int n;
+  ulong ld;
+  ulong dirp;
+  ulong input;
+  dirent_t dp;
+  ulong_t path_tree;
+  ulong_t np;
+
+  if (tapeinfo_inst_initialized == 1) {
+    return 1;
+  }
+
+  path_tree = str2int_init();
+  if (path_tree == 0) {
+    return 0;
+  }
+
+  // load up the tree with the paths and quit traversing path_to_inst
+  input = fopen(PATH_TO_INST, "r");
+  if (input == 0) {
+    avlfree(path_tree);
+    return 0;
+  }
+  while (fgets(buf, sizeof(buf), input) != nil) {
+    if ((buf[0] != '#') && (buf[0] != '\n')) {
+      p = strtok(buf, " ");
+      n = atoi(strtok(nil, " "));
+      path = strtok(p, "\"");
+
+      if (str2int_put(path_tree, path, n) == -1) {
+        fclose(input);
+        avlfree(path_tree);
+        return 0;
+      }
+    }
+  }
+  fclose(input);
+
+  // create the global tape info array
+  GLOBAL_tape_info = new tape_info_t[GLOBAL_tapeinfo_size];
+
+  // scan /dev/rmt and insert tape entries
+  for (i=0; tape_dirs[i] != nil; i++) {
+    dirp = opendir(tape_dirs[i]);
+    if (dirp == 0) {
+      if (i > 0) {
+        // first is /dev/rmt
+        break;
+      }
+      avlfree(path_tree);
+      return 0;
+    }
+
+    for (ld = readdir(dirp); ld != 0; ld = readdir(dirp)) {
+      // grow the array if needed
+      if (count == GLOBAL_tapeinfo_size) {
+        GLOBAL_tapeinfo_size += 1;
+        GLOBAL_tape_info = renew GLOBAL_tape_info[GLOBAL_tapeinfo_size];
+      }
+      dp = *((dirent_t *) ld);
+
+      // skip . and ..
+      if (dp.d_name == "." || dp.d_name == "..") {
+        continue;
+      }
+
+      // skip everything but raw devices
+      if ( isdigit(dp.d_name[strlen(dp.d_name)-1]) == 0 ) {
+        continue;
+      }
+
+      // read the link
+      full = sprintf("%s/%s", tape_dirs[i], dp.d_name);
+
+      n = readlink(full, points_at, sizeof(points_at));
+      if (n == -1) {
+        closedir(dirp);
+        avlfree(path_tree);
+        return 0;
+      }
+      points_at[n] = '\0';
+
+      // chop off the :a at the end
+      strcpy(strrchr(points_at, ':'), "");
+
+      // hack off ../../devices from the start
+      sscanf(points_at, "../../devices%s", &points_at);
+
+      // hack off /dev/ from the start
+      // long name is the rmt/<tape device number>
+      sscanf(full, "/dev/%s", &buf);
+      GLOBAL_tape_info[count].long_name = buf;
+
+      GLOBAL_tape_info[count].short_name = nil;
+
+      // construct the short name
+      if ((np = str2int_get(path_tree, points_at)) != 0) {
+        n = ((int) *((ulong_t *) np));
+        p = strrchr(points_at, '/');
+        p = strtok(p, "/");
+        p = strtok(p, "@");
+        GLOBAL_tape_info[count].short_name = sprintf("%s%d", p, n);
+      }
+
+      // hard luck, can't find this device
+      if (GLOBAL_tape_info[count].short_name == nil) {
+        continue;
+      }
+
+      // squirrel this away while we're at it
+      GLOBAL_tape_info[count].errors =
+        find_tape_error(GLOBAL_tape_info[count].short_name);
+
+      count++;
+    }
+    closedir(dirp);
+  }
+
+  // tree the names for fast lookup
+  GLOBAL_tapeinfo_short_tree = str2int_init();
+  GLOBAL_tapeinfo_long_tree = str2int_init();
+  if ((GLOBAL_tapeinfo_short_tree == 0) || (GLOBAL_tapeinfo_long_tree == 0)) {
+    return 0;
+  }
+  for(i=0; i<count; i++) {
+    str2int_put(GLOBAL_tapeinfo_short_tree, GLOBAL_tape_info[i].short_name, i);
+    str2int_put(GLOBAL_tapeinfo_long_tree, GLOBAL_tape_info[i].long_name, i);
+  }
+
+  tapeinfo_inst_initialized = 1;
+  return 1;
+}
+
+// Function names must be changed to prevent conflict with diskinfo.se
+
+// use this function during init to map short names (st0) to indexes
+int
+find_tape_inst(string name)   // return index into GLOBAL_tape_info
+{
+  ulong_t lp;
+
+  if (setup_tapeinfo_inst() == 0) {
+    return -1;
+  }
+  lp = str2int_get(GLOBAL_tapeinfo_short_tree, name);
+  if (lp == 0) {
+    return -1;
+  }
+  return ((int) *((ulong_t *) lp));
+}
+#define find_tape_short_name find_tape_inst
+
+// use this function to do the reverse mapping from rmt/0
+int
+find_tape_long_name(string name)   // return index into GLOBAL_tape_info
+{
+  ulong_t lp;
+
+  if (setup_tapeinfo_inst() == 0) {
+    return -1;
+  }
+  lp = str2int_get(GLOBAL_tapeinfo_long_tree, name);
+  if (lp == 0) {
+    return -1;
+  }
+  return ((int) *((ulong_t *) lp));
+}
+
+// use this function to get the data for an index
+tape_info_t
+tape_info(int i, string name)
+{
+  tape_info_t no_info;
+
+  if (setup_tapeinfo_inst() == 0) {
+    return no_info;
+  }
+  if (i >= 0 && i < GLOBAL_tapeinfo_size) {
+    return GLOBAL_tape_info[i];
+  } else {
+    no_info.short_name = name;
+    no_info.long_name = name;
+    return no_info;
+  }
+}
+
+#endif

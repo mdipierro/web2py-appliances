@@ -1,0 +1,46 @@
+{{extend 'layout.html'}}
+
+<style>
+.thumbnail {
+	width:160px;
+	height:120px;
+	color:#000;
+	border: 2px solid;
+	margin:0px;
+	padding:0px;
+}
+
+.videodiv {
+	color:#000;
+	border: 3px solid;
+	padding: 5px;
+	margin: 5px;
+	width: 400px;
+}
+
+table td tr {
+	margin:0px;
+	padding:0px;
+	border:0px;
+}
+</style>
+
+<H1>V!deo Library!</H1>
+<table>
+{{for video in videos:}}
+	<tr><td>
+		<div class='videodiv'>
+		<table>
+		<tr><td><img class='thumbnail' src="{{=URL(r=request,c='appadmin',f='download',args=['db',video.converted_image])}}" /></td>
+		<td>
+				<h3>{{=A(video.title,_href=URL('show?id=%s'%video.id))}}</h3><br />
+				{{=video.description}}<br /><br />
+				{{=A('Delete',_href=URL('delete?id=%s'%video.id))}}
+		</td></tr></table>
+		</div>
+	</td></tr>
+{{pass}}
+	<tr>
+		<td><br /><b>{{=A('Add A New Video...',_href=URL('new_video'))}}</b></td>
+	</tr>
+</table>

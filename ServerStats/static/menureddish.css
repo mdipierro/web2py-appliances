@@ -1,0 +1,35 @@
+* {margin:0; padding:0;}
+body, div, span, p, a, img, ul, ol, li, caption, table, thead, tbody, tfoot, tr, th, td, form, fieldset, legend, label, dl, dt, dd, blockquote, applet, object, h2, h3, h4, h5 {border:0;}
+ul, ol, dl, fieldset {margin:15px 0;}
+textarea {height:50px; width:400px}
+table {margin: 0px; border:0 padding:0; spacing:0;}
+th {text-align:center; font-weight:bold;}
+th, td {padding:2px 2px;}
+ul, ol {margin-left:30px;}
+ul ul, ol ol {margin:0; margin-left:20px;}
+ol {list-style-type:decimal;}
+li {display:list-item;}
+tr, dt {text-align:left; vertical-alignment: top}
+dd {margin-left:30px;}
+fieldset {position:relative; padding:10px;}
+legend {position:absolute; top:-1em; margin:0; padding:5px 10px; font-size:100%; font-weight:bold;}
+.box {min-height:1px;}
+.box:after {display:block; visibility:hidden; clear:both; line-height:0; font-size:0; content:".";}
+.relative {position:relative;}
+.clear {clear:both;}
+.score {font-size:+1.2em; font-weight: bold; text-align: center; vertical-alignment: middle;}
+.article {font-size:+1.3em;}
+.error { background-color: red; color: white; padding: 3px}
+               
+#aside {float:right; width:200px; padding-right:1px; overflow:hidden;}
+#aside ul {margin:5px 0 15px 0; padding:0; list-style:none;}
+#aside ul li {margin:0; padding:4px 10px 4px 0;}
+
+/* COLOR */
+
+body
+a {color: #FF5C1F; text-decoration: none}
+
+
+#aside h3 {color:#175966;}
+#aside ul li {border-bottom:1px solid #175966;}

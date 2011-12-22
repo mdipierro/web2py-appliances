@@ -1,0 +1,41 @@
+{{extend 'layout.html'}}
+
+<h1>News</h1>
+
+<img src="{{=URL(r=request,c='static',f='news/announcement.png')}}" align="right"/>
+
+<table><tr><td class="gsearch">{{include 'gsearch.html'}}
+
+<center>
+<a href="{{=URL('rss',vars=dict(groups=','.join([str(i) for i in g_tuple])))}}"><img src="{{=URL(r=request,c='static',f='news/rss.png')}}"/></a>
+</center>
+
+</td><td>
+
+<h2>You received these Announcements</h2>
+[<a href="{{=URL('post_announcement')}}">post announcement</a>]<br/>
+{{if len(announcements):}}
+<table>
+{{for k,a in enumerate(announcements):}}
+<tr class="myitems" id="{{=a.announcement.title}}"><td>[A{{=a.announcement.id}}]</td><td><a onclick="$('#box{{=a.announcement.id}}').slideToggle();">{{=a.announcement.title}}</a> posted by <a href="mailto:{{=a.auth_user.email}}">{{=a.auth_user.name}}</a> on {{=a.announcement.posted_on}}
+[<a href="{{=URL('ignore_announcement',args=[a.announcement.id])}}">ignore</a>]
+<div id="box{{=a.announcement.id}}" class="box">
+<span style="visibility:hidden">{{=''.join(['[G%s]'%i for i in a.accessible_to])}}</span>
+{{=XML(a.announcement.body)}}
+<br/>
+{{if a.announcement.owner==auth.user_id:}}
+[<a href="{{=URL(r=request,c='access',f='change',args=['announcement',a.announcement.id],vars=dict(forward=URL(r=request)))}}">change permissions</a>]
+[<a href="{{=URL('edit_announcement',args=[a.announcement.id])}}">edit</a>]{{pass}}
+</div>
+{{if k>0:}}
+<script><!--
+$('#box{{=a.announcement.id}}').hide();
+//--></script>
+{{pass}}
+</td></tr>
+{{pass}}
+</table>
+{{else:}}
+No pending announcements
+{{pass}}
+</td></tr></table>

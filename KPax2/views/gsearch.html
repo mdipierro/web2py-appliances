@@ -1,0 +1,25 @@
+<script><!--
+function si() {
+  var items=new Array();
+  var itemss=new Array();
+  $('.mygroup').each(function(){if(this.checked) items=items.concat(this.name)});
+  try {
+    itemss=itemss.concat($('#search').attr('value').toLowerCase().replace(' ','\w+').split(','));
+  } catch(e) {}
+  $('.myitems').each(function(){
+    var show=false, html=this.innerHTML.toLowerCase();
+    for(i=0; i<items.length; i++) if(html.search(items[i])!=-1) show=true;
+    for(i=0; i<itemss.length; i++) if(html.search(itemss[i])<0) show=false;
+    if(show) $(this).fadeIn(); else $(this).fadeOut();
+  });
+}
+$(document).ready(function(){si()});
+//--></script>
+<form action="javascript:void(0);">
+<h3>Filter by Group</h3>
+{{for group in groups:}}
+<input type="checkbox" checked name="\[g{{=group.id}}\]" class="mygroup" onclick="si()"/> [G{{=group.id}}] {{=group.name}}<br/>
+{{pass}}<br/>
+<h3>Filter by Keyword</h3>
+<input id="search" name="search" length="8" value="" onchange="si()" onkeyup="si()"/><br/>
+</form>

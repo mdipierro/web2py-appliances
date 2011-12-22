@@ -1,0 +1,32 @@
+{{extend 'layout.html'}}
+
+<script>
+var counter=0;
+function countme(i) {  
+  if(i==counter+1 || i==1) {
+    counter=i;
+    jQuery('#counter').html(counter);
+    jQuery('.imgs').animate({ opacity: 1 }, 200);
+    for(j=1; j<=counter; j++) 
+       jQuery('#img'+j).animate({ opacity: 0.5 }, 200);
+  }
+}
+</script>
+
+<h1>{{=message}}</h1>
+<br/><br/>
+{{for i in range(1,session.j+1):}}
+<img src="{{=URL('static','trains/%s.jpg'%session.i)}}" id="img{{=i}}" class="imgs" onclick="countme({{=i}})" width="80px" />
+{{pass}}
+<div style="font-size:1.5em; padding:15px" id="counter">Need help? click on trains to count them!</div>
+<br/><br/>
+{{=form}}<br/>
+{{=A('Too difficult?',_href=URL('index?reset=True'))}}
+
+{{if audio:}}
+<embed src="{{=audio}}" autostart="true" loop="false"
+width="2" height="0">
+</embed> 
+{{pass}}
+
+

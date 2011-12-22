@@ -1,0 +1,4 @@
+<h3>Description</h3>
+<p><p>This is a File Tree Browser app with jquery and ajax. This application is under GPL license. It is designed to read information from a
+specified root folder in the server side and prevent to view your entire directory structure by spoofing the root parameter.</p>
+

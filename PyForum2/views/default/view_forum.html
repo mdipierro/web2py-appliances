@@ -1,0 +1,135 @@
+{{extend 'zlayout.html'}}
+
+<div class="breadcrumbs">
+    <a class="breadcrumbs" href="{{=URL(r=request, c='default', f='index')}}" title="{{=XML(T('Home'))}}">{{=XML(T('Home'))}}</a><span
+       class="sep"> / </span><b>{{=forum.forum_title}}</b>
+    {{if view_info['subscribed_to_forum']:}}<i>({{=XML(T('You are subscribed to this forum'))}})</i>{{pass}}
+</div>
+
+<div class="subnav">
+    {{=len(parent_topics)}} {{=XML(T('Topic(s) Found'))}}
+    {{if security_info['can_add']:}}
+        <span class="sep">|</span>
+        <a href="{{=URL(r=request, c='default', f='add_topic', args=[forum.id])}}" title="{{=XML(T('Add New Topic'))}}">{{=XML(T('Add New Topic'))}}</a>
+    {{pass}}
+    {{if auth_user.is_auth():}}
+        <span class="sep">|</span>
+        {{if view_info['subscribed_to_forum']:}}
+            <a href="{{=URL(r=request, c='default', f='view_forum', args=[forum.id, 0])}}" title="{{=XML(T('Unsubscribe from Forum'))}}">{{=XML(T('Unsubscribe from Forum'))}}</a>
+        {{else:}}
+            <a href="{{=URL(r=request, c='default', f='view_forum', args=[forum.id, 1])}}" title="{{=XML(T('Subscribe to Forum'))}}">{{=XML(T('Subscribe to Forum'))}}</a>
+        {{pass}}
+    {{pass}}
+</div>
+
+<div>{{=XML(view_info['pagination_widget'])}}</div>
+
+{{if parent_topics:}}
+    <form id="del_topics_form" method="post" action="">
+        <fieldset id="del_topics_form_fields">
+            <input type="hidden" id="form_submitted" name="form_submitted" value="1" />
+            <input type="hidden" id="forum_id" name="forum_id" value="{{=forum.id}}" />
+
+            {{if auth_user.has_role('zAdministrator'):}}
+                <div class="bottom-separator">
+                    <input type="submit"
+                    id="top_del_topics"
+                    name="del_topics"
+                    onclick="return confirm('WARNING: Removing a parent topic will also remove all of its sibling topcs\n\nPlease Confirm.');"
+                    value="{{=XML(T('Remove Checked Topics'))}}" />
+                </div>
+            {{pass}}
+
+            <table cellspacing="0" cellpadding="0" class="zf-table" class="max-width" style="width:100%;">
+                <thead>
+                    <tr class="shadedarker">
+                        <th class="cell3d">&nbsp;</th>
+                        <th class="cell3d" style="text-align:left;">{{=forum.forum_title}}</th>
+                        <th class="cell3d">{{=XML(T('By'))}}</th>
+                        <th class="cell3d" style="width:5%;max-width:5%">{{=XML(T('Replies'))}}</th>
+                        <th class="cell3d" style="width:5%;max-width:5%">{{=XML(T('Views'))}}</th>
+                        <th class="cell3d" style="width:20%;max-width:20%;white-space:nowrap;">{{=XML(T('Last Updated'))}}</th>
+                        <!-- !NEW CODE
+                                 Only display the thread tagging header if user is logged in. -->
+                        {{if auth_user.is_auth():}}
+                        <th class="cell3d" style="width:10%;max-width:10%;white-space:nowrap;">{{=XML(T('Add To Profile'))}}</th>
+                        {{pass}}
+                        <!-- !END NEW CODE -->
+                    </tr>
+                </thead>
+                <tbody>
+                    {{for row, this_topic in enumerate(parent_topics):}}
+                        <tr class="{{if row%2:}}shadedark{{else:}}shadelight{{pass}}">
+                            <td class="cell3d center-xy">
+                                {{if auth_user.has_role('zAdministrator'):}}
+                                    <input type="checkbox" id="del_topic_{{=this_topic.id}}" name="del_topic_{{=this_topic.id}}" value="{{=this_topic.id}}" />
+                                {{else:}}
+                                    &nbsp;
+                                {{pass}}
+                            </td>
+                            <td class="cell3d">
+                                {{if view_info[this_topic.id]['subscribed_to_topic']:}}<img src="{{=URL(r=request, c='static/images', f='subscribed.gif')}}" alt="[{{=XML(T('Subscribed to Topic'))}}]" class="imgclear" />{{pass}}
+                                {{if this_topic.sticky_flag:}}<img src="{{=URL(r=request, c='static/images', f='sticky_topic.gif')}}" alt="[{{=XML(T('Sticky Topic'))}}]" class="imgclear" />{{pass}}
+                                {{if this_topic.locked_flag:}}<img src="{{=URL(r=request, c='static/images', f='locked_topic.gif')}}" alt="[{{=XML(T('Locked Topic'))}}]" class="imgclear" />{{pass}}
+                                <a href="{{=URL(r=request, c='default', f='view_topic', args=[this_topic.id])}}" title="" class="linkb">{{=XML(parse_content(this_topic.title))}}</a>
+                                {{if view_info['zfsp_topic_teaser_length']:}}
+                                    <br /><span class="small">{{=parse_content(this_topic.content[:view_info['zfsp_topic_teaser_length']], mode='forumpreview')}} ..</span>
+                                {{pass}}
+                            </td>
+                            <!-- !MODIFIED CODE
+                                     Changed link to point oto provile rather than a page to send author a pm -->
+                            <td class="cell3d center-xy">{{if this_topic.creation_user_id:}}<a href="{{=URL(r=request, c='default', f='view_profile', args=[this_topic.creation_user_id])}}" title="">{{=forumhelper.get_display_name(this_topic.creation_user_id, 'Anonymous User')}}</a>{{else:}}Anonymous User{{pass}}</td>
+                            <!-- !END MODIFIED CODE -->
+                            <td class="cell3d center-xy">{{=topic_replies_info[this_topic.id]}}</td>
+                            <td class="cell3d center-xy">{{=this_topic.hits}}</td>
+                            <td class="cell3d center-xy">
+                                <div class="{{if (request.now - this_topic.modifying_date).days == 0:}}important{{else:}}small{{pass}}">
+                                    <span class="small">
+                                        {{=this_topic.modifying_date.strftime(str(T('%b %d, %Y - %I:%M %p')))}}
+                                    </span>
+                                    <br /><span class="small">{{=XML(T('By'))}}</span>
+                                    {{if not this_topic.modifying_user_id:}}
+                                        <b class="small">{{=XML(T('Anonymous User'))}}</b>
+                                    {{else:}}
+                                        {{if auth_user.is_auth():}}
+                                            <!-- !MODIFIED CODE
+                                                     Changed link to point to profile rather than page to send author a pm -->
+                                            <a href="{{=URL(r=request, c='default', f='view_profile', args=[this_topic.modifying_user_id])}}"
+                                               title=""
+                                               class="{{if (request.now - this_topic.modifying_date).days == 0:}}smallb-new{{else:}}smallb{{pass}}">{{=forumhelper.get_member_property('zfmp_display_name', this_topic.modifying_user_id, 'user_%s' % (this_topic.modifying_user_id))}}</a>
+                                            <!-- !END MODIFIED CODE -->   
+                                        {{else:}}
+                                            <b class="small">{{=forumhelper.get_member_property('zfmp_display_name', this_topic.modifying_user_id, 'user_%s' % (this_topic.modifying_user_id))}}</b>
+                                        {{pass}}
+                                    {{pass}}
+                                </div>
+                            </td>
+                            <!-- !NEW CODE
+                                     If the user is logged in, give them the option to add this forum to their 
+                                     list of profile threads. -->
+                            {{if auth_user.is_auth():}}
+                             <td class="cell3d center-xy">
+                                 <a href="{{=URL(r=request, c='default', f='edit_profile', args=['add_ref', this_topic.id])}}" title="" class="linkb">{{=XML(T('Add'))}}</a>
+                             </td>
+                            {{pass}}
+                            <!-- !END NEW CODE -->
+                        </tr>
+                    {{pass}}
+                </tbody>
+            </table>
+
+            {{if auth_user.has_role('zAdministrator'):}}
+                <div class="top-separator">
+                    <input type="submit"
+                    id="bottom_del_topics"
+                    name="del_topics"
+                    onclick="return confirm('WARNING: Removing a parent topic will also remove all of its sibling topcs\n\nPlease Confirm.');"
+                    value="{{=XML(T('Remove Checked Topics'))}}" />
+                </div>
+            {{pass}}
+
+        </fieldset>
+    </form>
+{{else:}}
+    <p class="warning">{{=XML(T('No topics found in this forum'))}}.</p>
+{{pass}}

@@ -1,0 +1,529 @@
+/*
+Design by Free CSS Templates
+http://www.freecsstemplates.org
+Released for free under a Creative Commons Attribution 2.5 License
+*/
+
+body {
+    margin: 0;
+    padding: 0;
+    background: #EFEFEF url(images/img01.jpg) repeat-x left top;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 12px;
+    color: #666666;
+	text-align: center;
+}
+
+h1, h2, h3 {
+    margin: 0;
+    font-family: Georgia, "Times New Roman", Times, serif;
+    font-weight: normal;
+    color: #4D4D4D;
+}
+
+h1 {
+    font-size: 2em;
+}
+
+h2 {
+    font-size: 2em;
+}
+
+h3 {
+    font-size: 1.6em;
+}
+
+p, ul, ol {
+    margin-top: 0;
+    line-height: 180%;
+}
+
+ul, ol {
+}
+
+a {
+    text-decoration: none;
+    border-bottom: 1px dotted #CC0001;
+    color: #BF4D36;
+}
+
+a:hover {
+    background: none;
+}
+
+/* Header */
+
+#header {
+    width: 900px;
+    height: 215px;
+    margin: 0 auto;
+    background: url(images/img02.jpg) no-repeat left top;
+	text-align: left;
+}
+
+/* Logo */
+
+#logo {
+    width: 600px;
+    padding: 140px 0 0 100px;
+    color: #BF4D02;
+}
+
+#logo h1, #logo p {
+}
+
+#logo h1 {
+    padding: 0;
+    margin-right: 10px;
+    letter-spacing: -1px;
+    text-transform: lowercase;
+    font-family: Georgia, "Times New Roman", Times, serif;
+    font-size: 2.8em;
+    font-style: italic;
+}
+
+
+#logo p {
+    margin: 0;
+    padding: 0;
+    font: normal 13px Georgia, "Times New Roman", Times, serif;
+    color: #7B5C02;
+}
+
+#logo p a {
+    color: #7B5C02;
+}
+
+#logo a {
+    border: none;
+    background: none;
+    text-decoration: none;
+    color: #BF4D02;
+}
+
+/* Search */
+
+#search {
+    float: right;
+    width: 230px;
+    padding: 0;
+}
+
+#search form {
+    height: 41px;
+    margin: 0;
+    padding: 70px 0 0 0px;
+}
+
+#search fieldset {
+    margin: 0;
+    padding: 0;
+    border: none;
+}
+
+#search-text {
+    width: 210px;
+    border: none;
+    text-transform: lowercase;
+    font: bold 1.2em Arial, Helvetica, sans-serif;
+    color: #FFFFFF;
+}
+
+#search-submit {
+    display: none;
+}
+
+/* Menu */
+
+#menu {
+    width: 910px;
+    height: 37px;
+    margin: 0 auto;
+    padding: 0;
+	text-align: left;
+}
+
+#menu ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    line-height: normal;
+}
+
+#menu li {
+    float: left;
+}
+
+#menu a {
+    display: block;
+    padding: 7px 25px 7px 20px;
+    text-decoration: none;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 12px;
+    font-weight: bold;
+    color: #FFFFFF;
+    border: none;
+}
+
+#menu a:hover, #menu .current_page_item a {
+}
+
+#menu a:hover {
+    background: url(images/img03.jpg) no-repeat center top;
+    text-decoration: none;
+}
+
+#menu .first {
+    background: url(images/img03.jpg) no-repeat center top;
+}
+
+#wrapper {
+    width: 900px;
+    margin: 0 auto;
+    margin-bottom: 20px;
+    background: url(images/img04.jpg) repeat-y left top;
+}
+
+#wrapper-top {
+    width: 900px;
+    background: url(images/img07.jpg) no-repeat left top;
+}
+
+#wrapper-btm {
+    width: 900px;
+    background: url(images/img05.jpg) no-repeat left bottom;
+}
+
+
+
+/* Page */
+
+#page {
+    width: 900px;
+    margin: 0 auto;
+    padding-top: 30px;
+	text-align: left;
+}
+
+/* Content */
+/* Content */
+
+#content2 {
+    float: left;
+    width: 860px;
+    padding-left: 20px;
+    padding-right: 20px;
+    z-index:1;
+}
+
+#content {
+    float: right;
+    width: 550px;
+    margin: 0;
+    padding: 0;
+    z-index:1;
+}
+
+.post {
+}
+
+.post .title {
+    color: #967001;
+    border-bottom: 1px #A9A9A9 dashed;
+}
+
+.post .title a {
+    background: none;
+    color: #967001;
+    border: none;
+}
+
+.post .title a:hover {
+    text-decoration: underline;
+}
+
+.post .meta {
+    margin-bottom: 30px;
+    padding: 3px 0px;
+    border-top: 1px #A9A9A9 dashed;
+    border-bottom: 1px #A9A9A9 dashed;
+    text-align: left;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 11px;
+}
+
+.post .entry {
+    padding: 10px 0 5px 0;
+    text-align: justify;
+}
+
+.post a {
+    color: #967001;
+    border-bottom: 1px #967001 dotted;
+}
+
+.post .meta a {
+    font-weight: bold;
+}
+
+
+/* Column */
+
+#column1 {
+    float: left;
+    width: 400px;
+    padding-right: 10px;
+}
+
+#column2 {
+    float: right;
+    width: 400px;
+    padding-left: 10px;
+}
+
+/* Sidebar */
+
+#sidebar {
+    float: left;
+    width: 260px;
+    margin: 0;
+    padding: 0 0 0 35px;
+}
+
+#sidebar ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+#sidebar li {
+    margin: 0;
+    padding: 0;
+}
+
+#sidebar li ul {
+    padding-bottom: 30px;
+}
+
+#sidebar li li {
+    line-height: 35px;
+    border-bottom: 1px dashed #590000;
+}
+
+#sidebar li li span {
+    display: block;
+    margin-top: -20px;
+    padding: 0;
+    font-size: 11px;
+    font-style: italic;
+}
+
+#sidebar h2 {
+    letter-spacing: -.5px;
+    color: #4D4D4D;
+}
+
+#sidebar p {
+    padding-bottom: 20px;
+    text-align: justify;
+}
+
+#sidebar a {
+    color: #BF4D36;
+    border: none;
+}
+
+#sidebar a:hover {
+    text-decoration: underline;
+    color: #787878;
+}
+
+/* Calendar */
+
+#calendar {
+}
+
+#calendar_wrap {
+    padding: 20px;
+}
+
+#calendar table {
+    width: 100%;
+}
+
+#calendar tbody td {
+    text-align: center;
+}
+
+#calendar #next {
+    text-align: right;
+}
+
+/* Footer */
+
+#footer {
+    width: 910px;
+    height: 30px;
+    margin: 0 auto;
+    padding: 40px 0 15px 0;
+    background: #4D4D4D url(images/img06.jpg) repeat-x left top;
+    font-family: Arial, Helvetica, sans-serif;
+    color: #FFFFFF;
+}
+
+#footer p {
+    margin: 0;
+    line-height: normal;
+    font-size: 9px;
+    text-transform: uppercase;
+    text-align: center;
+}
+
+#footer a {
+    color: #FF833B;
+    border-bottom: 1px #FF833B dotted;
+}
+
+
+/* 
+*Grid 
+*
+* The default style for SQLFORM.grid even using jquery-ui or another ui framework
+* will look better with the declarations below
+* if needed to remove base.css consider keeping these following lines in some css file.
+*/
+.web2py_grid a { text-decoration:none;}
+.web2py_grid table { width: 100% }
+.web2py_grid td { white-space:nowrap; }
+.web2py_grid th { background-color:#EAEAEA; }
+.web2py_grid tbody th,
+.web2py_grid tbody td {
+    padding: 5px 10px 5px;
+    line-height: 13.5px;
+    vertical-align: top;
+}
+.web2py_grid input:focus,
+.web2py_grid textarea:focus,
+.web2py_grid select:focus {  
+        border: 1px solid #ffffff;  
+        -webkit-box-shadow: 0px 0px 6px #007eff;  
+        -moz-box-shadow: 0px 0px 5px #007eff;  
+        box-shadow: 0px 0px 5px #007eff;  
+    } 
+
+.web2py_grid thead th {
+    padding-top: 9px;
+    font-weight: bold;
+    border-bottom: 1px solid #DDD;
+}
+.web2py_grid tr.odd {background-color: #F9F9F9;}
+.web2py_grid tr:hover {background-color: #F5F5F5; }
+
+.web2py_breadcrumbs a {
+    line-height: 20px; margin-right: 5px; display: inline-block;
+    padding: 3px 5px 3px 5px;
+    font-family: 'lucida grande', tahoma, verdana, arial, sans-serif;
+    color: #3C3C3D;
+    text-shadow: 1px 1px 0 #FFFFFF;
+    background:#ECECEC url('../images/css3buttons_backgrounds.png') 0 0 no-repeat;
+    white-space: nowrap; overflow: visible; cursor: pointer;
+    text-decoration: none; border: 1px solid #CACACA;
+    -webkit-border-radius: 2px; -moz-border-radius: 2px;
+    -webkit-background-clip: padding-box; border-radius: 2px;
+    outline: none; position: relative; zoom: 1; *display: inline;
+}
+
+.web2py_console {
+    background-color: #f2f2f2; padding: 5px; border-bottom: 1px solid #DDD; 
+    min-height: 60px;
+    text-align:center;
+}
+
+
+.web2py_search_actions{
+    width:40%;
+    float:left;
+    text-align:left;
+
+}
+.web2py_grid .row_buttons{
+    min-height:25px;
+}
+.web2py_grid>.row_buttons a{
+    margin:10px;
+}
+
+.web2py_grid .row_buttons a,
+.web2py_paginator ul li a,
+.web2py_search_actions a,
+.web2py_console input[type=submit],
+.web2py_console input[type=button],
+.web2py_console button,
+a.button {
+    line-height: 13.5px; margin-right: 5px; display: inline-block;
+    padding: 3px 5px 3px 5px;
+    font-family: 'lucida grande', tahoma, verdana, arial, sans-serif;
+    font-size: 12px;
+    color: #3C3C3D !important;
+    font-weight:normal !important;
+    text-shadow: 1px 1px 0 #FFFFFF;
+    background:#ECECEC url('../images/css3buttons_backgrounds.png') 0 0 no-repeat;
+    white-space: nowrap; overflow: visible;
+    cursor: pointer; text-decoration: none;
+    border: 1px solid #CACACA;
+    -webkit-border-radius: 2px; -moz-border-radius: 2px;
+    -webkit-background-clip: padding-box; border-radius: 2px;
+    outline: none; position: relative; zoom: 1; *display: inline;
+}
+.web2py_grid .row_buttons a:hover,
+.web2py_search_actions a:hover,
+.web2py_console input[type=submit]:hover,
+.web2py_console input[type=button]:hover,
+.web2py_paginator ul li a:hover,
+a.button:hover {
+    color: #FFFFFF; 
+    /*border-color: #e5e4e4; text-decoration: none;
+    text-shadow: -1px -1px 0 rgba(0,0,0,0.3);
+    background-position: 0 -40px;
+    background-color: #e5e4e4;
+    font-weight:normal !important;*/
+
+    border: 1px solid #fafafa;  
+    -webkit-box-shadow: 0px 0px 10px #007eff;  
+    -moz-box-shadow: 0px 0px 9px #007eff;  
+    box-shadow: 0px 0px 9px #007eff;  
+}
+.web2py_counter {
+    margin-top: 5px; 
+    margin-right:5px;
+    width:35%;
+    float:right;
+    text-align:right;
+}
+
+.web2py_table, .web2py_form {
+    
+    border-left: 1px solid #CCC;
+    border-right: 1px solid #CCC;
+    border-bottom: 1px solid #CCC;
+    border-top: 1px solid #CCC;
+}
+
+.web2py_paginator {
+    padding: 5px;
+    color: #333;
+    text-align:right;
+    background-color: #f2f2f2; padding: 5px; border-bottom: 1px solid #DDD; 
+   
+}
+.web2py_paginator ul {
+    list-style-type: none;
+    margin: 0px;
+    padding: 0px;
+}
+.web2py_paginator ul li {
+    display: inline;
+}
+.web2py_paginator ul li.current a {
+    font-weight: bold !important;
+}

@@ -1,0 +1,9 @@
+{{extend 'layout.html'}}
+<h1>Link page</h1>
+<h2>{{=survey.title}}</h2>
+<p>Inform persons to take this survey at<br/>
+<div style="margin: 30px">
+<a href="http://{{=host}}/{{=request.application}}/surveys/survey/{{=survey.id}}">http://{{=host}}/{{=request.application}}/surveys/survey/{{=survey.id}}</a>
+</div>
+<br/>
+</p>

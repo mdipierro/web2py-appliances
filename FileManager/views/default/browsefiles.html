@@ -1,0 +1,48 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+        <title>{{=request.application}}</title>        
+        <link rel="stylesheet" type="text/css" href={{=URL(r=request,c='static/styles',f='filemanager.css')}} />
+        {{include 'web2py_ajax.html'}}
+        <!--[if IE]>
+        <link rel="stylesheet" type="text/css" href={{=URL(r=request,c='static/styles',f='ie.css')}} />
+        <![endif]-->
+    </head>
+    <body>       
+        <div id="fileinfo"></div>
+        <script type="text/javascript" src={{=URL(r=request,c='static/scripts',f='jquery-1.2.6.min.js')}}></script>
+        <script type="text/javascript" src={{=URL(r=request,c='static/scripts',f='jquery.impromptu-1.5.js')}}></script>
+        <script type="text/javascript">
+         var result = '';
+         var data ={{=result}};
+        if(data){
+                result += '<ul id="contents" class="grid">';
+                
+                for(key in data){
+                    var props = data[key]['Properties'];
+                
+                    var scaledWidth = 64;
+                    var actualWidth = props['Width'];
+                    if(actualWidth > 1 && actualWidth < scaledWidth) scaledWidth = actualWidth;
+                
+                    result += '<li><div class="clip"><img src="' + data[key]['Preview'] + '" width="' + scaledWidth + '" alt="' + data[key]['Path'] + '" /></div><p>' + data[key]['Filename'] + '</p>';
+                    if(props['Width'] && props['Width'] != '') result += '<span class="meta dimensions">' + props['Width'] + 'x' + props['Height'] + '</span>';
+                    if(props['Size'] && props['Size'] != '') result += '<span class="meta size">' + props['Size'] + '</span>';
+                    if(props['Date Created'] && props['Date Created'] != '') result += '<span class="meta created">' + props['Date Created'] + '</span>';
+                    if(props['Date Modified'] && props['Date Modified'] != '') result += '<span class="meta modified">' + props['Date Modified'] + '</span>';
+                    result += '</li>';
+                }
+                
+                result += '</ul>';
+            }
+          $('#fileinfo').html(result);
+            
+            $('#fileinfo').find('#contents li').click(function(){
+                var path = $(this).find('img').attr('src');
+                 window.opener.CKEDITOR.tools.callFunction({{=cknum}}, path);
+                 window.close();
+            });
+    </script>               
+    </body>
+</html>

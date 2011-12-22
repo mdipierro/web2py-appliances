@@ -1,0 +1,44 @@
+{{extend 'layout.html'}}
+
+<table width="100%">
+<tr><td>
+<h2>Cosa hai perso?</h2>
+<form method="get" action="{{=URL('search/found')}}">
+<input type="text" name="query"/>
+<input type="submit" value="Cerca" />
+</form>
+</td><td>
+<h2>Cosa hai trovato?</h2>
+<form method="get" action="{{=URL('search/lost')}}">
+<input type="text" name="query"/>
+<input type="submit" value="Cerca" />
+</form>
+</td></tr><tr><td>
+<h2>Cosa ti serve?</h2>
+<form method="get" action="{{=URL('search/have')}}">
+<input type="text" name="query"/>
+<input type="submit" value="Cerca"/>
+</form>
+</td><td>
+<h2>Cosa puoi procurare?</h2>
+<form method="get" action="{{=URL('search/need')}}">
+<input type="text" name="query"/>
+<input type="submit" value="Cerca"/>
+</form>
+</td></tr>
+</table>
+
+<h2>Messaggi Recenti</h2>
+
+{{include 'default/maps.html'}}
+
+<table width="100%">
+{{for item in items:}}
+<tr>
+<td width="50px">{{=item.xwhen}}</td>
+<td width="50px">{{=tr[item.category].capitalize()}}</td>
+<td><a href="{{=URL('read',args=item.id)}}">{{=item.xwhat}} (#{{=item.id}})</a></td>
+<td><img src="{{=URL('download',args=item.image)}}" height="75px"/></td>
+</tr>
+{{pass}}
+</table>

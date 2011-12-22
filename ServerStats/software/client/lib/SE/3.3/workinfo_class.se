@@ -1,0 +1,342 @@
+#ifndef _WORKINFO_CLASS_SE_
+#define _WORKINFO_CLASS_SE_
+
+/***********************************************************
+*                                                          *
+*  Workinfo class is based on Adrian's workload class      *
+*                                                          *
+***********************************************************/
+
+/**************************************************************************
+Usage notes -
+This class is designed to collect process statistics for any group of
+processes defined by executed command, command arguments, executing user,
+and processor set binding.
+This class looks for WORKLOAD_INFO environment variable to initialize.
+
+To initialize workload information set WORKLOAD_INFO in the environment
+in the following way:
+WORKLOAD_INFO=name,command,args,user,exact,cnt,pset;...;...
+export WORKLOAD_INFO
+
+DO NOT use quotes ("") around string values (name,command,args,user).
+To skip one of the parameters use a SINGLE space. Missing or skipped
+parameters are ignored during process matching.
+Missing name defaults to WorkloadN, where N is workload number.
+Missing command, args, or user are skipped.
+By default pset is set to -1, cnt and exact are set to 0;
+
+Set pset to -1 to unset matching on processor set.
+Set exact to non-zero for exact matching, or 0 for pattern matching.
+Set cnt to non-zero to only count the number of processes and threads
+in a given workload. Other data is neither collected nor printed.
+
+If there is not enough process parameters defined in a set, workload
+parameters initialized in order with supplied data and the rest of the
+parameters are set to their default values.
+
+Set WORKLOAD_FIRSTMATCH=0 in the environment to match each process
+for all workloads.
+Set WORKLOAD_FIRSTMATCH=1 in the environment to match each process
+for one workload only.
+
+If WORKINFO_PRINT is defined, workload information is printed after
+initialization to allow for verification of workload data.
+
+Examples:
+export WORKLOAD_INFO='SE,se.sparc'
+Defines one workload with the name SE, command se.sparc, args and user
+empty string, exact 0 (match patterns), and no processor set.
+
+export WORKLOAD_INFO='SE,se.sparc, , ,1'
+The same as the above except matching is exact
+
+export WORKLOAD_INFO='SE,se.sparc;Ora, , ,oracle,1,1'
+Defines two workloads. In addition to SE workload, defines a workload named Ora
+that counts all processes owned by user oracle.
+
+Class usage example:
+########################################
+
+#include <workinfo_class.se>
+
+measure_workload()
+{
+  work_info_class_t ww;
+
+  ww.number = -1;
+#ifdef WORKLOAD_NO_TOTAL
+  refresh$(ww);
+#endif // WORKLOAD_NO_TOTAL
+  for (refresh$(ww); ww.number != -1; refresh$(ww)) {
+    printf("Wrkld=%s, number of procs=%d\n",ww.w.name,ww.w.count);
+    printf("Wrkld=%s, number of threads=%d\n",ww.w.name,ww.w.info.lwp_count);
+    // Get other data if not just counting processes
+    if (ww.w.cnt == 0) {
+      printf("Wrkld=%s, cpu_usr=%d\n",ww.w.name,100.0*ww.w.info.user_time);
+      printf("Wrkld=%s, cpu_sys=%d\n",ww.w.name,100.0*(ww.w.info.system_time+
+                                                       ww.w.info.trap_time));
+      printf("Wrkld=%s, cpu_wait=%d\n",ww.w.name,100.0*ww.w.info.cpu_wait_time);
+      <...>
+    }
+  }
+<...>
+}
+########################################
+
+**************************************************************************/
+
+#include <unistd.se>
+#include <dirent.se>
+#include <fcntl.se>
+#include <proc.se>
+#include <orca_process_class.se>
+#include <pwd.se>
+
+struct work_info_t {
+  string       name;    // Used by orcallator for header names for this workload
+  string       command; // String to match against command name
+  string       args;    // String to match against command args
+  string       user;    // String to match against user name
+  int          exact;   // Set to match exact names instead of patterns
+  int          cnt;     // Set to count processes and threads only
+  int          pset;    // Processor set to match against
+  int          count;   // Number of processes that matched
+  proc_class_t info;    // Use same data type to accumulate data
+};
+
+int match_proc(proc_class_t p, work_info_t w) {
+  passwd_t     pw;
+  pointer_t    ppw;
+
+  if (w.command != "") {                // If command is defined and...
+    if(w.exact == 0) {                  // pattern matching and...
+      if(!(p.fname =~ w.command)) {     // pattern does not match -
+        return 0;                       // exit and signal no match
+      }
+    } else {                            // exact command matching and...
+      if(p.fname != w.command) {        // command does not match -
+        return 0;                       // exit and signal no match
+      }
+    }
+  }
+
+  if (w.args != "") {                   // If args is defined and...
+    if(w.exact == 0) {                  // pattern matching and...
+      if(!(p.args =~ w.args)) {         // pattern does not match -
+        return 0;                       // exit and signal no match
+      }
+    } else {                            // exact args matching and...
+      if(p.args != w.args) {            // args does not match -
+        return 0;                       // exit and signal no match
+      }
+    }
+  }
+
+  if (w.user != "") {                   // If user name is defined and...
+    ppw = getpwuid(p.uid);              // Get user information for this process
+    if (ppw == 0) {                     // If unsuccessful...
+      return 0;                         // return no match
+    }
+    pw = *((passwd_t *) ppw);
+    if(w.exact == 0) {                  // pattern matching and...
+      if(!(pw.pw_name =~ w.user)) {     // pattern does not match -
+        return 0;                       // exit and signal no match
+      }
+    } else {                            // exact user name  matching and...
+      if(pw.pw_name != w.user) {        // user name does not match -
+        return 0;                       // exit and signal no match
+      }
+    }
+  }
+
+  if ((w.pset != -1) && (p.bindpset != w.pset)) {
+    return 0;
+  }
+
+  return 1;
+}
+
+class work_info_class_t {
+  int            number;        // Current workload
+  work_info_t    w;             // Data for current workload
+
+  work_info$() {
+    work_info_t  wi[];          // Workload data dynamic array
+    int          wc = 0;        // Number of workloads
+    int          firstmatch;    // Set to use first workload that matches only
+    string       fmstring;
+    proc_class_t pp;            // Underlying process class data (snapshot)
+    proc_class_t ppzero;        // Used to zero out by copying
+    double       iv;
+    int          i;
+    string       wstring;
+    string       wstr;
+    string       dstr;
+    ulong        pwstring;
+    ulong        pwstr;
+    int          initialized = 0;
+
+    if (initialized == 0) {                     // Initialize class
+      refresh$(pp);                             // Setup proc_class
+      fmstring = getenv("WORKLOAD_FIRSTMATCH"); // Load user defined matching policy
+      wstring = getenv("WORKLOAD_INFO");        // Load user defined data for matching
+
+      // Set matching policy
+      if (fmstring != nil) {
+        firstmatch = atoi(fmstring);
+      } else {
+        // Default to each process in one workload only
+        firstmatch = 1;
+      }
+
+      // Allocate memory for collecting totals
+      wi = new work_info_t[1];
+      wi[wc].name = "Total";
+      wi[wc].command = "";
+      wi[wc].args = "";
+      wi[wc].user = "";
+      wi[wc].pset = -1;
+
+      // Parse wstring into individual workloads
+      for (wstr = strtok_r(wstring, ";", &pwstring); wstr != nil; wstr = strtok_r(nil, ";", &pwstring)) {
+        // Allocate memory for this workload
+        wi = renew wi[++wc+1];
+        wi[wc].name = strtok_r(wstr, ",", &pwstr);    // Get name
+        if (wi[wc].name == nil || wi[wc].name == " ") {
+          wi[wc].name = sprintf("Workload%d", wc);
+        }
+        wi[wc].command = strtok_r(nil, ",", &pwstr);  // Get command
+        if (wi[wc].command == nil || wi[wc].command == " ") {
+          wi[wc].command = "";
+        }
+        wi[wc].args = strtok_r(nil, ",", &pwstr);     // Get args
+        if (wi[wc].args == nil || wi[wc].args == " ") {
+          wi[wc].args = "";
+        }
+        wi[wc].user = strtok_r(nil, ",", &pwstr);     // Get user
+        if (wi[wc].user == nil || wi[wc].user == " ") {
+          wi[wc].user = "";
+        }
+        dstr = strtok_r(nil, ",", &pwstr);            // Get exact
+        if (dstr != nil) {
+          wi[wc].exact = atoi(dstr);
+        }
+        dstr = strtok_r(nil, ",", &pwstr);            // Get cnt
+        if (dstr != nil) {
+          wi[wc].cnt = atoi(dstr);
+        }
+        dstr = strtok_r(nil, ",", &pwstr);            // Get pset
+        if (dstr == nil || dstr == " ") {
+          wi[wc].pset = -1;
+        } else {
+          wi[wc].pset = atoi(dstr);
+        }
+      }
+
+#ifdef WORKINFO_PRINT
+      printf("\nWorkinfo class is initialized with the following data\n");
+      printf("Number of workloads = %d, firstmatch = %d (%s)\n",
+              wc, firstmatch, (firstmatch == 0 ? "Match all workloads" : "Match each process only once"));
+      for(i=1; i <= wc; i++) {
+        printf("Workload number %3d\n-------------------\n", i);
+        printf("name ....................  %s\n", wi[i].name);
+        printf("command .................  %s\n", wi[i].command);
+        printf("args ....................  %s\n", wi[i].args);
+        printf("user ....................  %s\n", wi[i].user);
+        printf("exact ...................  %d\n", wi[i].exact);
+        printf("pset ....................  %d\n", wi[i].pset);
+        printf("Only count the number of\nprocesses and threads ...  %s\n\n",
+                (wi[i].cnt == 0 ? "No" : "Yes"));
+      }
+#endif // WORKINFO_PRINT
+
+      number = -1;
+      initialized = 1;
+      return;
+    }
+
+    if (number != -1) {                            // Data is available
+      if (number > -1 && number < wc) {
+        w = wi[++number];                          // Return next workload data
+      } else {
+        w = wi[0];                                 // Set w to Total data
+        number = -1;                               // Signal end of data
+      }
+      return;
+    }
+
+    for(i=0; i <= wc; i++) {                       // Reset counters
+      wi[i].count = 0;
+      wi[i].info = ppzero;                         // Not easy to use memset instead
+    }
+    refresh$(pp);                                  // Get the snapshot
+    while (pp.index$ != -1) {
+      if (pp.termination != 0.0) {
+        continue;                                  // Don't add in dead processes
+      }
+      for(i=0; i <= wc; i++) {
+        if (i == 0 ||                              // Accumulate totals
+            (match_proc(pp, wi[i]) != 0)) {
+          wi[i].info.interval = pp.interval;       // Take the last interval seen
+          iv = pp.interval;
+          if (iv == 0.0) { iv = 1.0; }             // Safety net
+          if (pp.creation < wi[i].info.creation) { // Take the earliest creation
+            wi[i].info.creation = pp.creation;
+          }
+          if (wi[i].cnt == 0) {
+            // Track individual times
+            wi[i].info.lasttime = pp.lasttime;
+            wi[i].info.total_user += pp.total_user;
+            wi[i].info.total_system += pp.total_system;
+            wi[i].info.total_child += pp.total_child;
+            // Intervals vary, so accumulate here
+            wi[i].info.user_time += pp.user_time/iv;
+            wi[i].info.system_time += pp.system_time/iv;
+            wi[i].info.trap_time += pp.trap_time/iv;
+            wi[i].info.child_time += pp.child_time/iv;
+            wi[i].info.text_pf_time += pp.text_pf_time/iv;
+            wi[i].info.data_pf_time += pp.data_pf_time/iv;
+            wi[i].info.kernel_pf_time += pp.kernel_pf_time/iv;
+            wi[i].info.user_lock_time += pp.user_lock_time/iv;
+            wi[i].info.sleep_time += pp.sleep_time/iv;
+            wi[i].info.cpu_wait_time += pp.cpu_wait_time/iv;
+            wi[i].info.stoptime += pp.stoptime/iv;
+            wi[i].info.syscalls += pp.syscalls/iv;
+            wi[i].info.inblocks += pp.inblocks/iv;
+            wi[i].info.outblocks += pp.outblocks/iv;
+            // Next four are sizes not rates
+            wi[i].info.vmem_size += pp.vmem_size;
+            wi[i].info.rmem_size += pp.rmem_size;
+#ifdef XMAP
+            wi[i].info.pmem_size += pp.pmem_size;
+            wi[i].info.smem_size += pp.smem_size;
+#endif
+            wi[i].info.maj_faults += pp.maj_faults/iv;
+            wi[i].info.min_faults += pp.min_faults/iv;
+            wi[i].info.total_swaps += pp.total_swaps/iv;
+            wi[i].info.messages += pp.messages/iv;
+            wi[i].info.signals += pp.signals/iv;
+            wi[i].info.vcontexts += pp.vcontexts/iv;
+            wi[i].info.icontexts += pp.icontexts/iv;
+            wi[i].info.charios += pp.charios/iv;
+            // Divide these three by wi[i].count
+            wi[i].info.priority += pp.priority;
+            wi[i].info.niceness += pp.niceness;
+          }
+          wi[i].info.lwp_max += pp.lwp_max;
+          wi[i].info.lwp_count += pp.lwp_count;
+          wi[i].count++;
+          if (firstmatch == 1 && i > 0) {         // First match only counts
+            break;
+          }
+        }
+      }
+      refresh$(pp);                                // Next process
+    }
+    number = 0;
+    w = wi[number];
+  }
+};
+
+#endif

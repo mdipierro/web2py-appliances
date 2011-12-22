@@ -1,0 +1,160 @@
+{{extend 'zlayout.html'}}
+
+<h2 class="fancy">{{=XML(T('pyForum Administration - User Administration - Edit User'))}}</h2>
+
+{{include 'zadmin/admin_options.html'}}
+
+{{if not view_info['props']['is_enabled']:}}
+    <p class="warning"><b>{{=XML(T('This user is currently disabled'))}}.</b><p>
+{{pass}}
+
+<form method="post" id="user_edit_form" action="" enctype="multipart/form-data">
+    <fieldset id="user_edit_form_fields">
+        <input type="hidden" id="form_submitted" name="form_submitted" value="1" />
+        <input type="hidden" id="user_id" name="user_id" value="{{=user_id}}" />
+        <input type="hidden" id="warn_disable" name="warn_disable" value="{{=XML(T('Warning. Disabling a user will prevent him/her from logging into the system (you can change this later). Please confirm'))}}" />
+        <input type="hidden" id="warn_enable" name="warn_enable" value="{{=XML(T('Please confirm you wish to enable this user'))}}" />
+
+        <table cellspacing="2" cellpadding="2">
+            <tbody>
+                <tr>
+                    <td>{{=XML(T('Email'))}}:</td>
+                    <td><a href="mailto:{{=user_email}}" title="{{=user_email}}">{{=user_email}}</a></td>
+                </tr>
+                <tr>
+                    <td>{{=XML(T('Username'))}}:</td>
+                    <td><input type="text" style="width:200px;" class="formelem"
+                               name="username"
+                               id="username"
+                               value="{{=request.vars.get('username', view_info['props']['username'])}}" />
+                    <i class="note">* {{=XML(T('This will display in you postings, search, etc'))}}.</i>
+                    </td>
+                </tr>
+                <tr>
+                    <td>{{=XML(T('New Password'))}}:</td>
+                    <td><input type="password" style="width:500px;" class="formelem" name="new_passwd" id="new_passwd"
+                    value="" /> <i class="note">* {{=XML(T('Leave empty for no change'))}}</i></td>
+                </tr>
+                <tr>
+                    <td>{{=XML(T('New Password Confirmation'))}}:</td>
+                    <td><input type="password" style="width:500px;" class="formelem" name="new_passwd_confirm" id="new_passwd_confirm"
+                    value="" /> <i class="note">* {{=XML(T('Leave empty for no change'))}}</i></td>
+                </tr>
+                <tr>
+                    <td>{{=XML(T('Real Name'))}}:</td>
+                    <td><input type="text" style="width:500px;" class="formelem" name="real_name" id="real_name"
+                    value="{{=request.vars.get('real_name', view_info['props']['real_name'])}}" /></td>
+                </tr>
+                <tr>
+                    <td>{{=XML(T('Web Page'))}}:</td>
+                    <td><input type="text" style="width:500px;" class="formelem" name="web_page" id="web_page"
+                    value="{{=request.vars.get('web_page', view_info['props']['web_page'])}}" /></td>
+                </tr>
+                <tr>
+                    <td>{{=XML(T('City/Country'))}}:</td>
+                    <td><input type="text" style="width:500px;" class="formelem" name="country" id="country"
+                    value="{{=request.vars.get('country', view_info['props']['country'])}}" /></td>
+                </tr>
+                <tr>
+                    <td>{{=XML(T('Signature'))}}:</td>
+                    <td>
+                        <textarea id="signature" name="signature" cols="0" rows="0" class="formelem code"
+                        style="width:500px;height:100px;">{{=request.vars.get('signature', view_info['props']['signature'])}}</textarea>
+                    </td>
+                </tr>
+                <tr>
+                    <td>{{=XML(T('Display Language'))}}:</td>
+                    <td>
+                        <select id="lang_code" name="lang_code">
+                            <option value="">{{=XML(T('System Default'))}}</option>
+                            {{if available_languages:}}
+                                {{for lang in available_languages:}}
+                                    <option value={{=lang.language_code}}">{{=lang.language_desc}}</option>
+                                {{pass}}
+                            {{pass}}
+                        </select>
+                    </td>
+                </tr>
+                <tr>
+                    <td><label for="allow_pm_use">{{=XML(T('Allow contact via PM'))}}:</label></td>
+                    <td>
+                        <input type="checkbox" id="allow_pm_use" name="allow_pm_use"
+                        {{if request.vars.get('allow_pm_use', view_info['props']['allow_pm_use']):}}checked="checked"{{pass}} />
+                    </td>
+                </tr>
+                <tr>
+                    <td>{{=XML(T('Posts'))}}:</td>
+                    <td>{{=view_info['props']['postings']}}</td>
+                </tr>
+                <tr>
+                    <td>{{=XML(T('Last Login'))}}:</td>
+                    <td>{{=view_info['props']['last_login']}}</td>
+                </tr>
+                <tr>
+                    <td>{{=XML(T('Forum Subscriptions'))}}:</td>
+                    <td>
+                        {{if len(forum_subscriptions):}}
+                            <select id="remove_forum_subscription" name="remove_forum_subscription" multiple="multiple"
+                                    style="width:500px;height:100px;">
+                                {{for f_sub in forum_subscriptions:}}
+                                    <option value="{{=f_sub.id}}">{{=f_sub.forum_title}}</option>
+                                {{pass}}
+                            </select>
+                        {{else:}}
+                            {{=XML(T('User is not subscribed to any forums'))}}
+                        {{pass}}
+                    </td>
+                </tr>
+                <tr>
+                    <td>{{=XML(T('Topic Subscriptions'))}}:</td>
+                    <td>
+                        {{if len(topic_subscriptions):}}
+                            <select id="remove_topic_subscription" name="remove_topic_subscription" multiple="multiple"
+                                    style="width:500px;height:100px;">
+                                {{for f_sub in topic_subscriptions:}}
+                                    <option value="{{=f_sub.id}}">{{=f_sub.title}}</option>
+                                {{pass}}
+                            </select>
+                        {{else:}}
+                            {{=XML(T('User is not subscribed to any topics'))}}
+                        {{pass}}
+                    </td>
+                </tr>
+                <tr>
+                    <td>{{=XML(T('Avatar'))}}:</td>
+                    <td>
+                        {{if forumhelper.has_member_avatar(user_id):}}
+                            <img src="{{=URL(r=request, c='zadmin', f='get_avatar_image', args=[user_id])}}" alt="" />
+                            <label for="remove_avatar">{{=XML(T('Remove'))}}:</label>
+                            <input type="checkbox" id="remove_avatar" name="remove_avatar" {{if request.vars.get('remove_avatar', ''):}}checked="checked"{{pass}} />
+                            <br />
+                        {{pass}}
+                        <input type="file" id="avatar_data" name="avatar_data" />
+                    </td>
+                </tr>
+                <tr>
+                    <td>{{=XML(T('Available Roles'))}}:</td>
+                    <td>
+                        <select id="new_role" name="new_role">
+                            {{for role in view_info['available_roles']:}}
+                                <option value="{{=role.id}}" {{if view_info['current_role_id'] == role.id:}}selected="selected"{{pass}}>{{=role.auth_role_name}}</option>
+                            {{pass}}
+                        </select>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+
+        <p class="note">{{=XML(T('For Forums/Topics subscriptions, select the ones you wish to unsubscribe from and submit your form'))}}.</p>
+
+        <div class="both-separator">
+            <input type="submit" id="update_b" name="update_b" value="{{=XML(T('Update Profile'))}}" />
+            {{if view_info['props']['is_enabled']:}}
+                <input type="submit" id="disable_b" name="disable_b" value="{{=XML(T('Disable User'))}}" onclick="return confirm(document.getElementById('warn_disable').value);" />
+            {{else:}}
+                <input type="submit" id="enable_b" name="enable_b" value="{{=XML(T('Enable User'))}}" onclick="return confirm(document.getElementById('warn_enable').value);" />
+            {{pass}}
+            <input type="submit" id="cancel_b" name="cancel_b" value="{{=XML(T('Cancel'))}}" />
+        </div>
+    </fieldset>
+</form>

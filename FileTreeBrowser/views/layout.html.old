@@ -1,0 +1,67 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="{{=T.accepted_language or 'en'}}">
+  <head>
+    <title>{{=response.title or request.application}}</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <!-- include requires CSS files
+    {{response.files.append(URL(request.application,'static','base.css'))}}
+    {{response.files.append(URL(request.application,'static','ez-plug-min.css'))}}
+    -->
+    {{include 'web2py_ajax.html'}}
+    <script type="text/javascript">
+      <!-- /* this adds sfhover class to menu li items to make IE6 work */ jQuery(document).ready(function(){jQuery('li.web2py-menu-expand').hover(function () {jQuery(this).addClass('sfhover');},function () {jQuery(this).removeClass('sfhover');});});//-->
+    </script>
+  </head>
+  <body>
+    <div class="flash">{{=response.flash or ''}}</div>
+    <div class="ez-wr wrapper layout">
+      <div class="ez-box header">
+        <h1>
+          {{=A(response.title or request.application, _href=URL(request.application,'default','index'))}}
+        </h1>            
+        <h3>{{=response.subtitle or ''}}</h3>
+      </div>
+      <div class="ez-box statusbar">
+	{{ if 'auth' in globals():}}
+	{{if not auth.user:}} [
+	{{=A(T('login'),_href=URL(r=request,c='default',f='user/login'))}} |
+	{{=A(T('register'),_href=URL(r=request,c='default',f='user/register'))}} ]
+	{{else:}}
+	{{=T('Welcome %s',auth.user.first_name)}} [
+	{{=A(T('logout'),_href=URL(r=request,c='default',f='user/logout'))}} |
+	{{=A(T('edit profile'),_href=URL(r=request,c='default',f='user/profile'))}} |
+	{{=A(T('change password'),_href=URL(r=request,c='default',f='user/change_password'))}} ]
+	{{pass}}
+	{{pass}}
+      </div>
+      <!-- ez-css Module 2A -->
+      <div class="ez-wr">
+        <div class="ez-fl ez-negmr">
+          <!-- td class="width10em column1" -->
+	  <div class="ez-box width10em column1">
+            {{if response.menu:}}
+            <h2>{{=T('Main Menu')}}</h2>
+            {{=MENU(response.menu)}}
+            {{pass}}
+            {{if response.menu_edit:}}
+            <h2>{{=T('Edit This App')}}</h2>
+            {{=MENU(response.menu_edit)}}	    
+            {{pass}}
+            <br />
+	  </div>
+	</div>
+	<div class="ez-last ez-oh">
+	  <div class="ez-box expandable">
+            {{include}}
+          </div>
+	</div>
+      </div> 
+      <div class="ez-box footer">
+        <p>
+          {{=T('Copyright')}} &#169; 2009 -
+          {{=T('Powered by')}} <a href="http://www.web2py.com">web2py</a>
+        </p>
+      </div>
+    </div>
+  </body>
+</html>

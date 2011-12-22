@@ -1,0 +1,201 @@
+
+
+#jDialogOverlay {
+	background:#000;
+	filter:alpha(opacity=85);
+	-moz-opacity:.85;
+	opacity:.85;
+	z-index:1000;
+	display:none;
+}
+
+#jDialogProgressBar {
+	position:fixed; 
+	display:block; 
+	top: 10px; 
+	left:20px; 
+	width:220px;
+	height:19px;
+	display:none; 
+	z-index:900000;
+}
+
+.DialogContainer{
+	background:#1C3E61;
+	text-align:left;
+	width:510px;
+	float:left;
+	position:relative;
+	padding:6px 0;
+	z-index:1001;
+	display:none;
+}
+.DialogContainer{
+	color:#FFF;
+	font-size:12px;
+	font-family:Arial, Helvetica, sans-serif;
+}
+.DialogTitleContainer{
+	padding:6px 12px;
+}
+.DialogTitle{
+	font-size:12pt;
+	font-weight:bold;
+}
+.DialogTitle span{
+	font-size:18px;	
+}
+.DialogControl a{
+	color:#999999;
+	font-weight:bold;
+	text-decoration:none;
+}
+.DialogControl a:hover{
+	color:#ff9900;
+}
+.DialogControl a img{
+	vertical-align:top;
+}
+.DialogPane{
+	float:left;
+	display:inline;
+}
+.ErrorMsg{
+	font-weight:bold;
+	font-size:13px;
+	padding:0 12px 70px;
+	color:#666;
+}
+.MainPane{
+	width:100%;
+}
+.ChartWrapper{
+	margin:0 6px 6px;
+	display:inline;
+	background:#F7F7F7 url(images/box_bg.gif) repeat-y left top;
+	float:left;
+	width:495px;
+}
+.ChartTitleWapper{
+	background:url(images/box_tl.gif) no-repeat left top;
+}
+.ChartTitle{
+	color:#555;
+	font-size:14px;
+	font-weight:bold;
+	padding:5px 8px 15px;
+	background:url(images/box_tr.gif) no-repeat right top;
+}
+.ChartTitle a {
+	color:#555;
+	text-decoration:underline;
+}
+.Charts{
+	margin:0;
+	padding:0 0 8px 0;
+	float:left;
+	list-style-type:none;
+}
+.Charts li{
+	display:inline;
+	float:left;
+	width:114px;
+	vertical-align:middle;
+	text-align:center;
+	margin:0 3px;
+	font-weight:bold;
+	color:#666666;
+}
+.Charts li .Period{
+	color:#ADADAD;
+}
+.Legends{	
+	margin:0 0 0 20px;
+	padding:0;
+	list-style-type:none;
+}
+.Legends li{
+	display:inline;
+	color:#1C3E61;
+	font-size:10px;
+	font-weight:bold;
+	margin:0;
+	padding:0 10px 6px 8px;
+}
+.ChartFooter{
+	float:left;
+	background:url(images/box_bottom.gif) no-repeat left bottom;
+	height:10px;
+	width:495px;
+}
+.ChartBody {
+/*	line-height:3em;*/
+padding:0 15px 15px 20px;
+color:#333;
+font-weight:bold;
+font-size:14px;
+}
+
+.ChartBody *{
+color:#333;
+}
+
+.ChartBody .ChartTable {
+height: 200px;
+overflow: auto;
+overflow-x: hidden;
+}
+
+.ChartBody .ChartTable th{
+background:#888;
+color:#FFF;
+border:#808080 1px solid;
+font: 14px Tahoma;
+font-weight:bold;
+text-align:center;
+}
+.ChartBody .ChartTable tr td{
+background:#EEE;
+border:#DFDFDF 1px solid;
+}
+
+.ChartBody .ChartTable tr td.DialogSelected {
+background:#FFCCCC;
+}
+
+.ChartBody .ChartTable tr.odd td{
+background:#EAEAEA;
+border:#DDD 1px solid;
+}
+
+.buttonRow {
+text-align:center;
+}
+
+.SidePane{
+	float:right;
+	width:130px;
+}
+.DescTitle{
+	font-weight:bold;
+	font-size:22px;
+	font-family:Helvetica, Arial, sans-serif;
+}
+.DescWrapper{
+	margin:6px 12px 6px 0;
+	display:inline;
+}
+.DescWrapper a{
+	color:#888;
+	text-decoration:underline;
+}
+.DialogControl{
+	float:right;
+	cursor:pointer;
+	display:inline;
+}
+.DialogAction{
+	padding:10px;
+	text-align:center;
+}
+

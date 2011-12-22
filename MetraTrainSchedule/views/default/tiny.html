@@ -1,0 +1,48 @@
+<html><body>
+{{
+check,t0=True,today.hour*60+today.minute
+def format_time(t,cc=False,ct=[check,t0]):
+   h=t/60
+   m=t-h*60
+   t1='%i:%.2i'%(h,m)
+   if h>11 and h<24:
+       t1=t1+'pm'
+   else:
+       t1=t1+'am'   
+       pass
+   if cc and ct[0] and t>ct[1]: ct[0],t1=False,TAG.BLINK(B(t1))
+   return t1
+}}
+
+<h2>Search For Trains</h2>
+{{=form}}
+<br/><br/>
+
+{{if len(trains):}}
+<h2>Timetable</h2>
+[<a href="{{=URL(r=request,vars=dict(arrival=session.vars.departure,departure=session.vars.arrival,when=session.vars.when))}}">return trains</a>]
+<table class="sortable" id="sortable_table">
+<thead>
+<tr>
+    <td>#</td>
+    <td></td>
+    <td>Departure</td>
+    <td></td>
+    <td>Arrival</td>
+</tr>   
+</thead>
+<tbody>
+{{for train in trains:}}
+<tr>
+<td style="text-align: right"><a href="{{=URL('train',args=[request.vars.when,train.departure.number])}}">{{=train.departure.number}}</a></td>
+<td style="text-align: right">{{=format_time(train.departure.time,True)}}</td>
+<td><a href="{{=URL('station',args=[train.departure.station])}}">{{=stations[train.departure.station]}}</a></td>
+<td style="text-align: right">{{=format_time(train.arrival.time)}}</td>
+<td><a href="{{=URL('station',args=[train.arrival.station])}}">{{=stations[train.arrival.station]}}</a></td>
+</tr>
+{{pass}}
+</tbody>
+</table>
+{{pass}}
+</body>
+</html>

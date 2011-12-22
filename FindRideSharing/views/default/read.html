@@ -1,0 +1,13 @@
+{{extend 'layout.html'}}
+
+<h2>{{=item.request}} a Ride</h2>
+
+<p>
+{{=item.comments}}
+</p>
+
+<h2>Contact</h2>
+
+{{if item.email:}}
+Email: <a href="mailto:{{=item.email}}">{{=item.email}}</a>
+{{pass}}

@@ -1,0 +1,15 @@
+{{extend 'layout.html'}}
+{{include 'td_product.html'}}
+
+<h2 class="post">Product Categories:
+{{for category in categories:}}
+{{=A(category.name,_href=URL('category/%s'%category.id))}}
+{{pass}}
+</h2><br/><br/>
+
+{{if featured:}}
+<h1 class="post">Featured Products</h1>
+<p class="post"><center><table width="80%">
+{{for product in featured: show(product)}}
+</table></center></p><br/><br/>
+{{pass}}

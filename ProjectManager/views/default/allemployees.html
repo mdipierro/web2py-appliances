@@ -1,0 +1,11 @@
+{{extend 'layout.html'}}
+[ {{=A('Home', _href=URL('index'))}} ]
+[ {{=A('Projects', _href=URL('allprojects'))}} ]
+[ {{=A('Admin', _href=URL('admin'))}} ]
+
+
+<ul>{{for employee in employees:}}
+     <li>
+   		  {{=(A(employee.name, _href=URL('showemployee', args=client.id)))}}
+     </li>
+{{pass}}</ul>

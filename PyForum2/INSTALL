@@ -1,0 +1,53 @@
+IMPORTANT INSTALLATION NOTES
+============================
+
+There are sevaral "default" values that are added to the forum's tables after
+installation of the application.
+
+Optimization is important. If you use any of the SQL flavors, please add the
+following insexes to your tables after creation. The indexes below are
+customized to work with MySQL 5.x, if you use another RDBMS please modify
+them accordingly.
+
+-- Indexes for zf_forum_category
+CREATE INDEX ix_cat_sort ON zf_forum_category(cat_sort);
+-- Indexes for zf_forum
+CREATE INDEX ix_zf_cat_id ON zf_forum(cat_id);
+CREATE INDEX ix_zf_mod ON zf_forum(moderation_flag);
+CREATE INDEX ix_zf_av ON zf_forum(anonymous_viewaccess);
+CREATE INDEX ix_zf_ilt ON zf_forum(include_latest_topics);
+CREATE INDEX ix_zf_sort ON zf_forum(forum_sort);
+-- Indexes for zf_topic
+CREATE INDEX ix_t_forum_id ON zf_topic(forum_id);
+CREATE INDEX ix_parent_id ON zf_topic(parent_id);
+CREATE INDEX ix_parent_flag ON zf_topic(parent_flag);
+CREATE INDEX ix_t_ztsap ON zf_topic(system_announcement_flag, parent_flag);
+-- ############################# Warning - NOT Supported! ###########################
+-- db.executesql("CREATE FULLTEXT INDEX ix_topic_srch ON zf_topic(title, content);
+-- Indexes for zf_system_properties
+CREATE UNIQUE INDEX ix_sp_pname ON zf_system_properties(property_name);
+-- Indexes for zf_member_properties_skel
+CREATE UNIQUE INDEX ix_mps_pname on zf_member_properties_skel(property_name);
+-- Indexes for zf_member_properties
+CREATE INDEX ix_mp_property_id ON zf_member_properties(property_id);
+CREATE INDEX ix_mp_auth_user ON zf_member_properties(auth_user);
+CREATE INDEX ix_mp_property_value ON zf_member_properties(property_value);
+CREATE INDEX ix_mp_user_property ON zf_member_properties(auth_user, property_id);
+-- Indexes for zf_member_subscriptions
+CREATE INDEX ix_zms_auth_user ON zf_member_subscriptions(auth_user);
+CREATE INDEX ix_zms_subscription_id ON zf_member_subscriptions(subscription_id);
+CREATE INDEX ix_zms_user_subscription ON zf_member_subscriptions(auth_user, subscription_id);
+-- Indexes for zf_pm
+create index ix_pm_cat_id on zf_pm(cat_id);
+create index ix_pm_auth_user on zf_pm(auth_user);
+create index ix_pm_read_flag on zf_pm(read_flag);
+-- Indexes for zf_available_languages
+create index ix_al_language_code on zf_available_languages(language_code);
+-- Indexes for zf_member_rank
+create index ix_mr_rank_value_min on zf_member_rank(rank_value_min);
+-- Indexes for zf_topic_inappropriate
+create index ix_ti_topic_id on zf_topic_inappropriate(topic_id);
+-- Indexes for zf_member_banned
+create index ix_mb_auth_user on zf_member_banned(auth_user);
+-- Indexes for zf_ip_banned
+create index ix_ib_ip on zf_ip_banned(ip);

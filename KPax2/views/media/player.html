@@ -1,0 +1,12 @@
+{{extend 'layout.html'}}
+
+<h1>{{=request.args[1][-3:].upper()}} Player</h1>
+
+<center>
+
+{{if filename[-4:].lower()=='.swf':}}
+<embed  src="{{=filename}}" width="450" height="300"/>
+{{else:}}
+<embed  src="{{=URL(r=request,c='static',f='mediaplayer.swf')}}" width="450" height="300" allowscriptaccess="always" allowfullscreen="true" flashvars="file={{=filename}}" />
+{{pass}}
+</center>

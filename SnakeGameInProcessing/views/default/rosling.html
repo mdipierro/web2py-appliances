@@ -1,0 +1,10 @@
+{{response.files.append(URL(r=request,c='static',f='processing.min.js'))}}
+{{response.files.append(URL(r=request,c='static',f='processing.init.js'))}}
+{{extend 'layout.html'}}
+<center>
+{{=XML(obj.xml())}}
+</center>
+The horizontal axis represent risk. The vertical axis represents return.
+Each circle represnts a 30 days moving average.
+The size of the cirlce represents the trading volume over the 30 days period.
+Click and drag the mouse horizontally to change the time of the moving average.

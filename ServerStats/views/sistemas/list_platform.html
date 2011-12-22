@@ -1,0 +1,33 @@
+{{response.files.append(URL(r=request,c='static',f='jquery.dataTables.min.js'))}}
+{{response.files.append(URL(r=request,c='static',f='demo_table.css'))}}
+{{extend 'layout_simple.html'}}
+
+
+<script>
+$(document).ready(function() { 
+   jQuery('.smarttable').dataTable(); 
+});
+</script>
+
+<br><br>
+Platform List:
+<br><br>
+<table class="smarttable">
+<thead>
+  <tr>
+    <th>Name</th>><th>Provider</th><th>Action</th>
+  </tr>
+</thead>
+<tbody>
+{{for platform  in platforms:}}
+    <tr>
+       <td>{{=platform.name}}</td>
+	<td>{{=platform.id_provider.name}}</td>
+       <td>
+	{{=button('view','view_platform',platform.id)}}
+	{{=button('edit','edit_platform',platform.id)}}
+</td>
+    </tr>
+{{pass}}
+</tbody>
+</table>

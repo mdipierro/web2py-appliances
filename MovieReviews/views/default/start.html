@@ -1,0 +1,19 @@
+{{extend 'layout.html'}}
+<html>
+<head>
+</head>
+<body>
+
+<h1> Movie reviews </h1>
+
+{{for user in db(db.auth_user.id>0).select():}}
+Welcome {{=user.first_name}}. Please take a look at the rules page and remember that by signing up for this site</br> you have agreed to respect all of the site rules.
+{{pass}}
+</br>
+<a href="{{=URL("movies")}}">Movies</a></br>
+<a href="{{=URL("newmovie")}}">New Movie</a></br>
+<a href="{{=URL("rules")}}">Rules</a></br>
+<a href="{{=URL("userlogin")}}">Login</a></br>
+
+</body>
+</html>

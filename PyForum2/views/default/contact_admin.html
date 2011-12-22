@@ -1,0 +1,55 @@
+{{extend 'zlayout.html'}}
+
+<h2 class="fancy">{{=XML(T('Contact the Forum Administrator'))}}</h2>
+
+{{if view_info['errors']:}}
+    <p class="err">{{=XML(T('There was one or more errors while processing your request, please correct the following'))}}</p>
+    <ul>
+        {{for error in view_info['errors']:}}
+            <li class="err">{{=XML(T(error))}}</li>
+        {{pass}}
+    </ul>
+{{pass}}
+
+<form id="contact_form" method="post" action="">
+    <fieldset id="contact_form_fields">
+        <input type="hidden" id="form_submitted" name="form_submitted" value="1" />
+        <input type="hidden" id="c" name="c" value="{{=view_info['anon_captcha_base64']}}" />
+        <table cellspacing="2" cellpadding="1">
+        <tbody>
+            <tr>
+                <td>{{=XML(T('From'))}}:</td>
+                <td>{{=forumhelper.get_display_name()}}
+                    {{if not auth_user.is_auth():}}<span class="warning">({{=XML(T('Please make sure you leave your contact information in case you need a response'))}}.)</span>{{pass}}
+                </td>
+            <tr>
+                <td><span class="required">*</span> {{=XML(T('Subject'))}}:</td>
+                <td><input class="formelem" type="text" id="" name="subject" value="{{=request.vars.get('subject', '')}}" style="width:600px;" /></td>
+            </tr>
+            <tr>
+                <td><span class="required">*</span> {{=XML(T('Message'))}}:</td>
+                <td><textarea id="message" class="formelem" name="message" cols="0" rows="0" style="width:600px;height:150px;">{{=request.vars.get('message', '')}}</textarea></td>
+            </tr>
+            {{if not auth_user.is_auth():}}
+                <tr>
+                    <td><span class="required">*</span>
+                        {{=XML(T('Verify your humanity'))}}:
+                    </td>
+                    <td>
+                        <input type="text" id="captcha_response" name="captcha_response" value="" style="width:100px;" />
+                        <b>{{=view_info['anon_captcha']}}</b>
+                        <span class="warning">({{=XML(T('Please Enter the acces code shown in order to post your message'))}}.)</span>
+                    </td>
+                </tr>
+            {{pass}}
+        </tbody>
+        </table>
+
+        <p class="required">* - {{=XML(T('Denotes a required field'))}}</p>
+
+        <input type="submit" id="send_b" name="send_b" value="{{=XML(T('Send Message'))}}" />
+        <input type="submit" id="cancel_b" name="cancel_b" value="{{=XML(T('Cancel'))}}" />
+
+    </fieldset>
+</form>
+

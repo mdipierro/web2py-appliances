@@ -1,0 +1,8 @@
+{{=DIV(A(T('Post a Comment'), 
+         _href = '#'), 
+       _class = 'post', 
+       _onclick = "jQuery('.form_%s').slideToggle('slow');" % page.id)}}
+
+{{=DIV(form, 
+       _class = 'form_%s hidden' % page.id, 
+       _onsubmit = "ajax('branch_comment_add', [], 'comments_%s hidden');" % page.id)}}

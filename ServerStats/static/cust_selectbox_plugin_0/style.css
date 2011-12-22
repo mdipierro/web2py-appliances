@@ -1,0 +1,116 @@
+/************* CUSTOM TAG FOR SELECT *************************/
+.setScroll{
+	overflow-y:scroll;
+}
+.hideitem,.elmValue{
+	display: none; 
+}
+.selectbox{
+	background: url("dropdown.png") no-repeat 0 0;
+	padding:0px 0px 0px 35px;
+	float:left;
+	margin:0 0 5px 0;
+}
+.selectbox ul{
+	background: url("dropdown.png") no-repeat top right;
+	padding:8px 22px 6px 0px;
+	margin:0;
+	vertical-align:top; /*causes ie to align text correctly*/
+	list-style: none;
+}
+.select_wrap{
+	clear:both;
+	margin:0 5px 0px 0px;
+	border:1px solid #fff;
+	position: absolute;
+
+
+
+	
+}
+.selectboxopen{
+	clear:both;
+	background: url("dropdownopen.png") no-repeat 0 0;
+	padding:0px 0px 0px 35px;
+	float:left;
+	margin:0;
+}
+.selectboxopen ul{
+	background: url("dropdownopen.png") no-repeat top right;
+	padding:7px 22px 6px 0px;
+	height:19px;
+	margin:0;
+	vertical-align:top; /*causes ie to align text correctly*/
+	list-style: none;
+}
+.selectbox ul li,.selectboxopen ul li{ 
+	list-style: none;
+	padding:0;
+	margin:0;
+	font-family: arial,helvetica,san-serif;
+	color:#333;
+	font-size: 12px;
+	cursor: pointer;
+	}
+.selectboxoptions_wrap{
+	display:none;
+	clear:both;
+	padding:0;
+	margin:0;
+}
+.selectboxoptions_radio,.selectboxoptions_check{
+	clear:both;
+	list-style: none;
+	padding:0;
+	margin:0 ;
+	background:#e6e9ed;
+}
+.selectboxoptions_radio li, .selectboxoptions_check li{
+	list-style: none;
+	padding:3px 0 2px 20px;
+	margin:2px 0 0 2px;
+	font-family: arial,helvetica,san-serif;
+	color:#333;
+	font-size: 12px;
+	cursor: pointer;
+}
+.hover{
+	background-color:#e6e9ed;
+
+	
+}
+.selectboxoptions_check li{
+	background:#e6e9ed url(checkboxoff.png) no-repeat 5px 6px;
+}
+.selectboxoptions_radio li{
+	background:#e6e9ed url(radiooff.png) no-repeat 5px 6px;
+}
+.selectboxoptions_radio li.selected{
+	background:#f2f2f2 url(selectradio.png) no-repeat 5px 6px;
+	display:block !important;
+}
+.selectboxoptions_radio li.selected_disable{
+	background:#f2f2f2 url(selectradio_disable.png) no-repeat 5px 6px;
+	display:block !important;
+}
+.selectboxoptions_check li.selected{
+	background:#f2f2f2 url(selectcheck.png) no-repeat 5px 6px;
+	display:block !important;
+}
+.selectboxoptions_check li.selected_disable{
+	background:#f2f2f2 url(selectcheck_disable.png) no-repeat 5px 6px;
+	display:block !important;
+}
+.selectboxoptions_radio li.hover,.selectboxoptions_check li.hover{
+	background-color:#f2f2f2;
+}
+.selectboxfoot{
+	background:url("selectfoot.png") no-repeat 0 0;
+	padding:0px 0px 0px 35px;
+	float:left;
+}
+.selectboxfoot div{
+	background:url("selectfoot.png") no-repeat top right;
+	padding:7px 22px 10px 0px;
+	margin:0;
+}

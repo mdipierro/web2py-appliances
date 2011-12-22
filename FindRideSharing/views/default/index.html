@@ -1,0 +1,30 @@
+{{extend 'layout.html'}}
+
+<table width="100%">
+<tr><td>
+<h2>Need a Ride?</h2>
+<form method="get" action="{{=URL('search/NEED')}}">
+<select name="location"/>
+{{for h in HOTELS:}}<option value="{{=h}}">{{=h}}</option>{{pass}}
+</select>
+<input type="submit" value="Search" />
+</form>
+</td><td>
+<h2>Offer a Ride?</h2>
+<form method="get" action="{{=URL('search/OFFER')}}">
+<select name="location"/>
+{{for h in HOTELS:}}<option value="{{=h}}">{{=h}}</option>{{pass}}
+</select>
+<input type="submit" value="Search" />
+</form>
+</td></tr>
+</table>
+
+<h2>Recent Posts</h2>
+
+{{for item in items:}}
+<a href="mailto:{{=item.email}}">
+  {{=item.name}} {{=item.request.lower()}}s a ride from/to {{=item.location}}</a>
+<p>{{=item.comments}}</p>
+{{pass}}
+

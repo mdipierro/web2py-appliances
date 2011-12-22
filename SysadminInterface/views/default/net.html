@@ -1,0 +1,23 @@
+{{extend 'layout.html'}}
+<script src="/admin/static/sorttable.js"></script>
+<style>
+table.sortable thead {
+    background-color:#eee;
+    color:#666666;
+    font-weight: bold;
+    cursor: default;
+}
+</style>
+<h1>Network</h1>
+
+<h2>netstat</h2>
+{{table.attributes['_class']='sortable'}}
+{{=table}}
+
+<br/>
+<h2>ifconfig</h2>
+<pre>{{=ifconfig}}</pre>
+
+<br/>
+<h2>arp</h2>
+<pre>{{=arp}}</pre>

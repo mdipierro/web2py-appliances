@@ -1,0 +1,21 @@
+{{extend 'layout.html'}}
+<h2>Friendship Offered</h2>
+<table>
+  {{for friend in friends:}}
+  <tr>
+    <td>{{=A(name_of(friend.auth_user),_href=URL('wall',args=friend.auth_user.id))}}</td>
+    <td>{{if friend.link.accepted:}}accepted{{else:}}<button onclick="ajax('{{=URL('friendship',args=('accept',friend.auth_user.id))}}',[],null); $(this).parent().html('accepted')">accept</button>{{pass}}</td>
+   <td><button onclick="ajax('{{=URL('friendship',args=('deny',friend.auth_user.id))}}',[],null); $(this).parent().html('denied')">deny</button></td>
+  </tr>
+  {{pass}}
+</table>
+<h2>Friendship Requested</h2>
+<table>
+  {{for friend in requests:}}
+  <tr>
+    <td>{{=A(name_of(friend.auth_user),_href=URL('wall',args=friend.auth_user.id))}}</td>
+    <td>{{if friend.link.accepted:}}accepted{{else:}}pending{{pass}}</td>
+    <td><button onclick="ajax('{{=URL('friendship',args=('deny',friend.auth_user.id))}}',[],null); $(this).parent().html('removed')">remove</button></td>
+  </tr>
+  {{pass}}
+</table>

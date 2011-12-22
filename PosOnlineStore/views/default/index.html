@@ -1,0 +1,12 @@
+{{extend 'layout.html'}}
+<h1>Products</h1>
+<table>
+{{for p in products:}}
+  <tr>
+    <td><h2>{{=p.name}} - ${{=p.price}}</h2></td>
+    <td><img src="{{=URL('download',args=p.image)}}" height="100px"/></td>
+    <td>{{=MARKMIN(p.description)}}</td>    
+    <td><span id="{{="item%s"%p.id}}">{{=session.cart.get(p.id,0)}}</span> in cart - {{=A('add to cart',callback=URL('cart_callback',vars=dict(id=p.id,action='add')),target='item%s'%p.id,_class='button pill')}}</td>
+  </tr>  
+{{pass}}
+</table>

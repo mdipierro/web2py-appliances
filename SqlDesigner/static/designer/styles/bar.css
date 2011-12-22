@@ -1,0 +1,271 @@
+/* ---------------------------------- elementy na panelu ------------------------------- */
+.button {
+	width: 100px;
+	height: 12px;
+	border: 1px solid #000;
+	background-color: #aaa;
+	text-align: center;
+	padding-top: 2px;
+	cursor: pointer;
+}
+
+div.button:hover {
+	background-color: #aac;
+}
+
+
+/*                      TABLE */
+
+#table_admin {
+	position: absolute;
+	left: 0px;
+	top: 0px;
+	height: 100%;
+	width: 250px;
+	font-size: x-small;
+	border-right: 2px solid #ddd;
+	_font-size: xx-small;
+}
+
+#table_add_button {
+	position: absolute;
+	left: 10px;
+	top: 55px;
+}
+
+#table_del_button {
+	position: absolute;
+	left: 130px;
+	top: 55px;
+}
+
+#table_move_button {
+	position: absolute;
+	left: 10px;
+	top: 75px;
+}
+
+#table_clear_button {
+	position: absolute;
+	left: 130px;
+	top: 75px;
+}
+
+#table_name {
+	font-size: x-small;
+	_font-size: xx-small;
+	position: absolute;
+	left:52px;
+	top: 25px;
+	width: 180px;
+}
+
+#table_admin_label {
+	text-align: left;
+	font-size: medium;
+	font-weight: bold;
+}
+
+#table_name_label {
+	font-size: small;
+	position: absolute;
+	top: 27px;
+	left: 10px;
+}
+
+/*                      ROW */
+
+#row_admin {
+	position: absolute;
+	left: 255px;
+	top: 0px;
+	height: 100%;
+	width: 300px;
+	font-size: x-small;
+	border-right: 2px solid #ddd;
+	_font-size: xx-small;
+}
+
+#row_add_button {
+	position: absolute;
+	left: 10px;
+	top: 60px;
+}
+
+#row_del_button {
+	position: absolute;
+	left: 120px;
+	top: 60px;
+}
+
+#row_up_button {
+	position: absolute;
+	left: 10px;
+	top: 80px;
+	width: 60px;
+}
+
+#row_down_button {
+	position: absolute;
+	left: 80px;
+	top: 80px;
+	width: 60px;
+}
+
+#row_name {
+	font-size: x-small;
+	_font-size: xx-small;
+	position: absolute;
+	left:52px;
+	top: 1px;
+	width: 180px;
+}
+
+#row_admin_label {
+	text-align: right;
+	font-size: medium;
+	font-weight: bold;
+	padding-right: 2px;
+}
+
+#row_name_label {
+	font-size: small;
+	position: absolute;
+	top: 4px;
+	left: 10px;
+}
+
+#row_primary {
+	position: absolute;
+	top: 80px;
+	left: 185px;
+}
+
+#row_primary_label {
+	position: absolute;
+	top: 83px;
+	left: 205px;
+}
+
+#row_index {
+	position: absolute;
+	top: 80px;
+	left: 220px;
+}
+
+#row_index_label {
+	position: absolute;
+	top: 83px;
+	left: 240px;
+}
+
+#row_notnull {
+	position: absolute;
+	top: 80px;
+	left: 260px;
+}
+
+#row_notnull_label {
+	position: absolute;
+	top: 83px;
+	left: 280px;
+}
+
+#row_type {
+	font-size: x-small;
+	_font-size: xx-small;
+	position: absolute;
+	top: 20px;
+	left: 52px;
+}
+
+#row_type_label {
+	font-size: small;
+	position: absolute;
+	top: 23px;
+	left: 10px;
+}
+
+#row_default {
+	font-size: x-small;
+	_font-size: xx-small;
+	position: absolute;
+	top: 40px;
+	left: 80px;
+}
+
+#row_default_label {
+	font-size: small;
+	position: absolute;
+	top: 42px;
+	left: 10px;
+}
+
+#row_spec_1 {
+	font-size: small;
+	position: absolute;
+	top: 22px;
+	left: 200px;
+}
+
+#row_spec_2 {
+	font-size: small;
+	position: absolute;
+	top: 22px;
+	left: 258px;
+}
+
+#row_spec {
+	font-size: x-small;
+	_font-size: xx-small;
+	position: absolute;
+	top: 20px;
+	left: 208px;
+	width: 50px;
+}
+
+
+/*                      IO */
+
+#io_admin {
+	position: absolute;
+	left: 560px;
+	top: 0px;
+	height: 100%;
+	width: 220px;
+	font-size: x-small;
+	_font-size: xx-small;
+	border-right: 2px solid #ddd;
+}
+
+#io_button {
+	position: absolute;
+	left: 10px;
+	top: 55px;
+}
+
+#io_settings_button {
+	position: absolute;
+	left: 10px;
+	top: 75px;
+}
+
+#io_admin_label {
+	text-align: right;
+	font-size: medium;
+	font-weight: bold;
+}
+
+#io_select_label {
+	font-size: small;
+	position: absolute;
+	top: 29px;
+	left: 10px;
+}
+
+#io_select {
+	font-size: x-small;
+	position: absolute;
+	top: 27px;
+	left: 70px;
+}

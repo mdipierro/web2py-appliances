@@ -1,0 +1,20 @@
+{{extend 'layout.html'}}
+
+<h2>
+Place an announcement in 
+{{if request.args[0]=='NEED':}}
+<a href="{{=URL('create',args='NEED')}}">Need a Ride</a>
+{{elif request.args[0]=='OFFER':}}
+<a href="{{=URL('create',args='OFFER')}}">Offer a Ride</a>
+{{pass}}
+</h2>
+
+<br/><br/>
+
+<h2>Search Results</h2>
+
+{{for item in items:}}
+<a href="mailto:{{=item.email}}">
+{{=item.name}} {{=item.request.lower()}}s a ride from/to {{=item.location}}</a>
+<p>{{=item.comments}}</p>
+{{pass}}

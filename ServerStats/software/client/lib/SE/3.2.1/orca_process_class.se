@@ -1,0 +1,902 @@
+
+// 19 Sep 01 richp - replaced struct_fill and changed long to pointer_t
+/* process class 19 Feb 98 Adrian - 2.6 extras added */
+/* measured and sampled cpu comparison version 18/5/98 */
+/* vmem_delta added for process_rules 27 Nov 98 */
+/* added processor set info 16 Apr 99 */
+/* merged rules version 22 Apri 99 */
+/* added lwp info 5-27-99 Rick Weisner */
+/* added PCUNSET 11-05-99 Rick Weisner */
+/* added se_trees 08-2000 Rick Weisner */
+/* patched linked list login Jul 2001 Rick Weisner */
+
+/*
+Obtain data averaged over the interval between updates
+return one process at a time, snapshot all good stuff
+in one update then provide index$, pid$ methods to extract groups of processes.
+Store data in raw form taken from psinfo and pusage ioctls, and
+process it when called up by class. Feeds data to workload_class.se
+*/
+
+#include <se_trees.se>
+#if MINOR_VERSION >= 60
+#define	PCSET    16	/* set modes from long argument */
+#define PCUNSET  17
+
+long msaccton[2] = { PCSET, PR_MSACCT | PR_MSFORK };
+long msacctoff[2] = { PCUNSET, PR_MSACCT };
+#else
+printf(" OS Version < 2.6 not supported \n ");
+exit(1);
+#endif
+
+/* codes for action$ */
+#define PROC_ACTION_INIT	0	/* starting point -> next index */
+#define PROC_ACTION_PID		1	/* get the specified pid */
+				        /* do not sample all PIDS */
+#define PROC_ACTION_NEXT_INDEX	2	/* index order is based on /proc  */
+#define PROC_ACTION_NEXT_PID	3	/* search for pid and return data */
+				        /* do sample all PIDS */
+#define PROC_ACTION_NEXT_LWP	4	/* search for lwp and return data */
+/* index$ returns -1 if no more data */
+/* proc data updates if index$ is -1 */
+
+struct pr_header_t {
+	long number_lwps;
+	size_t size_of_entries;
+};
+
+struct lwp_prusage {
+       prusage_t lwp_pru;
+       long next_lwp_pru;
+};
+
+struct raw_proc_info_t {            // all the per process info
+	pointer_t	orp;        // old prusage_t pointer
+	pointer_t	nrp;	    // new prusage_t pointer
+	long		nextpid;    // next pid in list
+        long		gencnt;	    // update generation counter
+        // stuff from prpsinfo_t
+	long		pr_flag;    // process flags
+        long		pr_size;    // size of process image in pages
+	long		pr_oldsize; // previous size of process image
+        long		pr_rssize;  // resident set size in pages
+        long		pr_pri;     // priority, high value is high priority
+        char		pr_nice;    //* nice for cpu usage
+        char		pr_sname;   // printable character representing pr_state
+        timestruc_t	o_pr_time;  // old sampled user+system CPU time
+        timestruc_t	n_pr_time;  // sampled user+system CPU time
+        timestruc_t	o_pr_ctime; // old usr+sys cpu time for reaped children
+	timestruc_t	n_pr_ctime; // new usr+sys cpu time for reaped children
+        long		pr_uid;     // real user id
+        long		pr_ppid;    // process id of parent
+	int		pr_bindpset;// processor set binding
+#define PRCLSZ 8
+	char		pr_clname[PRCLSZ]; // scheduling class name
+#define PRFNSZ 16
+	char		pr_fname[PRFNSZ];  // last component of execed pathname
+#define PRARGSZ 80
+	char		pr_psargs[PRARGSZ];// initial characters of arg list
+        int		lwp_count;
+        pointer_t	olwp;  // pointers to prev. lwp prusage linked list
+        pointer_t	nlwp;  // pointers to current lwp prusage linked list
+};
+
+struct  lwp_pr_info {
+	int	lwp_id;	/* always contains  lwp_id */
+	double  timestamp;	/* last time lwp was measured */
+	double	creation;	/* lwp start time */
+	double	termination;	/* lwp termination time stamp */
+	double	user_time;	/* user time in this interval */
+	double  system_time;	/* system call time in this interval */
+	double	trap_time;	/* system trap time in interval */
+	double	text_pf_time;	/* text page fault wait in interval */
+	double	data_pf_time;	/* data page fault wait in interval */
+	double	kernel_pf_time;	/* kernel page fault wait in interval */
+	double	user_lock_time;	/* user lock wait in interval */
+	double	sleep_time;	/* all other sleep time */
+	double	cpu_wait_time;	/* time on runqueue waiting for CPU */
+	double	stoptime;	/* time stopped from ^Z */
+	ulong	syscalls;	/* syscall/interval for this process */
+	ulong	maj_faults;	/* majf/interval */
+	ulong	min_faults;	/* minf/interval */
+	ulong	total_swaps;	/* swapout count */
+	ulong	inblocks;	/* input blocks/interval */
+	ulong	outblocks;	/* output blocks/interval */
+	ulong	messages;	/* msgin+msgout/interval */
+	ulong	signals;	/* signals/interval */
+	ulong	vcontexts;	/* voluntary context switches/interval */
+	ulong	icontexts;	/* in-ditto */
+	ulong	charios;	/* characters in and out/interval */
+        ulong    next_class;
+};
+/* the process class that does all the real work */
+
+/* get both types of hires timestamp into a common more useful form */
+double timestruc(timestruc_t ts_time)
+{
+	return ts_time.tv_sec + (ts_time.tv_nsec / 1000000000.0);
+}
+
+double timeval(timeval_t tv_time)
+{
+        return tv_time.tv_sec + (tv_time.tv_usec / 1000000.0);
+}
+
+string hr_min_sec(timestruc_t ts) {
+        char buf[80];
+	double tmp;
+	tmp = timestruc(ts);
+        buf = sprintf("%.3f", tmp);
+        return buf;
+}
+
+msprint(prusage_t pru, int pid, string cmd, string arg) {
+    printf("\n%d %s %s\n", pid, cmd, arg);
+    printf("Elapsed time        %12s  ", hr_min_sec(pru.pr_rtime));
+    printf("Create time %s Timestamp %s\n", hr_min_sec(pru.pr_create),
+	hr_min_sec(pru.pr_tstamp));
+    printf("User CPU time       %12s  ", hr_min_sec(pru.pr_utime));
+    printf("System call time    %12s\n", hr_min_sec(pru.pr_stime));
+    printf("System trap time    %12s  ", hr_min_sec(pru.pr_ttime));
+    printf("Text pfault sleep   %12s\n", hr_min_sec(pru.pr_tftime));
+    printf("Data pfault sleep   %12s  ", hr_min_sec(pru.pr_dftime));
+    printf("Kernel pfault sleep %12s\n", hr_min_sec(pru.pr_kftime));
+    printf("User lock sleep     %12s  ", hr_min_sec(pru.pr_ltime));
+    printf("Other sleep time    %12s\n", hr_min_sec(pru.pr_slptime));
+    printf("Wait for CPU time   %12s  ", hr_min_sec(pru.pr_wtime));
+    printf("Stopped time        %12s\n", hr_min_sec(pru.pr_stoptime));
+    printf("pf %d mf %d sw %d inb %d oub %d ms %d mr %d\n", pru.pr_minf, pru.pr_majf,        pru.pr_nswap, pru.pr_inblk, pru.pr_oublk,
+        pru.pr_msnd, pru.pr_mrcv);
+    printf("sig %d vctx %d ictx %d sysc %d ioch %d\n", pru.pr_sigs, pru.pr_vctx,
+        pru.pr_ictx, pru.pr_sysc, pru.pr_ioch);
+}
+
+class proc_class_t {
+	/* input controls */
+	int	index$;	/* always contains current index or -1 */
+	int	pid$;	/* always contains current pid */
+	/* for ACTION_PID mode set pid$ and set index$ to -1 to get new data */
+	int	action$;
+        int     off$;
+	int     wantlwp$;  /* 0 = do not want lwps, 1 = want lsps */
+	/* summary totals */
+	double  lasttime; /* timestamp for the end of the last update */
+	int	nproc;	  /* current number of processes */
+	int     newproc ;
+	int     deadproc ;
+	int	missedproc; /* number of fork+vfork - newproc */
+	/* output data for specified process */
+	long	flags;		/* latest pr_flag for the process */
+	double	interval;	/* measured time interval for averages */
+	double  timestamp;	/* last time process was measured */
+	double	creation;	/* process start time */
+	double	termination;	/* process termination time stamp */
+	double	elapsed;	/* elapsed time for all lwps in process */
+	double  total_user;	/* current totals in seconds */
+	double  total_system;
+        double  total_sampled_cpu;
+	double  total_child;
+	double	user_time;	/* user time in this interval */
+	double  system_time;	/* system call time in this interval */
+	double  sampled_cpu;	/* total sampled cpu time */
+	double	trap_time;	/* system trap time in interval */
+	double	child_time;	/* child CPU in this interval */
+	double	text_pf_time;	/* text page fault wait in interval */
+	double	data_pf_time;	/* data page fault wait in interval */
+	double	kernel_pf_time;	/* kernel page fault wait in interval */
+	double	user_lock_time;	/* user lock wait in interval */
+	double	sleep_time;	/* all other sleep time */
+	double	cpu_wait_time;	/* time on runqueue waiting for CPU */
+	double	stoptime;	/* time stopped from ^Z */
+	ulong	syscalls;	/* syscall/interval for this process */
+	ulong	inblocks;	/* input blocks/interval */
+	ulong	outblocks;	/* output blocks/interval */
+	ulong	vmem_size;	/* size in KB */
+	long	vmem_delta;     /* size change in KB */
+	ulong	rmem_size;	/* RSS in KB */
+#ifdef XMAP
+	ulong   pmem_size;	/* private mem in KB */
+	ulong   smem_size;	/* shared mem in KB */
+#endif
+	ulong	maj_faults;	/* majf/interval */
+	ulong	min_faults;	/* minf/interval */
+	ulong	total_swaps;	/* swapout count */
+	long	priority;	/* current sched priority */
+	long	niceness;	/* current nice value */
+	char	sched_class[PRCLSZ];	/* name of class */
+	ulong	messages;	/* msgin+msgout/interval */
+	ulong	signals;	/* signals/interval */
+	ulong	vcontexts;	/* voluntary context switches/interval */
+	ulong	icontexts;	/* in-ditto */
+	ulong	charios;	/* characters in and out/interval */
+	ulong	lwp_count;	/* number of lwps for the process */
+        ulong   lwp_max;        /* number of contributing lwps for the process */
+	int	uid;		/* current uid */
+	long	ppid;		/* parent pid */
+	int	bindpset;	/* processor set binding */
+	char	fname[PRFNSZ];	/* last components of exec'd pathname */
+	char	args[PRARGSZ];	/* initial part of arg list */
+        ulong   lwp_class_ptr; /* head of linked list of lwp_class_ptrs */
+
+	proc$() {
+	  ulong MAX_PID;
+	  ulong_t	pp;		/* pointer to malloc for raw proc info */
+	  ulong_t	pp_tmp;		/* temp pointer to malloc for raw proc info */
+	  ulong_t	pp_ret;		/* temp pointer to malloc for raw proc info */
+					/* chained using nextpid */
+	  ulong_t		pp_tree;
+	  raw_proc_info_t rpi;
+          raw_proc_info_t t_rpi;
+	  prusage_t	ou;	/* old and new usage data */
+#define NU	nu[0]
+	  prusage_t	nu[1];	/* array of one for read and ioctl */
+#define PS	ps[0]
+	  psinfo_t      ps[1];	/* format changes when read used */
+          pr_header_t     prh;
+          prusage_t      plwp;
+	  ulong pnu;
+	  ulong pps;
+	  int	i;
+	  dirent_t directory_data;
+	  ulong directory_pointer;
+	  ulong directory_entry;
+	  ulong_t tag;
+	  int process_number;	/* current link in chain */
+	  int first_process;	/* fixed first link in search chain */
+	  int previous_process;	/* last one used to build chain */
+	  int next_process;	/* next pid */
+	  int broken_chain;	/* flag that chain changed this time */
+	  int cleaning_chain;	/* flag that we are in cleanup mode */
+	  int pfd;
+	  int lfd; /* file descriptor for /prod/PID/lusage */
+	  char procname[64];
+	  char lwpname[64]; /* String for /prod/PID/lusage */
+	  long gen;		/* number of generations of update */
+	  int err;
+          int new_entry;
+	  ulong tmp;
+	  double dtmp;
+	  timeval_t tmp_tval[1];
+	  int pg_to_kb;
+
+          /* lwp working storage */
+          prusage_t lwp_info;
+          pointer_t lwp_t_ptr;
+          pointer_t olwp_t_ptr;
+          lwp_prusage lwp_t_struct;
+          lwp_prusage olwp_t_struct;
+          lwp_pr_info lwp_t_class;
+          long lwp_t_class_ptr;
+          int ircw;
+/* ********************************************************** */
+
+	  if (action$ == PROC_ACTION_INIT) {
+		action$ = PROC_ACTION_NEXT_INDEX;
+		/* open the directory containing the process data */
+		directory_pointer = opendir("/proc");
+		index$ = -1;
+                off$ = 0 ;
+		gen = -1;
+		wantlwp$ = 0;
+		first_process=-1;
+                gettimeofday(tmp_tval,0);
+                lasttime = timeval(tmp_tval[0]);
+		pg_to_kb = sysconf(_SC_PAGESIZE) / 1024;
+		pp_tree= int2int_init();
+		if (pnu == 0 || pps == 0) {
+                    pnu = malloc(sizeof(nu));
+                    pps = malloc(sizeof(ps));
+		}
+		/* printf("returning from init \n"); */
+		return;
+	  }
+
+	  /* printf("index = %d PID = %d \n",index$, pid$);  */
+
+	  if (index$ == -1) {	/* update the data from /proc */
+	    /* printf("update the data from /proc  \n"); */
+            /* debug_on(); */
+	    /* read the first entry in the directory */
+	    rewinddir(directory_pointer);
+	    directory_entry = readdir(directory_pointer); /* read . */
+	    directory_entry = readdir(directory_pointer); /* read .. */
+	    directory_entry = readdir(directory_pointer);
+	    MAX_PID=0;
+	    nproc = 0;
+	    newproc = 0 ;
+	    deadproc = 0 ;
+	    gen++;
+	    previous_process = -1;
+	    broken_chain = 0;
+	    cleaning_chain = 0;
+	    for (; directory_entry != NULL; ) {
+	      directory_data = *((dirent_t *) directory_entry);
+	      /* get the process number and open the data file */
+             /* only look at specified process */
+              if (action$ == PROC_ACTION_PID) {
+   			process_number = pid$;
+                        directory_entry = NULL;
+   	      }
+	      else {
+	      process_number = atoi(directory_data.d_name);
+	      /* printf("looking at %d \n" , process_number ); */
+              }
+#if MINOR_VERSION < 60
+		printf(" OS Version < 2.6 not supported \n ");
+		exit(1);
+#else
+              procname = sprintf("/proc/%d/usage", process_number);
+#endif
+	      pfd = open(procname, O_RDONLY, 0);
+	      /* file cannot be accessed if pfd = -1; ignore this process */
+	      /* may be that there is no permission or just died */
+	      if (pfd != -1) { /* start of good pfd */
+		if ( process_number > MAX_PID ) {
+			MAX_PID = process_number ;
+		}
+                tag = process_number;
+		pp_tmp = NULL ;
+	        pp_ret = int2int_get(pp_tree, tag);
+		if ( pp_ret != NULL) {
+			pp_tmp = ((ulong_t) *((ulong_t *) pp_ret));
+			/* Process Found */
+		}
+		if (pp_tmp == NULL) {
+		  /* load the tree , new process */
+		  pp = malloc(sizeof(rpi));
+		  memset(pp, 0, sizeof(rpi));
+		  new_entry = 1;
+		  broken_chain = 1;
+	          pp_ret= int2int_put(pp_tree, tag, pp);
+		  if ( pp_ret < 0 ) {
+		    printf(" Error unable to insert into tree %d, %d , %x\n",
+					pp_ret , tag, pp);
+			exit(1);
+		  }
+	          pp_ret = int2int_get(pp_tree, tag);
+		  pp_tmp = ((ulong_t) *((ulong_t *) pp_ret));
+		  if ( pp != pp_tmp) {
+			printf(" Error pointers do not match %x, %x \n",
+					pp, pp_tmp);
+			exit(1);
+		  }
+		} else {
+		  new_entry = 0;
+		  /* Process Found */
+		}
+
+		/* get the existing or blank data */
+		tag = process_number;
+	        pp_ret = int2int_get(pp_tree, tag);
+		if ( pp_ret== NULL) {
+		  printf(" Error pointer not found for process_number %d\n",
+					tag);
+		  exit(1);
+		}
+		pp = ((ulong_t) *((ulong_t *) pp_ret));
+                if ( pp == NULL) {
+			printf("process_number %d  invalid2 \n", process_number);
+			exit(1);
+		}
+		rpi = *((raw_proc_info_t *) pp);
+
+		/* read usage info directly */
+		/* 2.6 specific, can read usage and psinfo without needing
+		ownership or permissions on /proc entry but can't read
+		directly into SE structure so go via malloc buffers */
+		err = read(pfd, pnu, sizeof(nu));
+		close(pfd);
+		/* turn on msacct */
+                procname = sprintf("/proc/%d/ctl", process_number);
+                pfd = open(procname, O_WRONLY, 0);
+                if (pfd != -1) {
+                  if ( off$ == 0 ) {
+		    write(pfd, &msaccton, sizeof(msaccton));
+                  } else {
+ 	            printf("%d ms accounting off \n", process_number );
+		    write(pfd, &msacctoff, sizeof(msaccton));
+                  }
+		  close(pfd);
+		}
+		/* get usage */
+                procname = sprintf("/proc/%d/psinfo", process_number);
+                pfd = open(procname, O_RDONLY, 0);
+		err += read(pfd, pps, sizeof(ps));
+		NU = *((prusage_t *) pnu);
+		PS = *((psinfo_t *) pps);
+	  	close(pfd);
+		if (err == 0) {
+		  /* process went away since directory was opened */
+		  /* unlikely but still need to tidy up mallocs */
+		  /* when it is a new entry  */
+		  if ( new_entry == 1 ) {
+		    deadproc++;
+		    free(pp);
+		    tag = process_number;
+		    pp_ret=int2int_put(pp_tree, tag, NULL);
+                    if ( pp_ret < 0 ) {
+			printf("unable to free tag = %d \n",tag);
+			exit(1);
+		    }
+		  }
+                  if (action$ == PROC_ACTION_PID) {
+                        directory_entry = NULL;
+                  } else {
+		  	directory_entry = readdir(directory_pointer);
+                  }
+		  continue;
+		}
+	        else { /* good pfd */
+/* *************************************************************** */
+                if ( wantlwp$ == 1 ) {
+                /* read the lwp info */
+                lwpname = sprintf("/proc/%d/lusage", process_number);
+                lfd = open(lwpname, O_RDONLY, 0);
+                if ( lfd > 0 ) {
+                  lwp_t_ptr = malloc(sizeof(prh));
+		  err = read(lfd, lwp_t_ptr, sizeof(prh));
+                  prh = *((pr_header_t *) lwp_t_ptr);
+                  free(lwp_t_ptr);
+		  if (err <= 0){
+                    printf("Error reading pr_header %s error code = %d \n", lwpname, err); }
+                  else { /* good read of pr_head */
+                    /* printf (" size of lwp_prusage = %d, size from pr header = %d \n", sizeof(lwp_info), prh.size_of_entries ); */
+                    /* if there is an old lwp linked list free it */
+                    lwp_t_ptr = rpi.olwp ;
+                    while ( lwp_t_ptr != NULL ) {
+                        lwp_t_struct = *((lwp_prusage *) lwp_t_ptr);
+                        free(lwp_t_ptr);
+                        lwp_t_ptr = lwp_t_struct.next_lwp_pru ;
+                    }
+                    rpi.olwp = rpi.nlwp;
+                    rpi.nlwp = NULL;
+                    /* create new lwp linked list */
+                    for (ircw=0; ircw<prh.number_lwps; ircw++)
+                    {
+		      lwp_t_ptr = malloc(prh.size_of_entries);
+		      err = read(lfd, lwp_t_ptr, prh.size_of_entries);
+                      if (err <= 0 ) {
+                       printf("Error reading pr lwp %d/n", i);
+                       free(lwp_t_ptr); }
+                      else {
+                         if ( ircw != -1 ) {
+                           lwp_info = *((prusage_t *) lwp_t_ptr);
+                           free(lwp_t_ptr);
+                           lwp_t_ptr=malloc(sizeof(lwp_t_struct));
+                           memset(lwp_t_ptr, NULL, sizeof(lwp_t_struct));
+                           struct_empty(lwp_info, lwp_t_ptr);
+                           lwp_t_struct = *((lwp_prusage *) lwp_t_ptr);
+			   lwp_t_struct.next_lwp_pru = rpi.nlwp;
+                           struct_empty(lwp_t_struct, lwp_t_ptr);
+			   rpi.nlwp = lwp_t_ptr;
+                         }
+                         else {
+                           free(lwp_t_ptr); }
+                     }
+                   } /* end for */
+		  close(lfd);
+                 } /* end else on bad pr header read */
+                } /* good open on lfd */
+		} /* end of wantlwp */
+/* ********** lwp info read ************************************** */
+		} /* good read on pfd */
+
+                if (new_entry == 1 ) {
+		  rpi.nextpid = first_process;
+		  first_process = process_number;
+		}
+
+		/* check to see if we are still dealing with the same process */
+		/*  we had before, and update and */
+		if (new_entry == 1 || timestruc(PS.pr_start) > lasttime) {
+		  newproc++;
+		  if (new_entry == 0) {
+		    /* leftover from an old process at same pid */
+		    if (rpi.orp != NULL) {
+                      free(rpi.orp);
+		      rpi.orp = NULL;	/* dump old rp, and overwrite new */
+                    }
+/* ***************** delete old lwp info ********************* */
+                    if ( wantlwp$ == 1 ) {
+                    lwp_t_ptr = rpi.olwp ;
+                    rpi.olwp = NULL;
+                    while ( lwp_t_ptr != NULL ) {
+                        lwp_t_struct = *((lwp_prusage *) lwp_t_ptr);
+                        free(lwp_t_ptr);
+                        lwp_t_ptr = lwp_t_struct.next_lwp_pru ;
+                    }
+		    }
+/* ***************** end delete old lwp info ********************* */
+		  }
+		  /* static psinfo needs updating */
+		  rpi.pr_uid = PS.pr_uid;
+		  rpi.pr_ppid = PS.pr_ppid;
+		  rpi.pr_bindpset = PS.pr_lwp.pr_bindpset;
+		  rpi.pr_clname = PS.pr_lwp.pr_clname;
+		  rpi.pr_fname = PS.pr_fname;
+		  rpi.pr_psargs = PS.pr_psargs;
+		}
+		/* update usage data */
+		tmp = rpi.orp;	/* hang on to malloced data */
+		rpi.orp = rpi.nrp;	/* switch new to old */
+		if (tmp == NULL) {
+		  rpi.nrp = malloc(sizeof(ou));
+		} else {
+		  rpi.nrp = tmp;
+		}
+		struct_empty(NU, rpi.nrp);	/* save whole block */
+		/* update dynamic psinfo data */
+		rpi.pr_oldsize = rpi.pr_size;
+		rpi.pr_size = PS.pr_size;
+		rpi.pr_rssize = PS.pr_rssize;
+                rpi.pr_pri = PS.pr_lwp.pr_pri;
+                rpi.pr_nice = PS.pr_lwp.pr_nice;
+                rpi.pr_sname = PS.pr_lwp.pr_sname;
+		rpi.pr_flag = PS.pr_flag;
+		rpi.o_pr_time = rpi.n_pr_time;
+		rpi.n_pr_time = PS.pr_time;
+		rpi.o_pr_ctime = rpi.n_pr_ctime;
+		rpi.n_pr_ctime = PS.pr_ctime;
+                rpi.lwp_count = PS.pr_nlwp;
+		rpi.gencnt = gen;
+		struct_empty(rpi,pp);
+	        nproc++;
+	        /* printf("processed %d \n" , process_number ); */
+	      } /* end of good pfd */
+	      /* step through the files in the directory ... */
+              if (action$ == PROC_ACTION_PID) {
+                    directory_entry = NULL;
+   	      }
+	      else {
+	        directory_entry = readdir(directory_pointer);
+	      }
+	    } /* end of directory*/
+/* ************************************************************** */
+	    /* go through list and remove deadwood */
+	    /* printf("first process_number %d  \n",first_process); */
+	    process_number = first_process;
+	    next_process = -1;
+	    previous_process = -1;
+	    while ( process_number > 0 ) {
+	      /* printf("processing %d  \n",process_number);  */
+	      if (process_number > 0 ) {
+	        pp_ret = int2int_get(pp_tree, process_number);
+                if ( pp_ret == NULL) {
+			printf("unable to get process_number  %d \n", process_number);
+			exit(1);
+	        }
+	        pp = ((ulong_t) *((ulong_t *) pp_ret));
+                if ( pp == NULL) {
+			printf("process_number %d  invalid4 \n",process_number);
+			exit(1);
+    	        }
+	        rpi = *((raw_proc_info_t *) pp); // rpi <- pp
+		next_process = rpi.nextpid;
+	        /* printf("next process %d  \n",next_process); */
+	        /* unhook dead processes */
+	        if (rpi.gencnt != gen) {
+		  deadproc++;
+		  /* printf("process_number %d  being deleted \n",process_number);  */
+	      	  if (rpi.orp != NULL) {
+		    free(rpi.orp);
+	            rpi.orp = NULL;
+	          }
+	          if (rpi.nrp != NULL) {
+		    free(rpi.nrp);
+		    rpi.nrp = NULL;
+	          }
+                  if ( wantlwp$ == 1 ) {
+                    lwp_t_ptr = rpi.olwp ;
+                    while ( lwp_t_ptr != NULL ) {
+                          lwp_t_struct = *((lwp_prusage *) lwp_t_ptr);
+                          free(lwp_t_ptr);
+                          lwp_t_ptr = lwp_t_struct.next_lwp_pru ;
+                    }
+                    lwp_t_ptr = t_rpi.nlwp ;
+                    while ( lwp_t_ptr != NULL ) {
+                          lwp_t_struct = *((lwp_prusage *) lwp_t_ptr);
+                          free(lwp_t_ptr);
+                          lwp_t_ptr = lwp_t_struct.next_lwp_pru ;
+                    }
+	          }
+		  free(pp);
+	      	  pp_ret = int2int_put(pp_tree, process_number , NULL);
+          	  if ( pp_ret < 0 ) {
+		    printf("unable to free process_number \n");
+		    exit(1);
+		  }
+		  if ( previous_process > 0 ) { /* there was a previous process */
+	             pp_tmp = int2int_get(pp_tree, previous_process);
+                     if ( pp_tmp == NULL) {
+			printf("unable to get process_number  %d \n", previous_process);
+			exit(1);
+	             }
+	             pp = ((ulong_t) *((ulong_t *) pp_tmp));
+		     if ( pp == NULL) {
+			printf("process_number %d  invalid5 \n",previous_process);
+			exit(1);
+    	              }
+	              rpi = *((raw_proc_info_t *) pp); // rpi <- pp
+	              /* printf("previous process %d  \n",previous_process);  */
+		      rpi.nextpid = next_process;
+		      struct_empty(rpi, pp);
+	          } else {
+		      first_process = next_process;
+		  }
+                } else {
+		/* update previous process ptr */
+		  previous_process = process_number;
+		}
+	      }
+	      process_number = next_process;
+	    }
+	    /* printf(" end of deadwood removal \n"); */
+	    gettimeofday(tmp_tval,0);
+	    lasttime = timeval(tmp_tval[0]);
+	    process_number = first_process;
+	    index$ = -1;
+	  }
+	  /* printf("done updating \n"); */
+	  /* printf("MAX_PID = %d \n", MAX_PID); */
+/* ****************************** end of update section ******************* */
+
+	  if (action$ == PROC_ACTION_NEXT_INDEX ) {
+	    /* printf("PROC_ACTION_NEXT_INDEX \n"); */
+	    if (index$ == -1) {
+	      process_number = first_process;
+	    } else {
+	      process_number = rpi.nextpid;
+	    }
+	    if (process_number < 0 || process_number > MAX_PID) {
+	      /* ran out of data */
+                process_number = -1;
+                index$ = -1;
+                pid$ = -1;
+		/* printf(" thats all there is \n"); */
+                return;
+	      }
+	    index$++;
+	  }
+
+	  if (action$ == PROC_ACTION_NEXT_PID) {
+	    /* printf("PROC_ACTION_NEXT_PID \n"); */
+	    if (index$ == -1) {
+	      process_number = 0;
+	    } else {
+	      process_number++;
+	    }
+	    index$++;
+	    /* look for the next data */
+	    pp = NULL;
+            pp_ret=int2int_get(pp_tree,process_number);
+	    if ( pp_ret != NULL ) {
+	       	pp = ((ulong_t) *((ulong_t *) pp_ret));
+	    }
+	    while (process_number < MAX_PID && pp == NULL) {
+	      process_number++;
+	      pp = NULL;
+              pp_ret=int2int_get(pp_tree,process_number);
+	      if ( pp_ret != NULL ) {
+	        pp = ((ulong_t) *((ulong_t *) pp_ret));
+	      }
+	    }
+	    if (process_number < 0 || process_number > MAX_PID) {
+	      /* ran out of data */
+	      process_number = -1;
+	      index$ = -1;
+	      pid$ = -1;
+	      /* printf(" ran out of data NEXT PID \n"); */
+	      return;
+	    }
+	  }
+
+	  if (action$ == PROC_ACTION_PID) {
+	    process_number = pid$;
+	    index$ = 0;
+	  }
+
+	  /* common code to update class once process has been chosen */
+          /* printf("process number = %d \n", process_number); */
+	  /* printf("retreiving process_number %d  , PID$ %d \n",process_number, pid$); */
+          pp_ret=int2int_get(pp_tree,process_number);
+	  pp = NULL;
+	  if (pp_ret != NULL) {
+	    pp = ((ulong_t) *((ulong_t *) pp_ret));
+	    }
+            if ( pp != NULL) {
+	      rpi = *((raw_proc_info_t *) pp);
+	      /* make sure that all class data is updated */
+	      /* index$ is already set */
+	      pid$ = process_number;
+	      uid = rpi.pr_uid;
+	      /* nproc, , are already set */
+	      missedproc = rpi.nextpid;	/* for debug until fork counting */
+
+	      /* nrp will always be set */
+	      NU = *((prusage_t *) rpi.nrp);
+	      creation = timestruc(NU.pr_create);
+	      timestamp = timestruc(NU.pr_tstamp);
+	      termination = 0.0; /* set later if process is dead */
+	      elapsed = timestruc(NU.pr_rtime);
+	      total_user = timestruc(NU.pr_utime);
+	      total_system = timestruc(NU.pr_stime);
+	      total_child = timestruc(rpi.n_pr_ctime);
+	      total_sampled_cpu = timestruc(rpi.n_pr_time);
+	      flags = rpi.pr_flag;
+#ifdef PDEBUG
+	      msprint(NU, pid$, fname, args);
+#endif
+	      if (rpi.orp != NULL) {
+	        ou = *((prusage_t *) rpi.orp);
+	        interval = timestamp - timestruc(ou.pr_tstamp);
+	        /* interval should never be zero */
+	        if (interval == 0.0) {
+	          printf("zero interval on pid %d state %c\n", pid$, rpi.pr_sname);
+	          msprint(ou, pid$, fname, args);
+		  interval = 1.0;
+	        }
+	        user_time = total_user - timestruc(ou.pr_utime);
+	        system_time = total_system - timestruc(ou.pr_stime);
+	        sampled_cpu = total_sampled_cpu - timestruc(rpi.o_pr_time);
+	        trap_time = timestruc(NU.pr_ttime) - timestruc(ou.pr_ttime);
+	        child_time = total_child - timestruc(rpi.o_pr_ctime);
+	        text_pf_time = timestruc(NU.pr_tftime) - timestruc(ou.pr_tftime);
+	        data_pf_time = timestruc(NU.pr_dftime) - timestruc(ou.pr_dftime);
+	        kernel_pf_time = timestruc(NU.pr_kftime) - timestruc(ou.pr_kftime);
+	        user_lock_time = timestruc(NU.pr_ltime) - timestruc(ou.pr_ltime);
+	        sleep_time = timestruc(NU.pr_slptime) - timestruc(ou.pr_slptime);
+	        cpu_wait_time = timestruc(NU.pr_wtime) - timestruc(ou.pr_wtime);
+	        stoptime = timestruc(NU.pr_stoptime) - timestruc(ou.pr_stoptime);
+	        syscalls = NU.pr_sysc - ou.pr_sysc;
+	        inblocks = NU.pr_inblk - ou.pr_inblk;
+	        outblocks = NU.pr_oublk - ou.pr_oublk;
+	        maj_faults = NU.pr_majf - ou.pr_majf;
+	        min_faults = NU.pr_minf - ou.pr_minf;
+	        messages = (NU.pr_msnd + NU.pr_mrcv) - (ou.pr_msnd + ou.pr_mrcv);
+	        signals = NU.pr_sigs - ou.pr_sigs;
+	        vcontexts = NU.pr_vctx - ou.pr_vctx;
+	        icontexts = NU.pr_ictx - ou.pr_ictx;
+	        charios = NU.pr_ioch - ou.pr_ioch;
+              } else {
+	        /* new process will only have rpi.nrp set */
+	        interval = timestamp - creation; /* elapsed time so far */
+                if (interval == 0.0) {
+                  printf("zero interval on pid %d state %c\n", pid$, rpi.pr_sname);
+                  msprint(NU, pid$, fname, args);
+                  interval = 1.0;
+                }
+                user_time = total_user;
+                system_time = total_system;
+	        sampled_cpu = total_sampled_cpu;
+                trap_time = timestruc(NU.pr_ttime);
+	        child_time = total_child;
+                text_pf_time = timestruc(NU.pr_tftime);
+                data_pf_time = timestruc(NU.pr_dftime);
+                user_lock_time = timestruc(NU.pr_ltime);
+                stoptime = timestruc(NU.pr_stoptime);
+                inblocks = NU.pr_inblk;
+                outblocks = NU.pr_oublk;
+                maj_faults = NU.pr_majf;
+                min_faults = NU.pr_minf;
+                messages = NU.pr_msnd + NU.pr_mrcv;
+                vcontexts = NU.pr_vctx;
+                icontexts = NU.pr_ictx;
+                charios = NU.pr_ioch;
+	      }
+	      vmem_size = rpi.pr_size;
+	      vmem_delta = rpi.pr_size - rpi.pr_oldsize;
+	      rmem_size = rpi.pr_rssize;
+	      total_swaps = NU.pr_nswap;
+	      priority = rpi.pr_pri;
+	      niceness = rpi.pr_nice;
+	      sched_class = rpi.pr_clname;
+              lwp_max = NU.pr_count;
+              lwp_count = rpi.lwp_count;
+              ppid = rpi.pr_ppid;
+	      bindpset = rpi.pr_bindpset;
+              fname = rpi.pr_fname;
+	      if (fname == "" && rpi.pr_sname == 'Z') {
+		  fname = "Zombie";
+		  bindpset = -1;	/* no pset, but Zomb defaults to 0 */
+	      }
+              args = rpi.pr_psargs;
+	      /* bug in sched pid 0 gives 100% system time */
+	      if (pid$ == 0) {
+		  total_system = 0.0;
+		  system_time = 0.0;
+	      }
+#ifdef PDEBUG
+	      printf("interval %.5f\n", interval);
+#endif
+/* ******************************************************* */
+             if ( wantlwp$ == 1 ) {
+              /* process lwp info */
+              lwp_t_ptr = lwp_class_ptr;
+	      lwp_class_ptr = NULL;
+              /* if there is an old lwp class linked list free it */
+              while ( lwp_t_ptr != NULL ) {
+                 lwp_t_class = *((lwp_pr_info *) lwp_t_ptr);
+                 free(lwp_t_ptr);
+                 lwp_t_ptr = lwp_t_class.next_class ;
+              }
+              /* Process lwp information */
+              if ( rpi.nlwp != NULL ) {
+                lwp_t_ptr = rpi.nlwp ;
+                while ( lwp_t_ptr != NULL) {
+  		  lwp_t_struct = *((lwp_prusage *) lwp_t_ptr);
+                  lwp_t_class.lwp_id = lwp_t_struct.lwp_pru.pr_lwpid;
+                  lwp_t_class.timestamp = timestruc(lwp_t_struct.lwp_pru.pr_tstamp);
+                  lwp_t_class.creation = timestruc(lwp_t_struct.lwp_pru.pr_create);
+                  lwp_t_class.termination = timestruc(lwp_t_struct.lwp_pru.pr_term);
+                  lwp_t_class.user_time = timestruc(lwp_t_struct.lwp_pru.pr_utime);
+                  lwp_t_class.system_time = timestruc(lwp_t_struct.lwp_pru.pr_stime) + timestruc(lwp_t_struct.lwp_pru.pr_ttime);
+                  lwp_t_class.text_pf_time = timestruc(lwp_t_struct.lwp_pru.pr_tftime) ;
+                  lwp_t_class.data_pf_time = timestruc(lwp_t_struct.lwp_pru.pr_dftime) ;
+                  lwp_t_class.kernel_pf_time = timestruc(lwp_t_struct.lwp_pru.pr_kftime) ;
+                  lwp_t_class.user_lock_time = timestruc(lwp_t_struct.lwp_pru.pr_ltime) ;
+                  lwp_t_class.sleep_time = timestruc(lwp_t_struct.lwp_pru.pr_slptime) ;
+                  lwp_t_class.cpu_wait_time = timestruc(lwp_t_struct.lwp_pru.pr_wtime) ;
+                  lwp_t_class.stoptime = timestruc(lwp_t_struct.lwp_pru.pr_stoptime) ;
+                  lwp_t_class.min_faults = lwp_t_struct.lwp_pru.pr_minf ;
+                  lwp_t_class.maj_faults = lwp_t_struct.lwp_pru.pr_majf ;
+                  lwp_t_class.total_swaps = lwp_t_struct.lwp_pru.pr_nswap;
+                  lwp_t_class.inblocks = lwp_t_struct.lwp_pru.pr_inblk ;
+                  lwp_t_class.outblocks = lwp_t_struct.lwp_pru.pr_oublk ;
+                  lwp_t_class.messages = lwp_t_struct.lwp_pru.pr_msnd + lwp_t_struct.lwp_pru.pr_mrcv;
+                  lwp_t_class.signals = lwp_t_struct.lwp_pru.pr_sigs;
+                  lwp_t_class.vcontexts = lwp_t_struct.lwp_pru.pr_vctx;
+                  lwp_t_class.icontexts = lwp_t_struct.lwp_pru.pr_ictx;
+                  lwp_t_class.syscalls = lwp_t_struct.lwp_pru.pr_sysc;
+                  lwp_t_class.charios = lwp_t_struct.lwp_pru.pr_ioch;
+
+                  olwp_t_ptr = rpi.olwp;
+                  while ( olwp_t_ptr != NULL ) {
+		    olwp_t_struct = *((lwp_prusage *) olwp_t_ptr);
+                    if ( olwp_t_struct.lwp_pru.pr_lwpid == lwp_t_struct.lwp_pru.pr_lwpid) {
+                    	  break; }
+                    olwp_t_ptr = olwp_t_struct.next_lwp_pru ;
+                  }
+                  if ( olwp_t_ptr != NULL) {
+                    lwp_t_class.user_time =  lwp_t_class.user_time - timestruc(olwp_t_struct.lwp_pru.pr_utime);
+                    lwp_t_class.system_time = lwp_t_class.system_time - timestruc(olwp_t_struct.lwp_pru.pr_stime) - timestruc(olwp_t_struct.lwp_pru.pr_ttime);
+                    lwp_t_class.text_pf_time = lwp_t_class.text_pf_time - timestruc(olwp_t_struct.lwp_pru.pr_tftime) ;
+                    lwp_t_class.data_pf_time = lwp_t_class.data_pf_time - timestruc(olwp_t_struct.lwp_pru.pr_dftime) ;
+                    lwp_t_class.kernel_pf_time = lwp_t_class.kernel_pf_time - timestruc(olwp_t_struct.lwp_pru.pr_kftime) ;
+                    lwp_t_class.user_lock_time = lwp_t_class.user_lock_time  - timestruc(olwp_t_struct.lwp_pru.pr_ltime) ;
+                    lwp_t_class.sleep_time = lwp_t_class.sleep_time - timestruc(olwp_t_struct.lwp_pru.pr_slptime) ;
+                    lwp_t_class.cpu_wait_time = lwp_t_class.cpu_wait_time - timestruc(olwp_t_struct.lwp_pru.pr_wtime) ;
+                    lwp_t_class.stoptime = lwp_t_class.stoptime - timestruc(olwp_t_struct.lwp_pru.pr_stoptime) ;
+                    lwp_t_class.min_faults = lwp_t_class.min_faults  - olwp_t_struct.lwp_pru.pr_minf ;
+                    lwp_t_class.maj_faults = lwp_t_class.maj_faults - olwp_t_struct.lwp_pru.pr_majf ;
+                    lwp_t_class.total_swaps = lwp_t_class.total_swaps  - olwp_t_struct.lwp_pru.pr_nswap;
+                    lwp_t_class.inblocks = lwp_t_class.inblocks  - olwp_t_struct.lwp_pru.pr_inblk ;
+                    lwp_t_class.outblocks = lwp_t_class.outblocks - olwp_t_struct.lwp_pru.pr_oublk ;
+                    lwp_t_class.messages = lwp_t_class.messages - olwp_t_struct.lwp_pru.pr_msnd + lwp_t_struct.lwp_pru.pr_mrcv;
+                    lwp_t_class.signals = lwp_t_class.signals - olwp_t_struct.lwp_pru.pr_sigs;
+                    lwp_t_class.vcontexts = lwp_t_class.vcontexts  - olwp_t_struct.lwp_pru.pr_vctx;
+                    lwp_t_class.icontexts = lwp_t_class.icontexts - olwp_t_struct.lwp_pru.pr_ictx;
+                    lwp_t_class.syscalls = lwp_t_class.syscalls - olwp_t_struct.lwp_pru.pr_sysc;
+                    lwp_t_class.charios = lwp_t_class.charios - olwp_t_struct.lwp_pru.pr_ioch;
+
+	         } /* end of if old pointer */
+                    lwp_t_class_ptr = malloc(sizeof(lwp_t_class));
+                    memset(lwp_t_class_ptr, NULL, sizeof(lwp_t_class));
+                    lwp_t_class.next_class = lwp_class_ptr;
+                lwp_class_ptr = lwp_t_class_ptr;
+                struct_empty(lwp_t_class, lwp_t_class_ptr);
+    		lwp_t_ptr = lwp_t_struct.next_lwp_pru ;
+    } /* end of while */
+} /* end of if we have lwps */
+}/* end of we want lwps */
+/* End if valid pp */
+}else {
+	      process_number = -1;
+	      index$ = -1;
+	      pid$ = -1;
+	      /* printf(" ran out of data NEXT PID \n"); */
+       }
+}
+};
+
+

@@ -1,0 +1,10 @@
+{{extend 'layout.html'}}
+
+<p>This is a minimalist 2D JavaScript/CoffeeScript physics engine built on top of <a href="http://processingjs.org/">processing.js</a> in less the 300 lines of code. It supports gravity, friction, spring, and 1/r^2 forces, bouncing, constraints and explosions. Supports both Euler and Runge-Kutta (2nd order) integrators. It is designed as a teaching tool. You can modify the programs, run them in the browser and, if you are logged in, save them. <a href="{{=URL('code')}}">Try it here!</a></p>
+
+<h1>Current Physics Simulations</h1>
+
+{{=A('new!',_href=URL('code'))}}<br/>
+{{for row in rows:}}
+{{=A(row.title,_href=URL('code',args=row.id))}} by {{=db.code.created_by.represent(row.created_by)}}<br/>
+{{pass}}

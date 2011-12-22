@@ -1,0 +1,12 @@
+{{extend 'layout.html'}}
+
+<div class="center">
+<br/><br/>
+<img src="{{=URL(r=request, c='static', f='semacode', args='semacode1.png') }}" alt="semacode" width="{{=semaSize[0]*20}}" height="{{=semaSize[1]*20}}"/>
+<br/>
+{{=vars.statement}}
+{{=form}}
+<br/><br/>
+[ <a href='/admin'>{{=T("click here for the administrative interface")}}</a>
+| <a href='/examples'>{{=T("click here for online examples")}}</a> ]
+</div>

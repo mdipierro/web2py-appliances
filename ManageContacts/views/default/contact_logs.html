@@ -1,0 +1,14 @@
+{{extend 'layout.html'}}
+<h2>Logs for contact {{=contact.name}}</h2>
+<table>
+  {{for log in logs:}}
+  <tr>
+    <td>{{=log.posted_on}}</td>
+    <td>{{=MARKMIN(log.body)}}</td>
+  </tr>
+  {{pass}}
+  <tr>
+    <td></td>
+    <td>{{=form}}</td>
+  </tr>
+</table>

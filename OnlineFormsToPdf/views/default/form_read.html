@@ -1,0 +1,9 @@
+{{extend 'layout.html'}}
+
+<h1>read form</h1>
+{{=A(T('edit form'),_href=URL('form_update',args=request.args(0)))}}
+{{=A(T('fill form'),_href=URL('form_fill',args=record.f_uuid))}}
+<br/>
+
+{{=form}}
+{{for t,f in db.t_form._referenced_by:}}[{{=A(t[2:],_href=URL('%s_select'%t[2:],args=(f,form.record.id)))}}]{{pass}}

@@ -1,0 +1,74 @@
+<div class="panel-sidebar-header">
+    <div>{{=XML(T('Welcome'))}}</div>
+</div>
+<div class="panel-sidebar">
+    <div class="panel-sidebar-content">
+        <div>&middot;&nbsp;<a href="{{=URL(r=request, c='default', f='index')}}" title="{{=XML(T('Forum Home'))}}">{{=XML(T('Forum Home'))}}</a></div>
+        {{if auth_user.is_auth():}}
+            <div>&middot;&nbsp;<a href="{{=URL(r=request, c='default', f='logout')}}" title="{{=XML(T('Logout'))}}">{{=XML(T('Logout'))}} {{=forumhelper.get_display_name()}}</a></div>
+            <div>&middot;&nbsp;<a href="{{=URL(r=request, c='default', f='edit_profile')}}" title="{{=XML(T('Edit Profile'))}}">{{=XML(T('Edit Profile'))}}</a></div>
+            <div>&middot;&nbsp;<a href="{{=URL(r=request, c='default', f='view_profile', args=[auth_user.get_user_id()])}}" title="{{=XML(T('View Profile'))}}">{{=XML(T('View Profile'))}}</a></div>
+            <div>&middot;&nbsp;<a href="{{=URL(r=request, c='pm', f='index')}}" title="{{=XML(T('My Messages'))}}">{{=XML(T('My Messages'))}} {{=XML(forumhelper.get_my_messages_cnt())}}</a></div>
+        {{else:}}
+            <div>&middot;&nbsp;<a href="{{=URL(r=request, c='default', f='login')}}" title="{{=XML(T('Login'))}}">Log In</a></div>
+        {{pass}}
+        <div>&middot;&nbsp;<a href="{{=URL(r=request, c='default', f='contact_admin')}}"
+                      title="{{=XML(T('Contact Forum Administrator'))}}">{{=XML(T('Contact the Forum Administrator'))}}</a></div>
+        <div>&nbsp;</div>
+        <form id="search_form" method="post" action="{{=URL(r=request, c='default', f='search')}}">
+            <fieldset id="search_form_fields">
+                <table cellspacing="0" cellpadding="0" class="block-centered">
+                    <tbody>
+                        <tr>
+                            <td>{{=XML(T('Search'))}}:</td>
+                            <td><input type="text" id="search_str" name="search_str" value="" class="formelem" style="width:100px;" /></td>
+                        </tr>
+                        <tr>
+                            <td colspan="2" style="text-align:right;"><input type="submit" class="formelem" id="search_b" name="search_b" value="{{=XML(T('Search'))}}" /></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </fieldset>
+        </form>
+        {{if auth_user.has_role('zAdministrator'):}}
+            <div>&nbsp;</div>
+            <div>&middot;&nbsp;<a href="{{=URL(r=request, c='zadmin', f='index')}}" title="{{=XML(T('Forum Administration'))}}">{{=XML(T('Forum Administration'))}}</a></div>
+        {{pass}}
+    </div>
+</div>
+
+<div class="panel-sidebar-header">
+    <div>{{=XML(T('System Announcements'))}}</div>
+</div>
+<div class="panel-sidebar">
+    <div class="panel-sidebar-content">
+        {{for sys_topic in forumhelper.get_system_announcements():}}
+            {{if sys_topic.has_key('error'):}}
+                <div>&middot;&nbsp;=- {{=XML(T('No Topics Found'))}} -=</div>
+            {{else:}}
+                <div>&middot;&nbsp;{{=XML(T(str(sys_topic.get('modifying_date', request.now).strftime('%d/%m/%y'))))}}&nbsp;<a href="{{=URL(r=request, c='default', f='view_topic', args=[sys_topic.id])}}" title="{{=sys_topic.get('title', '').replace('"', '')}}" class="small-link-sidenav">{{=sys_topic.get('title', '')[:30]}} ..</a></div>
+            {{pass}}
+        {{pass}}
+        <div style="text-align:right;margin-top:20px;"><a href="{{=URL(r=request, c='default', f='rss', args=['system'])}}"
+             title="{{=XML(T('RSS Feed'))}}"><img src="{{=URL(r=request, c='static/images', f='feed-icon-14x14.png')}}" alt="{{=XML(T('RSS Feed'))}}"
+             class="imgclear" /></a>&nbsp;&nbsp;</div>
+    </div>
+</div>
+
+<div class="panel-sidebar-header">
+    <div>{{=XML(T('Latest Posts'))}}</div>
+</div>
+<div class="panel-sidebar">
+    <div class="panel-sidebar-content">
+        {{for latest_topic in forumhelper.get_latest_topics():}}
+            {{if latest_topic.has_key('error'):}}
+                <div>&middot;&nbsp;=- {{=XML(T('No Topics Found'))}} -=</div>
+            {{else:}}
+                <div>&middot;&nbsp;{{=XML(T(str(latest_topic.get('modifying_date', request.now).strftime('%d/%m/%y'))))}}&nbsp;<a href="{{=URL(r=request, c='default', f='view_topic', args=[latest_topic.get('id', '')])}}" title="{{=latest_topic.get('title', '').replace('"', '')}}" class="small-link-sidenav">{{=latest_topic.get('title', '')[:30]}} ..</a></div>
+            {{pass}}
+        {{pass}}
+        <div style="text-align:right;margin-top:20px;"><a href="{{=URL(r=request, c='default', f='rss', args=['latest'])}}"
+             title="{{=XML(T('RSS Feed'))}}"><img src="{{=URL(r=request, c='static/images', f='feed-icon-14x14.png')}}" alt="{{=XML(T('RSS Feed'))}}"
+             class="imgclear" /></a>&nbsp;&nbsp;</div>
+    </div>
+</div>

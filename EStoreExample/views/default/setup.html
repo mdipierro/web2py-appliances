@@ -1,0 +1,20 @@
+{{extend 'layout.html'}}
+<h1>web2py Store Setup</h1>
+<h2>Instructions</h2>
+<ul>
+<li>Register with <a href="http://checkout.google.com">Google Checkout</a></li>
+<li>Google will assign you a "merchant id", insert it below</li>
+<li>web2py/store comes with some example products in the database. Access the <a href="/{{=request.application}}/manage/index">application administrative interface</a> to create/edit/delete products and categories</li>
+<li>Users can access the store <a href="/{{=request.application}}">here</a></li>
+</ul>
+<br/><br/>
+
+<h2>Merchant ID</h2>
+merchant id (as assigned by Google checkout):{{=form}}
+<br/><br/>
+
+<h2>Notes</h2>
+
+<p>You can try web2py/store without a merchant_id, just type something in the field below. You can come back to <a href="/{{=request.application}}/default/setup">this page</a> later and change it.</p>
+
+<p>Mind that, for you protection, web2py/store delegates to Google checkout the processing of your customers' shopping charts therefore web2py/store does not keep track of purchases and does not collect or store customers' credit card information. Google checkout will handle all that and will notify you, by email, when a purchase is completed.</p>

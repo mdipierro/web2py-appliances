@@ -1,0 +1,16 @@
+{{extend 'layout.html'}}
+
+<META HTTP-EQUIV="refresh" CONTENT="30">
+
+<h1>Probing URLs</h1>
+
+<table width="100%">
+{{for site in sites:}}
+<tr>
+<td><h2>{{=site.url}}</h2></td>
+<td align="right"><h2 id="t{{=site.id}}"><blink>probing...</blink></h2>
+<script>ajax('probe/{{=site.id}}',[],'t{{=site.id}}');</script></td>
+</tr>
+<br/>
+{{pass}}
+</table>

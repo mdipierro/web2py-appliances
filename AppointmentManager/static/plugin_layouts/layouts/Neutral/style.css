@@ -1,0 +1,28 @@
+body { margin:0; font-size:0.8em; line-height:16px; background-color:#FFFFFF; font-family: "Trebuchet MS", "Myriad Pro", Arial;}
+a { color:#2D5A71;}
+a:hover { text-decoration:none;}
+
+#container { background: url(images/bckg.jpg) 0 100px repeat-x #D1DBBD;}
+#header { background: url(images/header_bckg.jpg) repeat-x #193441;  }
+#logo { padding:30px 0 0 0; text-align:center; }
+#logo a{ color:#FFFFFF; text-decoration:none; font-weight:bold; height:36px; font-size:30px; text-transform:uppercase;}
+#logo a:hover { }
+#menu { background:#91AA9D; width:780px; margin:0 auto; height:32px; margin-top:47px;}
+#menu ul { margin:0; padding:0;}
+#menu ul li{ display:inline-block; float:left; width:100px; list-style:none; text-align:center; height:32px;}
+#menu a { display:block; float:left; width:100px; color:#FFFFFF; font-size:14px; text-transform:uppercase; font-weight:bold; text-decoration:none; padding-top:8px;}
+#menu a:hover{ background: #FCFFF5; padding-top:8px; height:24px; color:#193441}
+
+#main { width:100%;}
+#content { margin:0 auto; padding:0; width:760px; padding:10px 10px 20px 10px; background-color:#FCFFF5;}
+#content h1 { margin:0; text-transform:uppercase; font-size:1.5em; color:#fff; background:#D1DBBD; width:750px; padding:5px; margin-top:20px;}
+.red { color:#FF5220;}
+#content p { padding-bottom:0px; margin-bottom:0;}
+
+#footer {background:url(images/footer_bckg.jpg) repeat-x #193340 0 2px; height:100px; border-top:2px solid #0A0A0B;}
+#left_footer { float:left; padding:40px 0 0 30px; text-transform:uppercase; color:#FFFFFF; font-weight:bold; font-size:11px;}
+#left_footer a { color:#FFFFFF;}
+#left_footer a:hover { text-decoration:none;}
+#right_footer { float:right;  padding:40px 30px 0 0; text-transform:uppercase; color:#FFFFFF; font-weight:bold; font-size:11px; text-align:right;}
+#right_footer a { color:#FFFFFF;}
+#right_footer a:hover { text-decoration:none;}

@@ -1,0 +1,36 @@
+{{extend 'layout.html'}}
+
+<h2>
+Metti un annuncio in
+{{if request.args[0]=='found':}}
+<a href="{{=URL('create',args='lost')}}">cose perse</a>
+{{elif request.args[0]=='lost':}}
+<a href="{{=URL('create',args='found')}}">cose trovate</a>
+{{elif request.args[0]=='need':}}
+<a href="{{=URL('create',args='have')}}">cose disponibili</a>
+{{elif request.args[0]=='have':}}
+<a href="{{=URL('create',args='need')}}">cose necessarie</a>
+{{pass}}
+</h2>
+
+<br/><br/>
+
+<h2>Risultati della ricarca</h2>
+
+<form method="get" action="{{=URL('search',args=request.args)}}">
+<input type="text" name="query" value="{{=request.vars.query}}"/>
+<input type="submit" />
+</form>
+
+{{include 'default/maps.html'}}
+
+<table width="100%">
+{{for item in items:}}
+<tr>
+<td width="50px">{{=item.xwhen}}</td>
+<td width="50px">{{=tr[item.category].capitalize()}}</td>
+<td><a href="{{=URL('read',args=item.id)}}">{{=item.xwhat}} (#{{=item.id}})</a></td>
+<td><img src="{{=URL('download',args=item.image)}}" height="75px"/></td>
+</tr>
+{{pass}}
+</table>

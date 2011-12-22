@@ -1,0 +1,386 @@
+//
+// Copyright (c) 1993-2001 by Richard Pettit. All rights reserved.
+//
+// Some of this work was derived from include files containing the following
+// copyrights.
+//
+//   Copyright (c) 1986-1994 by Sun Microsystems, Inc.
+//   Copyright (c) 1983-1989 by AT&T
+//   Copyright (c) 1980-1993 by The Regents of the University of California.
+//
+// The work as a whole represents unique intellectual property and is
+// copyright by Richard Pettit as shown on the first line.
+//
+
+#ifndef _P_VMSTAT_CLASS_SE_
+#define _P_VMSTAT_CLASS_SE_
+
+#include <unistd.se>
+#include <kstat.se>
+#include <sysdepend.se>
+
+/* for memory computation */
+#define PGTOK(n)            (((n) * pagesize) / 1024)
+#define DELTA(name)         (new_vminfo.name - old_vminfo.name)
+#define COMPUTE(name)       PGTOK(DELTA(name) / updates)
+
+/* make the code easier on the eye */
+#define CSI_DIFF(name) \
+  pvmGLOB_cpu_sysinfo[i].name = \
+    (csi.name - pvmGLOB_old_cpu_sysinfo[i].name)
+#define CSI_PCT(name) \
+  pvmGLOB_cpu_sysinfo[i].name = (pvmGLOB_cpu_sysinfo[i].name / total) * 100.0
+
+#define CSIPCT(name) (100.0 * name / (hz * pvmGLOB_etime[i]))
+
+#define CVI_DIFF(name) \
+  pvmGLOB_cpu_vminfo[i].name = \
+    (cvi.name - pvmGLOB_old_cpu_vminfo[i].name)
+
+double         pvmGLOB_etime[];
+ulong          pvmGLOB_old_time[];
+ks_cpu_sysinfo pvmGLOB_cpu_sysinfo[];
+ks_cpu_sysinfo pvmGLOB_old_cpu_sysinfo[];
+ks_cpu_vminfo  pvmGLOB_cpu_vminfo[];
+ks_cpu_vminfo  pvmGLOB_old_cpu_vminfo[];
+
+int            pvmGLOB_cpu_size;
+
+pvmGLOB_realloc()
+{
+  pvmGLOB_etime           = renew pvmGLOB_etime [pvmGLOB_cpu_size];
+  pvmGLOB_old_time        = renew pvmGLOB_old_time [pvmGLOB_cpu_size];
+  pvmGLOB_cpu_sysinfo     = renew pvmGLOB_cpu_sysinfo [pvmGLOB_cpu_size];
+  pvmGLOB_old_cpu_sysinfo = renew pvmGLOB_old_cpu_sysinfo [pvmGLOB_cpu_size];
+  pvmGLOB_cpu_vminfo      = renew pvmGLOB_cpu_vminfo [pvmGLOB_cpu_size];
+  pvmGLOB_old_cpu_vminfo  = renew pvmGLOB_old_cpu_vminfo [pvmGLOB_cpu_size];
+}
+
+class p_vmstat {
+
+  /* which cpu */
+  int number$;
+  int instance;   /* instance number from the kernel */
+  int ncpus;	  /* current total number of CPUs */
+
+  /* these values are numbers of procs */
+  double runque;
+  double waiting;
+  double swpque;
+
+  /* these values are in Kbytes */
+  int swap_avail;
+  int freemem;
+
+  double pgrec;        /* page reclaims (include pageout)    */
+  double pgfrec;       /* page reclaims from free list       */
+  double pgin;         /* pageins                            */
+  double pgout;        /* pageouts                           */
+  double pgswapin;     /* pages swapped in                   */
+  double pgswapout;    /* pages swapped out                  */
+  double dfree;        /* pages freed by daemon or auto      */
+
+  double hat_fault;    /* minor page faults via hat_fault()  */
+  double as_fault;     /* minor page faults via as_fault()   */
+  double maj_fault;    /* major page faults                  */
+  double prot_fault;   /* protection faults                  */
+  double cow_fault;    /* copy-on-write faults               */
+  double zfod;         /* pages zero filled on demand        */
+
+  double sysfork;      /* forks                              */
+  double sysvfork;     /* vforks                             */
+  double sysexec;      /* execs                              */
+
+  double namei;        /* pathname lookups                   */
+  double ufsiget;      /* pathname lookups                   */
+  double ufsdirblk;    /* directory block read               */
+
+  double ufsinopage;   /* inodes taken with no attached pgs  */
+
+  /* these values are per second */
+  double pages_in;     /* pages paged in       */
+  double pages_out;    /* pages paged out      */
+  double swapins;      /* swap-in occurrences  */
+  double swapouts;     /* swap-out occurrences */
+  double scan;	       /* pages scanned        */
+  double pgrrun;       /* how many times did pageout run */
+
+  double smtx;		/* sleeps on a mutex per sec - mutex adaptive enter */
+  double interrupts;    /* interrupts including clock */
+  double intrthread;    /* interrupts as threads (below clock) */
+  double system_calls;
+  double context_switches;
+  double invol_switches;
+  double trap;
+
+  /* these are percentages of total over the last period */
+  double user_time;
+  double system_time;
+  double wait_time;
+  double idle_time;
+
+  p_vmstat$()
+  {
+    int i;
+    int n;
+    double updates;
+    int initialized = 0;
+    int last_number;
+    double hz = sysconf(_SC_CLK_TCK);
+    long pagesize = sysconf(_SC_PAGESIZE);
+    double total;
+    ulong itime;
+    ulong new_time;
+    ks_cpu_sysinfo csi;
+    ks_cpu_vminfo cvi;
+    ks_system_misc kstat$misc;
+    ks_sysinfo kstat$info;
+    ks_sysinfo old_sysinfo;
+    ks_sysinfo new_sysinfo;
+    ks_vminfo kstat$vminfo;
+    ks_vminfo old_vminfo;
+    ks_vminfo new_vminfo;
+
+    // allow this to change each time
+    ncpus = sysconf(_SC_NPROCESSORS_ONLN);
+
+    /* grab initial values */
+    if (initialized == 0) {
+      pvmGLOB_cpu_size = ncpus;
+
+      pvmGLOB_etime           = new double[pvmGLOB_cpu_size];
+      pvmGLOB_old_time        = new ulong[pvmGLOB_cpu_size];
+      pvmGLOB_cpu_sysinfo     = new ks_cpu_sysinfo[pvmGLOB_cpu_size];
+      pvmGLOB_old_cpu_sysinfo = new ks_cpu_sysinfo[pvmGLOB_cpu_size];
+      pvmGLOB_cpu_vminfo      = new ks_cpu_vminfo[pvmGLOB_cpu_size];
+      pvmGLOB_old_cpu_vminfo  = new ks_cpu_vminfo[pvmGLOB_cpu_size];
+
+      n = kstat$misc.clk_intr;
+      for(i=0; i<ncpus; i++) {
+        csi.number$ = i;
+        refresh$(csi);
+        pvmGLOB_old_cpu_sysinfo[i] = csi;
+        cvi.number$ = i;
+        refresh$(cvi);
+        pvmGLOB_old_cpu_vminfo[i] = cvi;
+        pvmGLOB_old_time[i] = n;
+        pvmGLOB_etime[i] = n / hz;
+      }
+
+      /* memory values */
+      old_vminfo = kstat$vminfo;
+      old_sysinfo = kstat$info;
+
+      initialized = 1;
+      last_number = number$;
+
+      return;
+    }
+
+    // keep up with ncpus
+    if (ncpus > pvmGLOB_cpu_size) {
+      pvmGLOB_cpu_size = ncpus;
+      pvmGLOB_realloc();
+    }
+
+    /* select which cpu */
+    i = number$;
+    if (i < 0 || i >= ncpus) {
+      number$ = -1;
+      return;
+    }
+    instance = pvmGLOB_old_cpu_sysinfo[i].instance;
+
+    /* how much time has gone by */
+    new_time = kstat$misc.clk_intr;
+    itime = new_time - pvmGLOB_old_time[i];
+
+    /* no time has gone by, return */
+    if (itime == 0) {
+      if (i != last_number) {
+        smtx        = pvmGLOB_cpu_sysinfo[i].mutex_adenters/pvmGLOB_etime[i];
+        interrupts       = pvmGLOB_cpu_sysinfo[i].intr/pvmGLOB_etime[i];
+        intrthread       = pvmGLOB_cpu_sysinfo[i].intrthread/pvmGLOB_etime[i];
+        system_calls     = pvmGLOB_cpu_sysinfo[i].syscall/pvmGLOB_etime[i];
+        trap             = pvmGLOB_cpu_sysinfo[i].trap/pvmGLOB_etime[i];
+        context_switches = pvmGLOB_cpu_sysinfo[i].pswitch/pvmGLOB_etime[i];
+        invol_switches   = pvmGLOB_cpu_sysinfo[i].inv_swtch/pvmGLOB_etime[i];
+        user_time        = CSIPCT(pvmGLOB_cpu_sysinfo[i].cpu[CPU_USER]);
+        system_time      = CSIPCT(pvmGLOB_cpu_sysinfo[i].cpu[CPU_KERNEL]);
+        wait_time        = CSIPCT(pvmGLOB_cpu_sysinfo[i].cpu[CPU_WAIT]);
+        idle_time        = CSIPCT(pvmGLOB_cpu_sysinfo[i].cpu[CPU_IDLE]);
+
+        sysfork   = pvmGLOB_cpu_sysinfo[i].sysfork/pvmGLOB_etime[i];
+        sysvfork  = pvmGLOB_cpu_sysinfo[i].sysvfork/pvmGLOB_etime[i];
+        sysexec   = pvmGLOB_cpu_sysinfo[i].sysexec/pvmGLOB_etime[i];
+
+        namei     = pvmGLOB_cpu_sysinfo[i].namei/pvmGLOB_etime[i];
+        ufsiget   = pvmGLOB_cpu_sysinfo[i].ufsiget/pvmGLOB_etime[i];
+        ufsdirblk = pvmGLOB_cpu_sysinfo[i].ufsdirblk/pvmGLOB_etime[i];
+
+        ufsinopage = pvmGLOB_cpu_sysinfo[i].ufsinopage/pvmGLOB_etime[i];
+
+        pgrec  = pvmGLOB_cpu_vminfo[i].pgrec/pvmGLOB_etime[i];
+        pgfrec = pvmGLOB_cpu_vminfo[i].pgfrec/pvmGLOB_etime[i];
+        pgin   = pvmGLOB_cpu_vminfo[i].pgin/pvmGLOB_etime[i];
+        pgout  = pvmGLOB_cpu_vminfo[i].pgout/pvmGLOB_etime[i];
+        dfree  = pvmGLOB_cpu_vminfo[i].dfree/pvmGLOB_etime[i];
+
+        hat_fault    = pvmGLOB_cpu_vminfo[i].hat_fault/pvmGLOB_etime[i];
+        as_fault     = pvmGLOB_cpu_vminfo[i].as_fault/pvmGLOB_etime[i];
+        maj_fault    = pvmGLOB_cpu_vminfo[i].maj_fault/pvmGLOB_etime[i];
+        prot_fault   = pvmGLOB_cpu_vminfo[i].prot_fault/pvmGLOB_etime[i];
+        cow_fault    = pvmGLOB_cpu_vminfo[i].cow_fault/pvmGLOB_etime[i];
+        zfod         = pvmGLOB_cpu_vminfo[i].zfod/pvmGLOB_etime[i];
+
+        pages_in  = pvmGLOB_cpu_vminfo[i].pgpgin/pvmGLOB_etime[i];
+        pages_out = pvmGLOB_cpu_vminfo[i].pgpgout/pvmGLOB_etime[i];
+        swapins   = pvmGLOB_cpu_vminfo[i].swapin/pvmGLOB_etime[i];
+        swapouts  = pvmGLOB_cpu_vminfo[i].swapout/pvmGLOB_etime[i];
+        scan      = pvmGLOB_cpu_vminfo[i].scan/pvmGLOB_etime[i];
+        pgrrun    = pvmGLOB_cpu_vminfo[i].pgrrun/pvmGLOB_etime[i];
+
+        last_number = i;
+      }
+      return;
+    }
+    pvmGLOB_etime[i] = itime / hz;
+    pvmGLOB_old_time[i] = new_time;
+
+    csi.number$ = i;
+    refresh$(csi);
+
+    cvi.number$ = i;
+    refresh$(cvi);
+
+    new_sysinfo = kstat$info;
+    updates = new_sysinfo.updates - old_sysinfo.updates;
+    if (updates > 0.0) {
+      new_vminfo = kstat$vminfo;
+    }
+
+    /* compute cpu sysinfo diffs */
+    CSI_DIFF(mutex_adenters);
+    CSI_DIFF(intr);
+    CSI_DIFF(intrthread);
+    CSI_DIFF(syscall);
+    CSI_DIFF(pswitch);
+    CSI_DIFF(inv_swtch);
+    CSI_DIFF(trap);
+    CSI_DIFF(cpu[CPU_USER]);
+    CSI_DIFF(cpu[CPU_KERNEL]);
+    CSI_DIFF(cpu[CPU_WAIT]);
+    CSI_DIFF(cpu[CPU_IDLE]);
+    CSI_DIFF(wait[W_IO]);
+    CSI_DIFF(wait[W_SWAP]);
+    CSI_DIFF(wait[W_PIO]);
+
+    CSI_DIFF(sysfork);
+    CSI_DIFF(sysvfork);
+    CSI_DIFF(sysexec);
+
+    CSI_DIFF(namei);
+    CSI_DIFF(ufsiget);
+    CSI_DIFF(ufsdirblk);
+
+    CSI_DIFF(ufsinopage);
+
+    /* compute percentages
+    total = pvmGLOB_cpu_sysinfo[i].cpu[CPU_USER] +
+            pvmGLOB_cpu_sysinfo[i].cpu[CPU_KERNEL] +
+            pvmGLOB_cpu_sysinfo[i].cpu[CPU_WAIT] +
+            pvmGLOB_cpu_sysinfo[i].cpu[CPU_IDLE];
+    CSI_PCT(cpu[CPU_USER]);
+    CSI_PCT(cpu[CPU_KERNEL]);
+    CSI_PCT(cpu[CPU_WAIT]);
+    CSI_PCT(cpu[CPU_IDLE]);
+    */
+
+    /* save new values */
+    pvmGLOB_old_cpu_sysinfo[i] = csi;
+
+    CVI_DIFF(pgrec);
+    CVI_DIFF(pgfrec);
+    CVI_DIFF(pgin);
+    CVI_DIFF(pgout);
+    CVI_DIFF(dfree);
+
+    CVI_DIFF(hat_fault);
+    CVI_DIFF(as_fault);
+    CVI_DIFF(maj_fault);
+    CVI_DIFF(prot_fault);
+    CVI_DIFF(zfod);
+    CVI_DIFF(cow_fault);
+
+    /* compute page/swap values */
+    pvmGLOB_cpu_vminfo[i].pgpgin =
+      ((cvi.pgpgin - pvmGLOB_old_cpu_vminfo[i].pgpgin) * pagesize) / 1024;
+    pvmGLOB_cpu_vminfo[i].pgpgout =
+      ((cvi.pgpgout - pvmGLOB_old_cpu_vminfo[i].pgpgout) * pagesize) / 1024;
+    CVI_DIFF(swapin);
+    CVI_DIFF(swapout);
+    CVI_DIFF(scan);
+    CVI_DIFF(pgrrun);
+
+    /* save new values */
+    pvmGLOB_old_cpu_vminfo[i] = cvi;
+
+    /* update and return */
+    smtx             = pvmGLOB_cpu_sysinfo[i].mutex_adenters/pvmGLOB_etime[i];
+    interrupts       = pvmGLOB_cpu_sysinfo[i].intr/pvmGLOB_etime[i];
+    intrthread       = pvmGLOB_cpu_sysinfo[i].intrthread/pvmGLOB_etime[i];
+    system_calls     = pvmGLOB_cpu_sysinfo[i].syscall/pvmGLOB_etime[i];
+    context_switches = pvmGLOB_cpu_sysinfo[i].pswitch/pvmGLOB_etime[i];
+    invol_switches   = pvmGLOB_cpu_sysinfo[i].inv_swtch/pvmGLOB_etime[i];
+    trap             = pvmGLOB_cpu_sysinfo[i].trap/pvmGLOB_etime[i];
+    user_time        = CSIPCT(pvmGLOB_cpu_sysinfo[i].cpu[CPU_USER]);
+    system_time      = CSIPCT(pvmGLOB_cpu_sysinfo[i].cpu[CPU_KERNEL]);
+    wait_time        = CSIPCT(pvmGLOB_cpu_sysinfo[i].cpu[CPU_WAIT]);
+    idle_time        = CSIPCT(pvmGLOB_cpu_sysinfo[i].cpu[CPU_IDLE]);
+
+    sysfork  = pvmGLOB_cpu_sysinfo[i].sysfork/pvmGLOB_etime[i];
+    sysvfork = pvmGLOB_cpu_sysinfo[i].sysvfork/pvmGLOB_etime[i];
+    sysexec  = pvmGLOB_cpu_sysinfo[i].sysexec/pvmGLOB_etime[i];
+
+    namei     = pvmGLOB_cpu_sysinfo[i].namei/pvmGLOB_etime[i];
+    ufsiget   = pvmGLOB_cpu_sysinfo[i].ufsiget/pvmGLOB_etime[i];
+    ufsdirblk = pvmGLOB_cpu_sysinfo[i].ufsdirblk/pvmGLOB_etime[i];
+
+    ufsinopage = pvmGLOB_cpu_sysinfo[i].ufsinopage/pvmGLOB_etime[i];
+
+    pgrec   = pvmGLOB_cpu_vminfo[i].pgrec/pvmGLOB_etime[i];
+    pgfrec  = pvmGLOB_cpu_vminfo[i].pgfrec/pvmGLOB_etime[i];
+    pgin    = pvmGLOB_cpu_vminfo[i].pgin/pvmGLOB_etime[i];
+    pgout   = pvmGLOB_cpu_vminfo[i].pgout/pvmGLOB_etime[i];
+    dfree   = pvmGLOB_cpu_vminfo[i].dfree/pvmGLOB_etime[i];
+
+    hat_fault    = pvmGLOB_cpu_vminfo[i].hat_fault/pvmGLOB_etime[i];
+    as_fault     = pvmGLOB_cpu_vminfo[i].as_fault/pvmGLOB_etime[i];
+    maj_fault    = pvmGLOB_cpu_vminfo[i].maj_fault/pvmGLOB_etime[i];
+    prot_fault   = pvmGLOB_cpu_vminfo[i].prot_fault/pvmGLOB_etime[i];
+    cow_fault    = pvmGLOB_cpu_vminfo[i].cow_fault/pvmGLOB_etime[i];
+    zfod         = pvmGLOB_cpu_vminfo[i].zfod/pvmGLOB_etime[i];
+
+    pages_in  = pvmGLOB_cpu_vminfo[i].pgpgin/pvmGLOB_etime[i];
+    pages_out = pvmGLOB_cpu_vminfo[i].pgpgout/pvmGLOB_etime[i];
+    swapins   = pvmGLOB_cpu_vminfo[i].swapin/pvmGLOB_etime[i];
+    swapouts  = pvmGLOB_cpu_vminfo[i].swapout/pvmGLOB_etime[i];
+    scan      = pvmGLOB_cpu_vminfo[i].scan/pvmGLOB_etime[i];
+    pgrrun    = pvmGLOB_cpu_vminfo[i].pgrrun/pvmGLOB_etime[i];
+
+    if (updates > 0.0) {
+      freemem    = COMPUTE(freemem);
+      swap_avail = COMPUTE(swap_avail);
+
+      runque  = (new_sysinfo.runque  - old_sysinfo.runque)  / updates;
+      waiting = (new_sysinfo.waiting - old_sysinfo.waiting) / updates;
+      swpque  = (new_sysinfo.swpque  - old_sysinfo.swpque)  / updates;
+
+      /* save old memory values */
+      old_sysinfo = new_sysinfo;
+      old_vminfo  = new_vminfo;
+    }
+  }
+};
+
+#endif /* _P_VMSTAT_CLASS_SE_ */

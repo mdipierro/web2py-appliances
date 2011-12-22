@@ -1,0 +1,9 @@
+pyForum app - A web2py pure implementation of a message board (forum) system
+
+I started this project in the begining of March, 2009, as a "learning aid" for
+the web2py framework, this application mimics somehow to my other forum appliction
+zForum for the Zope world, pyForum, however, has been rewritten and optimized
+from scratch in order to provide a complete message board system in pure python.
+
+This software was designed and programmed by Julio Flores Schwarzbeck,
+for any questions or comments, send an email to julio@techfuel.net

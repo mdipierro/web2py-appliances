@@ -1,0 +1,53 @@
+{{extend 'layout.html'}}
+
+<center>
+[{{=A('download this app',_href=URL(r=request,c='static',f='web2py.app.library.w2p'))}}]<br/>(includes source, requires <a href="http://web2py.com">web2py</a> to open and run)
+<br/><br/>
+
+
+Search Books: {{=form}}<br/>
+(try search for 'web2py')
+</center>
+
+{{if books:}}
+<br/><br/>
+<table>
+  <thead>
+    <tr>
+      <th>Authors</th>
+      <th>Title</th>
+      <th>Publisher</th>
+      <th>Year</th>
+    </tr>
+  </thead>
+  {{for book in books:}}
+  <tr>
+    <td>{{=book.authors}}</td>
+    <td>{{=A(book.title,_href=URL('book',args=book.id))}}</td>
+    <td>{{=book.publisher}}</td>
+    <td>{{=book.publication_year}}</td>    
+  </tr>
+  {{pass}}
+</table>
+{{elif request.vars:}}
+No results
+{{else:}}
+
+<p>
+Features:
+<ul>
+  <li>user registration
+  </li><li>full text search (title, authors, publisher)
+  </li><li>book archiving (title, isbn, location, etc)
+  </li><li>image previews
+  </li><li>loan management (requires users marked as 
+    librarians)
+  </li><li>librarians can make other librarians
+  </li><li>two levels of administrative interface 
+    (administrators and librarians)
+  </li><li>import/export of database in CSV
+  </li><li>168 lines of code and 166 of html
+  </li>
+</ul>
+</p>
+{{pass}}

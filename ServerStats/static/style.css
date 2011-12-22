@@ -1,0 +1,368 @@
+/*
+Design by Free CSS Templates
+http://www.freecsstemplates.org
+Released for free under a Creative Commons Attribution 2.5 License
+*/
+
+body {
+	margin: 0;
+	padding: 0;
+	background: #FFFFFF url(images/img01.jpg) repeat-x left top;
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: 12px;
+	color: #787878;
+}
+
+h1, h2, h3 {
+	margin: 0;
+	padding: 0;
+	font-family: Arial, Helvetica, sans-serif;
+	font-weight: normal;
+	color: #F93D00;
+}
+
+h1 {
+	font-size: 2em;
+}
+
+h2 {
+	font-size: 1.6em;
+}
+
+h3 {
+	font-size: 1.6em;
+}
+
+p, ul, ol {
+	margin-top: 0;
+	line-height: 180%;
+}
+
+ul, ol {
+}
+
+a {
+	text-decoration: none;
+	color: #000000;
+}
+
+a:hover {
+}
+
+#wrapper {
+	width: 1025px;
+	margin: 0 auto;
+	padding: 0;
+}
+
+/* Header */
+
+#header {
+	width: 1025px;
+	height: 100px;
+	margin: 0 auto;
+}
+
+/* Logo */
+
+#logo {
+	float: left;
+	width: 1025px;
+	height: 70px;
+	margin: 0;
+	background: url(images/img05.jpg) no-repeat left 25px;
+	color: #FFFFFF;
+}
+
+#logo h1, #logo p {
+	margin: 0;
+	padding: 0;
+	text-transform: uppercase;
+ }
+
+#logo h1 {
+	padding-top: 25px;
+	padding-left: 60px;
+	letter-spacing: -1px;
+	font-size: 2.2em;
+	font-weight: bold;
+}
+
+#logo p {
+	margin-top: -6px;
+	padding-left: 62px;
+	font-size: 11px;
+	color: #000000;
+} 
+
+#logo p a {
+	color: #000000;
+}
+
+#logo a {
+	border: none;
+	background: none;
+	text-decoration: none;
+	color: #D01010;
+}
+
+/* Search */
+
+#search {
+	float: right;
+	width: 230px;
+	padding: 0;
+}
+
+#search form {
+	height: 41px;
+	margin: 0;
+	padding: 70px 0 0 0px;
+}
+
+#search fieldset {
+	margin: 0;
+	padding: 0;
+	border: none;
+}
+
+#search-text {
+	width: 210px;
+	border: none;
+	text-transform: lowercase;
+	font: bold 1.2em Arial, Helvetica, sans-serif;
+	color: #FFFFFF;
+}
+
+#search-submit {
+	display: none;
+}
+
+/* Menu */
+
+#menu {
+	width: 1025ppx;
+	height: 50px;
+	margin: 0 auto;
+	padding: 0;
+}
+
+#menu ul {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	line-height: normal;
+}
+
+#menu li {
+	float: left;
+	height: 40px;
+	padding-top: 10px;
+	background: url(images/img04.gif) no-repeat left 16px;
+}
+
+#menu a {
+	display: block;
+	padding: 0px 17px;
+	border: none;
+	text-decoration: none;
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: 13px;
+	color: #FFFFFF;
+}
+
+#menu a:hover, #menu .current_page_item a {
+}
+
+#menu .current_page_item a {
+}
+
+#menu a:hover {
+	text-decoration: underline;
+}
+
+/* Page */
+
+#page {
+	width: 1015px;
+	margin: 0 auto;
+	padding-top: 30px;
+}
+
+#page-bgtop {
+}
+
+#page-bgbtm {
+}
+
+/* Content */
+
+#content {
+	float: right;
+	width: 750px;
+}
+
+.post {
+	margin-bottom: 8px;
+}
+
+.post-bgtop {
+}
+
+.post-bgbtm {
+}
+
+.post .title {
+	background: url(images/img03.jpg) no-repeat left top;
+	height: 25px;
+	padding: 7px 0 0 35px;
+	font-size: 12px;
+	color: #000000;
+}
+
+.post .title a {
+	color: #000000;
+}
+
+.post .meta {
+	padding-left: 20px;
+	padding-bottom: 5px;
+	text-align: left;
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: 11px;
+	font-style: italic;
+}
+
+.post .entry {
+	padding: 10px 20px 15px 20px;
+	text-align: justify;
+}
+
+/* Sidebar */
+
+#sidebar {
+	float: left;
+	width: 250px;
+}
+
+#sidebar ul {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+#sidebar li {
+	margin: 0;
+	padding: 0;
+}
+
+#sidebar li ul {
+	padding-bottom: 30px;
+}
+
+#sidebar li li {
+	margin-left: 15px;
+	margin-right: 15px;
+	line-height: 35px;
+	border-bottom: 1px dashed #D2D4C9;
+}
+
+#sidebar li li span {
+	display: block;
+	margin-top: -20px;
+	padding: 0;
+	font-size: 11px;
+	font-style: italic;
+}
+
+#sidebar h2 {
+	height: 25px;
+	padding: 5px 0 0 35px;
+	background: url(images/img02.jpg) no-repeat left top;
+	font-size: 12px;
+	color: #000000;
+}
+
+#sidebar p {
+	margin: 0 15px;
+	padding: 20px 0px;
+	text-align: justify;
+}
+
+#sidebar a {
+	color: #000000;
+	border: none;
+}
+
+#sidebar a:hover {
+	text-decoration: underline;
+}
+
+/* Calendar */
+
+#calendar {
+}
+
+#calendar_wrap {
+	padding: 20px;
+}
+
+#calendar table {
+	width: 100%;
+}
+
+#calendar tbody td {
+	text-align: center;
+}
+
+#calendar #next {
+	text-align: right;
+}
+
+/* Footer */
+
+#footer {
+	width: 70%;
+	height: 50px;
+	margin: 0 auto;
+	padding: 0px 0 15px 0;
+	font-family: Arial, Helvetica, sans-serif;
+}
+
+#footer p {
+	margin: 0;
+	padding-top: 20px;
+	line-height: normal;
+	font-size: 9px;
+	text-transform: uppercase;
+	text-align: center;
+}
+
+#footer a {
+	color: #969696;
+}
+
+
+div.flash {
+    position: absolute;
+    float: right;
+    padding: 10px;
+    top: 0px;
+    right: 0px;
+    opacity: 0.75;
+    margin: 10px 10px 10px 10px;
+    text-align: center;
+    clear: both;
+    color: #fff;
+    font-size: 11pt;
+    text-align: center;
+    vertical-align: middle;
+    cursor: pointer;
+    background: black;
+    border: 2px solid #fff; 
+    -moz-border-radius: 5px;
+    -webkit-border-radius: 5px;
+    z-index: 2;
+}
+
+

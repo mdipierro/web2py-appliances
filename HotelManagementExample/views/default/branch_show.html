@@ -1,0 +1,32 @@
+{{extend 'layout.html'}}
+
+{{=DIV(menu)}}
+
+<form>
+    <input type="hidden" id="id" name="id" value="" />
+</form>
+
+{{=DIV(page.address)}}
+{{=DIV(page.phone)}}
+{{=DIV(page.fax)}}
+{{=DIV(db.branch_rating[page.rating_id].rating)}}
+    
+{{=SPAN(page.like, 
+        _id = 'branch_like_%s' % page.id)}}
+{{=SPAN(T('People Like This'))}}
+    
+<span onclick="jQuery('#id').val('{{=page.id}}');
+               ajax('{{=URL('branch_like.load')}}', ['id'], 'branch_like_{{=page.id}}');">
+{{=A(T('Like'), 
+     _href = '#')}}
+</span>
+
+{{=LOAD('default', 
+        'branch_comment_show.load', 
+        args = page.id, 
+        ajax = True)}}
+
+{{=LOAD('default', 
+        'branch_comment_add.load', 
+        args = page.id, 
+        ajax = True)}}

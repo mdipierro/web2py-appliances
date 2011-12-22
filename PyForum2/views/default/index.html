@@ -1,0 +1,122 @@
+{{extend 'zlayout.html'}}
+
+{{if view_info.has_key('sys_topic'):}}
+    <div class="topic-heading">
+        <div>
+            <b>{{=view_info['sys_topic'].get('title', '')}}</b>:
+            {{=XML(parse_content(view_info['sys_topic'].get('content', '')[:250], mode='forumpreview'))}} ..
+            [<a href="{{=URL(r=request, c='default', f='view_topic', args=[view_info['sys_topic'].get('id', '')])}}"
+                title="{{=XML(T('Read More'))}}">{{=XML(T('Read More'))}}</a>]
+        </div>
+    </div>
+{{pass}}
+
+{{if cat_list:}}
+    {{for cat in cat_list:}}
+
+        <div class="bottom-separator">
+            <div id="cat_{{=cat['cat_id']}}_div" style="display:none;">
+                <a href="#" title="" onclick="toggle_category('cat_{{=cat['cat_id']}}', 'on');return false;">+</a>
+                <b>{{=cat['cat_name']}}</b>
+            </div>
+
+            <table cellspacing="0" cellpadding="0" class="zf-table max-width" id="cat_{{=cat['cat_id']}}_table">
+            <thead>
+                <tr class="shadedarker">
+                    <td class="cell3d" colspan="5">
+                        <a href="#" title="" onclick="toggle_category('cat_{{=cat['cat_id']}}', 'off');return false;">[-]</a>
+                        <b>{{=cat['cat_name']}}</b>
+                        {{if cat['cat_desc']:}}
+                            <br />
+                            <div class="small">{{=cat['cat_desc']}}</div>
+                        {{pass}}
+                    </td>
+                </tr>
+                {{if cat['forum_list']:}}
+                    <tr class="shadedarker">
+                        <th class="cell3d" style="width:65%;max-width:65%">&nbsp;</th>
+                        <th class="cell3d" style="width:5%;max-width:5%">{{=XML(T('Posts'))}}</th>
+                        <th class="cell3d" style="width:5%;max-width:5%">{{=XML(T('Replies'))}}</th>
+                        <th class="cell3d" style="width:5%;max-width:5%">{{=XML(T('Views'))}}</th>
+                        <th class="cell3d" style="width:20%;max-width:20%;white-space:nowrap;">{{=XML(T('Last Updated'))}}</th>
+                    </tr>
+                {{pass}}
+            </thead>
+            <tbody>
+                {{if cat['forum_list']:}}
+                    {{for idx, forum in enumerate(cat['forum_list']):}}
+                        <tr class="{{if idx%2:}}shadedark{{else:}}shadelight{{pass}}">
+                            <td class="cell3d">
+                                <div class="indent">
+                                    {{if forum['subscribed_to_forum']:}}<img src="{{=URL(r=request, c='static/images', f='subscribed.gif')}}" alt="{{=XML(T('Subscribed to Forum'))}}" class="imgclear" />{{pass}}
+                                    <a href="{{=URL(r=request, c='default', f='view_forum', args=[forum['forum_id']])}}"
+                                       class="linkb" title="{{=XML(T('View Topics for this forum'))}}">{{=forum['forum_title']}}</a>
+                                    <br />
+                                    <a href="{{=URL(r=request, c='default', f='view_forum', args=[forum['forum_id']])}}"
+                                       class="small-link" title="{{=XML(T('View Topics for this forum'))}}">{{=forum['forum_desc']}}</a>
+                                </div>
+                            </td>
+                            <td class="cell3d center-xy">{{=forum['posts']}}</td>
+                            <td class="cell3d center-xy" style="text-align:center;">{{=forum['replies']}}</td>
+                            <td class="cell3d center-xy" style="text-align:center;">{{=forum['views']}}</td>
+                            <td class="cell3d center-xy" style="text-align:center;">
+                                {{if forum['last_updated']:}}
+                                    <div class="{{if forum['update_flag']:}}important{{else:}}small{{pass}}">{{=forum['last_updated']}}
+                                        <br />
+                                        <span class="small">{{=XML(T('By'))}}</span>
+                                        {{if not forum['last_updated_by']:}}
+                                            <b class="small">{{=XML(T('Anonymous User'))}}</b>
+                                        {{else:}}
+                                            {{if auth_user.is_auth():}}
+                                                <!-- !MODIFIED CODE 
+                                                         Changed link for pm to a link to user profile -->
+                                                <a href="{{=URL(r=request, c='default', f='view_profile', args=[forum['last_updated_by']])}}"
+                                                   class="{{if forum['update_flag']:}}smallb-new{{else:}}smallb{{pass}}"
+                                                   title="">{{=forumhelper.get_display_name(forum['last_updated_by'])}}</a>
+                                                <!-- !END MODIFIED CODE -->
+                                            {{else:}}
+                                                <b class="small">{{=forumhelper.get_display_name(forum['last_updated_by'])}}</b>
+                                            {{pass}}
+                                        {{pass}}
+                                    </div>
+                                {{else:}}
+                                    &nbsp;
+                                {{pass}}
+                            </td>
+                        </tr>
+                    {{pass}}
+                {{else:}}
+                    <tr class="shadelight">
+                        <td class="cell3d" colspan="5">
+                            <div class="indent">
+                                <i>{{=T('This category does not contain any forums')}}</i>
+                            </div>
+                        </td>
+                    </tr>
+                {{pass}}
+            </tbody>
+            </table>
+
+        </div>
+
+    {{pass}}
+
+    <script type="text/javascript">
+    <!--
+        function toggle_category(cat, togglemode) {
+            var div_cat   = document.getElementById(cat + '_div');
+            var table_cat = document.getElementById(cat + '_table');
+            if (togglemode == 'on') {
+                div_cat.style.display = 'none';
+                table_cat.style.display = 'block';
+            } else {
+                div_cat.style.display = 'block';
+                table_cat.style.display = 'none';
+            }
+            return false;
+        }
+    //-->
+    </script>
+{{else:}}
+    <p class="error">{{=T('The Forum System is under maintenance at this time')}}</p>
+{{pass}}

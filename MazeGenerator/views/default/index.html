@@ -1,0 +1,7 @@
+{{extend 'layout.html'}}
+<i>Reload for new maze. Click on maze for solution</i><br/>
+{{=maze}}
+
+<h2>Complete Source Code (controllers/default.py)</h2>
+{{import os}}
+{{=CODE(open(os.path.join(request.folder,'controllers/default.py')).read())}}

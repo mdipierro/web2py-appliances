@@ -1,0 +1,2029 @@
+#!/usr/bin/perl -w # -*- perl -*-
+
+##
+##
+## Orca_services.pl, a log generating services usage monitor
+##
+##
+
+##
+## This program logs many different services usage to a log file
+## for later processing.
+##
+
+## $HeadURL: file:///var/www/svn/repositories-public/orcaware-public/orca/trunk/data_gatherers/orca_services/orca_services.pl.in $
+## $LastChangedRevision: 490 $
+## $LastChangedDate: 2005-09-08 20:51:41 -0700 (Thu, 08 Sep 2005) $
+## $LastChangedBy: blair@orcaware.com $
+
+##
+## Author: Carlos Canau <Carlos.Canau@KPNQwest.com>
+## With: Jose Carlos Pereira <Jose.Pereira@KPNQwest.com>
+##
+
+##
+## Portions adapted from Orcallator.se written by Blair Zajac
+## Portions ported to perl from Orcallator.se written by Blair Zajac
+## other portions adapted from several other open source scripts
+##
+##
+
+##
+## Version 1.5.5.dist: 06 Nov 2000	First distribution version
+##
+## Version 1.5.5: 31 Oct 2000	Bug with increasing "others" in named
+##
+## Version 1.5.4: 31 Oct 2000	DB radiator more secure method of getting DB user/pass
+##
+## Version 1.5.3: 31 Oct 2000	DB radiator accounting
+##
+## Version 1.5.2: 30 Oct 2000	Bugs---, bugs---, ...
+##
+## Version 1.5.1: 27 Oct 2000	Bugs--, bugs--, ...
+##
+## Version 1.5.0: 27 Oct 2000	Radiator/SQL accounting
+##
+## Version 1.4.1: 26 Oct 2000	on/off on services
+##
+## Version 1.4.0.3: 25 Oct 2000	some bugs crashed
+##
+## Version 1.4.0: 24 Oct 2000	DNS / named added
+##
+## Version 1.3.10: 17 Oct 2000	1 query/5min mechanism
+##
+## Version 1.3.9: 12 Oct 2000	New value: mailq
+##
+## Version 1.2.0: 11 Aug 2000	CAC.Washington.EDU ipop3d logfile added
+##
+## Version 1.1.0: 09 Aug 2000   Merit Radius logfile added
+##
+## Version 1.0.3: 09 Aug 2000   Re-open bug fixed (?)
+##
+## Version 1.0.2: 27 Jul 2000   Changes in SMTP regex
+##
+## Version 1.0.1: 25 Jul 2000   Lots of bugs smashed.
+##
+## Version 1.0.0: 23 Jul 2000	First release. Just SMTP.
+##
+##
+
+##
+## BUGS:
+##      several ?...
+##
+
+##
+## TODO:
+##      more services and diferent logfile reading synchronization
+##      code optimization and cleaning
+##      debugging
+##      can this code be GPLed ??
+##
+
+##
+## LICENSE:
+##         GPL.
+##         (c) 2000 Carlos Canau & Jose Carlos Pereira
+##
+
+##
+## DISCLAIMER:
+##            you use this program at your own and complete risk
+##            if you don't agree with that then delete it
+##
+
+$version = "1.5.5.dist";
+
+#
+# ATTENTION: you might need to edit this variables
+#
+$CAT="/usr/local/bin/cat";
+$ECHO="/usr/local/bin/echo";
+$TOUCH="/usr/local/bin/touch";
+
+$UNAME = "/usr/bin/uname";
+$nodename = `$UNAME -n`;
+chop($nodename);
+
+require 5.004_05;
+use Fcntl;
+use Getopt::Long;			# option handler
+use POSIX;				# useful functions
+use IO::Handle;
+use IO::File;
+use Sys::Syslog;
+use Time::HiRes qw(time);			# import time from Time::HiRes
+					# for nanosecond precision
+
+$log_facility = "user";
+$log_priority = "info";
+
+($progname = $0) =~ s(.*/)();
+
+$SaveDay = 0;
+
+# put this in an option
+#
+# ATTENTION: you might need to edit this
+#
+$MAILQCMD = "/usr/bin/mailq | /usr/bin/tail -1";
+
+##
+## options
+##
+local %options;
+# my $def_poll = 5;
+# my $def_lines = 10;
+# my $def_count = (-1);
+my $def_interval = 300;                     # 5 minutes
+my $def_dns_logfile = "/var/log/named";
+my $def_smtp_logfile = "/var/log/syslog";
+my $def_merit_radius_logfile = "/usr/local/etc/raddb/logfile";
+my $def_pop_logfile = "/var/log/ipop3d.log";
+my $def_outputdir = "/home/jose/Downloads/orca/var/orca/orca_services";
+my $def_pid  = "$def_outputdir/${progname}.pid";
+my $def_compress = "/bin/bzip2 -9";
+
+my $def_radius_auth = "/usr/local/lib/orca_services.DB.$nodename";
+
+my $def_mailq = "on";
+
+GetOptions("pidfile=s"         => \$options{pidfile},
+           "debug:s"           => \$options{debug},
+           "interval=i"        => \$options{interval},
+           "dns_logfile=s"     => \$options{dns_logfile},
+           "smtp_logfile=s"    => \$options{smtp_logfile},
+           "merit_radius_logfile=s"  => \$options{merit_radius_logfile},
+           "radius_db=s"       => \$options{radius_db},
+           "pop_logfile=s"     => \$options{pop_logfile},
+           "outputdir=s"       => \$options{outputdir},
+	   "compress=s"        => \$options{compress},
+	   "mailq=s"           => \$options{mailq},
+           "help"              => \$options{help},
+           "version"           => \$options{help}
+           ) || usage();
+usage() if $options{help};
+
+if ($options{debug}) {
+    if ($options{debug} ne "on") {
+	$debug = 0;
+	exit if fork;
+    } else {
+	$debug = 1;
+    }
+} else {
+    $debug = 0;
+    exit if fork;
+}
+
+if ($options{interval}) {
+    $interval = $options{interval};
+} else {
+    $interval = $def_interval;
+}
+
+if ($options{compress}) {
+    $Compress = $options{compress};
+} else {
+    $Compress = $def_compress;
+}
+
+if ($options{outputdir}) {
+    $OutputDir = $options{outputdir};
+} else {
+    $OutputDir = $def_outputdir;
+}
+system ("mkdir $OutputDir 2>/dev/null");             # ignore return value
+system ("chmod 0755 $OutputDir 2>/dev/null");        # if you can change these
+                                                     # two systems bye the perl
+                                                     # syscall ... :-)
+system ("mkdir $OutputDir/$nodename 2>/dev/null");   # ignore return value
+system ("chmod 0755 $OutputDir/$nodename 2>/dev/null");
+if ($options{pidfile}) {
+    $PidFile = $options{pidfile};
+} else {
+    $PidFile = "$OutputDir/$nodename/${progname}.pid";;
+}
+
+if ($options{dns_logfile}) {
+    $DNSFile = $options{dns_logfile};
+} else {
+    $DNSFile = $def_dns_logfile;
+}
+
+if ($options{smtp_logfile}) {
+    $SMTPFile = $options{smtp_logfile};
+} else {
+    $SMTPFile = $def_smtp_logfile;
+}
+
+if ($options{mailq}) {
+    $MAILQ = $options{mailq};
+} else {
+    $MAILQ = $def_mailq;
+}
+
+if ($options{merit_radius_logfile}) {
+    $Merit_RADIUSFile = $options{merit_radius_logfile};
+} else {
+    $Merit_RADIUSFile = $def_merit_radius_logfile;
+}
+
+if ($options{pop_logfile}) {
+    $POPFile = $options{pop_logfile};
+} else {
+    $POPFile = $def_pop_logfile;
+}
+
+if ($options{radius_db}) {
+    $RADIUS_DB = $options{radius_db};
+###    print "\n\nWARNING: radius_db option not being used via cmd line. Using default\n\n";
+###    $RADIUS_DB = $def_radius_auth;
+} else {
+    $RADIUS_DB = $def_radius_auth;
+}
+
+##
+## options
+##
+
+
+
+
+&logit ("ready (pid $$)");
+if (open(P, "> $PidFile")) {
+    print P "$$\n";
+    close P;
+} else {
+    &logit("can't save pid (can't write to '$PidFile')");
+    warn "$progname: can't save pid (can't write to '$PidFile')\n";
+}
+
+
+
+##
+## init logfiles
+##
+my ($dns_ino, $dns_size, $dns_ok) = (0,0,0);
+if ($DNSFile !~ /^off$/i) {
+    $dns_ok = &init_dns ($DNSFile);                           # inits DNSFD
+}
+
+my ($smtp_ino, $smtp_size, $smtp_ok) = (0,0,0);
+if ($SMTPFile !~ /^off$/i) {
+    $smtp_ok = &init_smtp ($SMTPFile);                        # inits SMTPFD
+}
+
+my ($merit_radius_ino, $merit_radius_size, $merit_radius_ok) = (0,0,0);
+if ($Merit_RADIUSFile !~ /^off$/i) {
+    $merit_radius_ok = &init_merit_radius ($Merit_RADIUSFile);                  # inits RADIUSFD
+}
+
+my ($pop_ino, $pop_size, $pop_ok) = (0,0,0);
+if ($POPFile !~ /^off$/i) {
+    $pop_ok = &init_pop ($POPFile);                           # inits POPFD
+}
+
+if ($RADIUS_DB !~ /^off$/i) {
+
+    #check if database user/passwd is given!
+    if( ! -f $RADIUS_DB){
+        print "Database init error: No such file: $RADIUS_DB\n";
+        print "Aborting\n";
+        exit;
+    }
+
+    my($proto,$drv,$database,$user,$pass)= split(/:/,`$CAT $RADIUS_DB`);
+
+    if(!$proto || !$drv || !$database || !$user || !$pass){
+        print "Database init error: unable to parse $RADIUS_DB\n";
+        print "Syntax must be: protocol:driver:database:user:passwd ex: DBI:oracle:ORCA:user:pass\n";
+        print "Aborting\n";
+        exit;
+    }
+    chomp($pass);
+
+    if ( ($radius_ok = &init_radius("$proto:$drv:$database",$user,$pass)) ) {                      # inits $RADdbh
+        print "ERROR: Radius init failed! Aborting $radius_ok\n";
+        exit;
+    }
+}
+
+$print_header = 0;
+$current_column = 0;
+
+##
+## init outpufile
+##
+my $OutputFilename = "";
+#$outputfile_ok = &check_output ("$OutputDir/$nodename");  # inits OUTFD
+#                                                          # & $OutputFilename
+
+
+# incremental
+if (defined($DNSFD)) {
+    &init_dns_vars ();
+}
+
+while () {
+    my $outputfile_ok = 0;
+    my ($now, $sleep_till);
+
+    $now        = time;
+    $sleep_till = ($now/$interval) * $interval;
+    while ($sleep_till < $now + $interval*0.5) {
+	$sleep_till += $interval;
+    }
+
+    &measure_head ($now);
+
+    if (defined($SMTPFD)) {
+	&init_smtp_vars ();
+    }
+    if ($MAILQ eq "on") {
+	&init_mailq_vars ();
+    }
+    if (defined($Merit_RADIUSFD)) {
+	&init_merit_radius_vars ();
+    }
+    if (defined($POPFD)) {
+	&init_pop_vars ();
+    }
+
+    ### call the measure routines...
+    &measure ($sleep_till);
+
+    if (defined($RADdbh)) {
+	&put_radius ();
+    }
+
+    if (defined($DNSFD)) {
+	&put_dns ();
+    }
+    if (defined($SMTPFD)) {
+	&put_smtp ();
+    }
+    if ($MAILQ eq "on") {
+	&put_mailq ();
+    }
+    if (defined($Merit_RADIUSFD)) {
+	&put_merit_radius ();
+    }
+    if (defined($POPFD)) {
+	&put_pop ();
+    }
+
+    $outputfile_ok = &check_output ("$OutputDir/$nodename");
+
+    &flush_output ();
+
+}
+
+exit 0;
+
+
+
+# ----------------------------------------------------------------------------
+
+sub usage {
+    die "usage: $progname [options]
+    ($progname uses the GNU extended POSIX option format)
+
+    --pidfile=FILE        write my PID here           (default: $def_pid)
+    --debug[=on|off]      show copious debugging info (default: off)
+    --interval=i          pooling interval in sec.    (default: $def_interval)
+    --dns_logfile=FILE    syslog from named           (default: $def_dns_logfile)
+    --smtp_logfile=FILE   syslog from sendmail        (default: $def_smtp_logfile)
+    --merit_radius_logfile=FILE syslog from merit_radius          (default: $def_merit_radius_logfile)
+    --radius_db=FILE      file for user/passwd for DB access (default: $def_radius_auth)
+    --pop_logfile=FILE    syslog from pop             (default: $def_pop_logfile)
+    --outputdir=DIR       write here output files     (default: $def_outputdir)
+    --compress=COMMAND    use this to compress files  (default: $def_compress)
+    --mailq=[on|off]      get mailq total requests    (default: $def_mailq)
+    --help, --version this option summary
+
+    Note: use filename 'off' to turn off the specific service
+
+    This is $progname version $version
+
+";
+}
+
+
+# -------------------------------------------------------------------
+#
+# logit -- send MSG(s) to the syslog.
+#
+# usage: &logit($msg_to_log);
+#
+
+sub logit {
+    local($Msg) = @_;
+
+    &Sys::Syslog::openlog("$progname", 'cons,pid', "$log_facility");
+    &Sys::Syslog::syslog("$log_priority", $Msg);
+    &Sys::Syslog::closelog();
+}
+
+
+# -------------------------------------------------------------------
+#
+# measure_head -- put first values
+#
+# usage: &measure_head($time)
+#
+
+sub measure_head() {
+    my ($time) = @_;
+
+    $now_string = strftime "%T", localtime;
+    put_output(" timestamp", sprintf("%10d", $time));
+    put_output("locltime", $now_string);
+}
+
+
+# ----------------------------------------------------------------------
+#
+# init_radius - set RADIATOR_RADIUS vars, connect to DB, calculate correct time stamp
+#
+# usage: &init_radius($db,$user,$pass);
+#
+
+sub init_radius {
+  my ($db,$user,$pass) = @_;
+
+    use DBI;
+
+    $RADdbh   = DBI->connect($db,$user,$pass);
+    if(!$RADdbh) {
+        print "Connect error $DBI::errstr\n";
+        return 1;
+    }
+
+    #get the lower time limit that our queries will start from
+    #get a "history" of 5minutes
+
+    $radius_base_ts= time - 5*60;
+
+    #get accumulated values for what we want to measure:
+
+#jcp correct this please!
+##    my ($sec, $min, $hour, $mday, $mon, $year, $wday, $yday, undef) = localtime($radius_base_ts);
+##    $year += 1900;
+##    $mon++;
+
+
+##    $BASE_ACCUM_radius_DB="/var/orca/orca_services/$nodename";
+##    $ACCUM_radius_DB= "$BASE_ACCUM_radius_DB/radiatorRadiusAccum.$year$mon.txt";
+##    `$TOUCH $ACCUM_radius_DB`;
+
+##    $radius_inc_time       ||= 0;
+##    $radius_inc_sessions   ||= 0;
+
+#END jcp correct this please!
+
+    return 0;
+}
+
+
+# -------------------------------------------------------------------
+#
+# init_dns - set DNS vars, open the logfile and seek into the end.
+#
+# usage: &init_dns($dns_logfile);
+#
+
+sub init_dns {
+    my ($filename) = @_;
+
+    if ($filename) {
+	$DNSFD = new IO::File "$filename", "r";
+	if (defined($DNSFD)) {
+	    my ($dev,$ino,$mode,$nlink,$uid,$gid,$rdev,$size,
+		$atime,$mtime,$ctime,$blksize,$blocks) = stat($DNSFD);
+	    if (!$dev) {
+		&logit ("can't stat $filename");
+		warn "$progname: can't stat $filename\n";
+		return 1;
+	    }
+	    $dns_ino = $ino;
+	    $dns_size = $size;
+	    $seek_ok = seek($DNSFD, 0, SEEK_END);
+	    if (!$seek_ok) {
+		&logit ("can't seek into EOF on $filename");
+		warn "$progname: can't seek into EOF on $filename\n";
+		return 2;
+	    }
+	} else {
+	    &logit ("can't open $filename");
+	    warn "$progname: can't open $filename\n";
+	    return 3;
+	}
+    }
+    &init_dns_vars ();
+    return 0;
+}
+
+# -------------------------------------------------------------------
+#
+# init_smtp - set SMTP vars, open the logfile and seek into the end.
+#
+# usage: &init_smtp($smtp_logfile);
+#
+
+sub init_smtp {
+    my ($filename) = @_;
+
+    if ($filename) {
+	$SMTPFD = new IO::File "$filename", "r";
+	if (defined($SMTPFD)) {
+	    my ($dev,$ino,$mode,$nlink,$uid,$gid,$rdev,$size,
+		$atime,$mtime,$ctime,$blksize,$blocks) = stat($SMTPFD);
+	    if (!$dev) {
+		&logit ("can't stat $filename");
+		warn "$progname: can't stat $filename\n";
+		return 1;
+	    }
+	    $smtp_ino = $ino;
+	    $smtp_size = $size;
+	    $seek_ok = seek($SMTPFD, 0, SEEK_END);
+	    if (!$seek_ok) {
+		&logit ("can't seek into EOF on $filename");
+		warn "$progname: can't seek into EOF on $filename\n";
+		return 2;
+	    }
+	} else {
+	    &logit ("can't open $filename");
+	    warn "$progname: can't open $filename\n";
+	    return 3;
+	}
+    }
+    &init_smtp_vars ();
+    return 0;
+}
+
+
+# ----------------------------------------------------------------------
+#
+# init_merit_radius - set Merit_RADIUS vars, open the logfile and seek into the end.
+#
+# usage: &init_merit_radius($radius_logfile);
+#
+
+sub init_merit_radius {
+    my ($filename) = @_;
+
+    if ($filename) {
+	$Merit_RADIUSFD = new IO::File "$filename", "r";
+	if (defined($Merit_RADIUSFD)) {
+	    my ($dev,$ino,$mode,$nlink,$uid,$gid,$rdev,$size,
+		$atime,$mtime,$ctime,$blksize,$blocks) = stat($Merit_RADIUSFD);
+	    if (!$dev) {
+		&logit ("can't stat $filename");
+		warn "$progname: can't stat $filename\n";
+		return 1;
+	    }
+	    $merit_radius_ino = $ino;
+	    $merit_radius_size = $size;
+	    $seek_ok = seek($Merit_RADIUSFD, 0, SEEK_END);
+	    if (!$seek_ok) {
+		&logit ("can't seek into EOF on $filename");
+		warn "$progname: can't seek into EOF on $filename\n";
+		return 2;
+	    }
+	} else {
+	    &logit ("can't open $filename");
+	    warn "$progname: can't open $filename\n";
+	    return 3;
+	}
+    }
+    &init_merit_radius_vars ();
+    return 0;
+}
+
+
+# ----------------------------------------------------------------------
+#
+# init_pop - set POP vars, open the logfile and seek into the end.
+#
+# usage: &init_pop($pop_logfile);
+#
+
+sub init_pop {
+    my ($filename) = @_;
+
+    if ($filename) {
+	$POPFD = new IO::File "$filename", "r";
+	if (defined($POPFD)) {
+	    my ($dev,$ino,$mode,$nlink,$uid,$gid,$rdev,$size,
+		$atime,$mtime,$ctime,$blksize,$blocks) = stat($POPFD);
+	    if (!$dev) {
+		&logit ("can't stat $filename");
+		warn "$progname: can't stat $filename\n";
+		return 1;
+	    }
+	    $pop_ino = $ino;
+	    $pop_size = $size;
+	    $seek_ok = seek($POPFD, 0, SEEK_END);
+	    if (!$seek_ok) {
+		&logit ("can't seek into EOF on $filename");
+		warn "$progname: can't seek into EOF on $filename\n";
+		return 2;
+	    }
+	} else {
+	    &logit ("can't open $filename");
+	    warn "$progname: can't open $filename\n";
+	    return 3;
+	}
+    }
+    &init_pop_vars ();
+    return 0;
+}
+
+
+# -------------------------------------------------------------------
+#
+# check_output - set outputfile vars, open the outputfile.
+#
+# usage: &check_output($outputdir);
+#
+
+sub check_output {
+    my ($outputdir) = @_;
+    $sec1=$min1=$hour1=$mday1=$mon1=$year1=$wday1=$yday1=$isdst1 = 0;
+
+    ($sec1,$min1,$hour1,$mday1,$mon1,$year1,$wday1,$yday1,$isdst1) = localtime();
+
+    if ($mday1 != $SaveDay) {
+	# First time or day has changed, start new logfile.
+	if (OUTFD->opened) {
+	    close(OUTFD);                            # ignore error
+	}
+	if (($Compress) && ($SaveDay)) {             # just on day change
+	    if ($OutputFilename) {
+		&logit ("compressing $OutputFilename");
+		system ("$Compress $OutputFilename");  # ignore error ??
+	    }
+	}
+
+	$now_string = strftime "%Y-%m-%d", localtime;
+
+	$OutputFilename = "$outputdir/percol-$now_string";
+
+        if (!open (OUTFD, ">>$OutputFilename")) {
+	    &logit ("can't open outputfile $OutputFilename");
+	    die "$progname: can't open outputfile $OutputFilename\n";
+	}
+
+	$SaveDay = $mday1;
+
+	$print_header = 1;
+    }
+
+    return 0;
+}
+
+
+# -------------------------------------------------------------------
+#
+# flush_output - dumps line into outputfile
+#
+# usage: &flush_output();
+#
+
+sub flush_output() {
+
+    if ($print_header) {
+	&print_columns(\@col_comment);
+	$print_header = 0;
+    }
+    &print_columns(\@col_data);
+    $current_column = 0;
+}
+
+# -------------------------------------------------------------------
+#
+# Send the stored columns of information to the output.
+#
+# usage: &print_columns( \@array );
+#
+
+sub print_columns() {
+    my ($ref) = @_;
+
+    @col = @$ref;
+
+    for ($i=0; $i < $current_column; $i++) {
+	printf OUTFD "%s", $col[$i];
+	if ($i != $current_column - 1) {
+	    printf OUTFD " ";
+	}
+    }
+    printf OUTFD "\n";
+
+    OUTFD->flush;
+}
+
+# -------------------------------------------------------------------
+#
+# Add one column of comments and data to the buffers.
+#
+# usage: &put_output( $comment, $data );
+#
+
+sub put_output() {
+    my ($comment, $data) = @_;
+
+    printf "OUT: --%s-- %s\n", $comment, $data if $debug;
+    $col_comment[$current_column] = $comment;
+    $col_data[$current_column]    = $data;
+    $current_column++;
+}
+
+
+# -------------------------------------------------------------------
+#
+# Cycle several measurables
+#
+# usage: &measure( $sleep_till );
+#
+
+sub measure () {
+    my ($sleep_till) = @_;
+
+
+    $now = time;
+    while ($now < $sleep_till) {
+
+        printf "SMTP: sleeping for 5\n" if $debug;
+        sleep(5);
+        $now = time;
+
+	# measure...
+	if (defined($SMTPFD)) {
+	    &measure_smtp();
+	}
+	if (defined($Merit_RADIUSFD)) {
+	    &measure_merit_radius();
+	}
+	if (defined($POPFD)) {
+	    &measure_pop();
+	}
+	#
+	# stats only once an hour... but better not have logfile reading picks
+	#
+	if (defined($DNSFD)) {
+	    &measure_dns();
+	}
+
+	# measure...
+
+	$now = time;
+
+    } ## while ($now < $sleep_till)
+    # put in the end... calls external prog.
+    if ($MAILQ eq "on") {
+	&measure_mailq();
+    }
+
+    if (defined($RADdbh)) {
+        &measure_radius();
+    }
+
+    return 0;
+}
+
+
+# -------------------------------------------------------------------
+#
+# Get values for smtp columns
+#
+# usage: &measure_smtp( );
+#
+
+sub measure_smtp () {
+
+
+    #################################### insert bail out for too much
+    #################################### time spent ??
+    $buf = <$SMTPFD>;
+    while ($buf) {
+	## process line read and check for eof
+	if ($buf) {
+	    &process_smtp_line ($buf);
+	}
+	if ($SMTPFD->eof) {
+	    printf "SMTP: eof on $SMTPFile\n" if $debug;
+	    last; # get out of while($buf)
+	}
+	$buf = <$SMTPFD>;
+    } ## while ($buf)
+
+
+    # test for file change via different inode or filesize decrease
+    $dev = $ino = $mode = $nlink = $uid = $gid = $rdev =
+	$size = $atime = $mtime = $ctime = $blksize = $blocks = '';
+    ($dev,$ino,$mode,$nlink,$uid,$gid,$rdev,$size,
+     $atime,$mtime,$ctime,$blksize,$blocks) = stat($SMTPFile);
+    if (!$dev) {
+	&logit ("can't stat $SMTPFile");
+	warn "$progname: can't stat $SMTPFile\n";
+	return 1;
+    }
+    printf "SMTPFD: smtp_ino=%s vs. ino=%s\tsmtp_size=%s vs. size=%s\n", $smtp_ino, $ino, $smtp_size, $size if $debug;
+    if (($smtp_ino != $ino) || ($smtp_size > $size)) {
+	undef $SMTPFD;
+	printf "SMTP: file change on $SMTPFile\n" if $debug;
+	$SMTPFD = new IO::File "$SMTPFile", "r";
+	if (!defined ($SMTPFD)) {
+	    &logit ("can't re-open $SMTPFile");
+	    warn "$progname: can't re-open $SMTPFile\n";
+	    $smtp_ino = $smtp_size = 0;
+	    return 2;
+	}
+	$smtp_ino = $ino;
+	$smtp_size = $size;
+    }
+
+    return 0;
+}
+
+
+# -------------------------------------------------------------------
+#
+# init smtp vars
+#
+# usage: &init_smtp_vars();
+#
+
+sub init_smtp_vars() {
+    $smtp_froms      = 0;
+    $smtp_MaxSize    = 0;
+    $smtp_sizes      = 0;
+
+    $smtp_MaxSeconds = 0;
+    $smtp_seconds    = 0;
+    $smtp_sent       = 0;
+
+    $smtp_fail       = 0;
+    $smtp_retries    = 0;
+    $smtp_queued     = 0;
+    $smtp_t_or_f     = 0;
+
+    $smtp_check_mail = 0;
+    $smtp_check_rcpt = 0;
+    $smtp_notifies   = 0;
+    $smtp_dsns       = 0;
+    $smtp_undefs     = 0;
+}
+
+
+# -------------------------------------------------------------------
+#
+# Parse smtp log line
+#
+# usage: &process_smtp_line ($buf);
+#
+
+sub process_smtp_line () {
+    my ($line) = @_;
+
+
+    if ($line !~ / sendmail\[\d+\]: /) {
+	return 0;
+    }
+
+
+    # from
+# Jul 16 03:22:12 server123 sendmail[4977]: e6G2M7O04977: from=<jsmith@server321.domain.com>, size=981, class=0, nrcpts=1, msgid=<200007152000.VAA24441@server321.domain.com>, proto=ESMTP, daemon=MTA, relay=server321.domain.com [10.0.0.65]
+#   0 Month, 1 Day, 2 hh:mm:ss, 3 nodename, 4 sendmail[NNNNN]:, 5 msg-id:, 6 from=FROM\,, 7 size=NNNNN\,, ...
+    if ($line =~ /: from=.*, size=(\d+)/i) {
+	$smtp_froms ++;
+	$size = $1;
+	$smtp_sizes += $size;
+	if ($size > $smtp_MaxSize) {
+	    $smtp_MaxSize = $size;
+	}
+	printf "SMTP_FROM: %s", $line if $debug;
+#	printf "smtp_froms=%s, size=%s, smtp_sizes=%s, smtp_MaxSize=%s\n", $smtp_froms, $size, $smtp_sizes, $smtp_MaxSize if $debug;
+	return 0;
+    }
+
+    # to
+#Jul 16 03:26:32 server123 sendmail[5060]: e6G2PqO05058: to=<info@domain1.pt>, delay=00:00:35, xdelay=00:00:35, mailer=esmtp, pri=120745, relay=server321.domain.com. [10.0.0.65], dsn=2.0.0, stat=Sent (DAA19487 Message accepted for delivery)
+#Jul 16 03:15:16 server123 sendmail[4828]: e6EBXrO12616: to=<sales@mail.domain2.pt>, delay=1+14:41:13, xdelay=00:00:55, mailer=esmtp, pri=3001977, relay=mail.domain2.pt. [11.0.0.130], dsn=4.0.0, stat=Deferred: Connection refused by mail.domain2.pt.
+#Jul 16 22:31:20 server123 sendmail[881]: e6GLUxP00881: to=<info@domain3.pt>, delay=00:00:11, xdelay=00:00:11, mailer=esmtp, pri=37973, relay=mail.domain4.pt. [12.0.0.15], dsn=5.0.0, stat=Service unavailable
+#Jul 24 18:33:05 server999 sendmail[15932]: SAA15929: to=<jsmith@domain4.pt>, ctladdr=<jjjj@domain9.pt> (16306/1984), delay=00:00:10, xdelay=00:00:09, mailer=esmtp, relay=mail.domain4.pt. [13.0.0.3], stat=Sent (Ok)
+    if ($line =~ /: to=/) {
+	if ($line =~ /, delay=(\d+)*\+*(\d+):(\d+):(\d+), .*, stat=Sent/i) {
+	    $seconds = 86400*$1 + 3600*$2 + 60*$3 + $4;
+
+	    $smtp_seconds += $seconds;
+	    if ($seconds > $smtp_MaxSeconds) {
+		$smtp_MaxSeconds = $seconds;
+	    }
+	    $smtp_sent ++;
+	    printf "SMTP_SENT: %s", $line if $debug;
+#	    printf "seconds=%s, smtp_seconds=%s, smtp_MaxSeconds=%s, smtp_sent=%s\n", $seconds, $smtp_seconds, $smtp_MaxSeconds, $smtp_sent if $debug;
+	    return 0;
+	}
+	if ($line =~ /, dsn=5/i) {
+	    $smtp_fail++;
+	    printf "SMTP_FAIL: %s", $line if $debug;
+#	    printf "smtp_fail=%s\n", $smtp_fail if $debug;
+	    return 0;
+	}
+	if (($line =~ /, dsn=4/i) || ($line =~ /, stat=Deferred:/i)) {
+	    $smtp_retries++;
+	    printf "SMTP_RETRY: %s", $line if $debug;
+#	    printf "smtp_retries=%s\n", $smtp_retries if $debug;
+	    return 0;
+	}
+	if ($line =~ /, stat=queued/i) {
+	    $smtp_queued++;
+	    printf "SMTP_QUEUE: %s", $line if $debug;
+#	    printf "smtp_queued=%s\n", $smtp_queued if $debug;
+	    return 0;
+	}
+	$smtp_t_or_f++;
+	printf "SMTP_T_OR_F: %s", $line if $debug;
+#	printf "smtp_t_or_f=%s\n", $smtp_t_or_f if $debug;
+	return 0;
+    }
+
+    # ruleset=check_mail
+#Jul 16 22:24:43 server123 sendmail[604]: e6GLNMO00604: ruleset=check_mail, arg1=<Mary.Wilson@domain10.pt>, relay=server321.domain.com [10.0.0.65], reject=451 4.1.8 <Mary.Wilson@domain10.pt>... Domain of sender address Mary.Wilson@domain10.pt does not resolve
+    if ($line =~ /: ruleset=check_mail, /i) {
+	$smtp_check_mail ++;
+	printf "SMTP_CHECK_MAIL: %s", $line if $debug;
+#	printf "smtp_check_mail=%s\n", $smtp_check_mail if $debug;
+	return 0;
+    }
+
+    # ruleset=check_rcpt
+#Jul 19 16:54:55 server123 sendmail[11437]: e6JFsoO11437: ruleset=check_rcpt, arg1=<xyz@domain777.net>, relay=a.b.c.net [6.1.6.7], reject=550 5.7.1 <xyz@domain777.net>... Relaying denied
+#Jul 19 17:34:54 server123 sendmail[12479]: e6JGYKO12479: ruleset=check_rcpt, arg1=<Edgar.Silva@mail.soso.domain8888.pt>, relay=individual [10.0.0.67], reject=450 4.7.1 <Edgar.Silva@mail.soso.domain8888.pt>... Can not check MX records for recipient host mail.soso.domain8888.pt
+    if ($line =~ /: ruleset=check_rcpt, /i) {
+	$smtp_check_rcpt ++;
+	printf "SMTP_CHECK_RCPT: %s", $line if $debug;
+#	printf "smtp_check_rcpt=%s\n", $smtp_check_rcpt if $debug;
+	return 0;
+    }
+
+    # postmaster notify:
+#Jul 17 05:30:04 server123 sendmail[10016]: e6EKWRO24933: e6H401o10016: postmaster notify: Cannot send message within 2 days
+    if ($line =~ /: postmaster notify: /i) {
+	$smtp_notifies ++;
+	printf "SMTP_NOTIFIES: %s", $line if $debug;
+#	printf "smtp_notifies=%s\n", $smtp_notifies if $debug;
+	return 0;
+    }
+
+    # DSN
+#Jul 18 22:28:58 server123 sendmail[7172]: e6ILQlO07170: e6ILSwO07172: DSN: Service unavailable
+#Jul 19 14:38:00 server123 sendmail[1846]: e6HBWSO21997: e6JDU0t01846: DSN: Cannot send message within 2 days
+#Jul 19 17:33:51 server123 sendmail[12272]: e6JGTlO12270: e6JGXpO12272: DSN: Return receipt
+    if ($line =~ /: DSN: /i) {
+	$smtp_dsns ++;
+	printf "SMTP_DSN: %s", $line if $debug;
+#	printf "smtp_dsns=%s\n", $smtp_dsns if $debug;
+	return 0;
+    }
+
+    $smtp_undefs ++;
+    printf "SMTP_UNDEF: %s", $line if $debug;
+#    printf "smtp_undefs=%s\n", $smtp_undefs if $debug;
+    return 0;
+}
+
+
+# -------------------------------------------------------------------
+#
+# Put the smtp values for output
+#
+# usage: &put_smtp();
+#
+
+sub put_smtp() {
+
+    &put_output("smtp_from",  sprintf("%8.2f", $smtp_froms));
+    &put_output("smtp_tops",  sprintf("%8.2f", $smtp_MaxSize));
+    if ($smtp_froms) {
+	&put_output("smtp_sizes",  sprintf("%8.2f", $smtp_sizes/$smtp_froms));
+    } else {
+	&put_output("smtp_sizes",  sprintf("%8.2f", 0));
+    }
+    &put_output("smtp_sent",  sprintf("%8.2f", $smtp_sent));
+    &put_output("smtp_maxd",  sprintf("%8.2f", $smtp_MaxSeconds));
+    if ($smtp_sent) {
+	&put_output("smtp_delay", sprintf("%8.2f", $smtp_seconds/$smtp_sent));
+    } else {
+	&put_output("smtp_delay", sprintf("%8.2f", 0));
+    }
+    &put_output("smtp_fail",  sprintf("%8.2f", $smtp_fail));
+    &put_output("smtp_rtrs",  sprintf("%8.2f", $smtp_retries));
+    &put_output("smtp_queued",  sprintf("%8.2f", $smtp_queued));
+    &put_output("smtp_torf",  sprintf("%8.2f", $smtp_t_or_f));
+    &put_output("smtp_c_ml",  sprintf("%8.2f", $smtp_check_mail));
+    &put_output("smtp_c_rt",  sprintf("%8.2f", $smtp_check_rcpt));
+    &put_output("smtp_ntfs",  sprintf("%8.2f", $smtp_notifies));
+    &put_output("smtp_dsns",  sprintf("%8.2f", $smtp_dsns));
+
+    &put_output("smtp_undf",  sprintf("%8.2f", $smtp_undefs));
+
+    return 0;
+}
+
+
+# -------------------------------------------------------------------
+#
+# Get values for mailq columns
+#
+# usage: &measure_mailq( );
+#
+
+sub measure_mailq () {
+
+    open (MFD, "$MAILQCMD |");
+    $line = <MFD>;
+    close (MFD);
+
+    if ($line =~ /(\d+)/i) {
+	$mailq_t = $1;
+    } else {
+	$mailq_t = 0;
+    }
+    $mailq_total += $mailq_t;
+
+    return 0;
+}
+
+
+# -------------------------------------------------------------------
+#
+# init mailq vars
+#
+# usage: &init_mailq_vars();
+#
+
+sub init_mailq_vars() {
+    $mailq_total      = 0;
+}
+
+
+# -------------------------------------------------------------------
+#
+# Put the mailq values for output
+#
+# usage: &put_mailq();
+#
+
+sub put_mailq() {
+
+    &put_output("mailq_total",  sprintf("%8.2f", $mailq_total));
+
+    return 0;
+}
+
+
+# -------------------------------------------------------------------
+#
+# init merit_radius vars
+#
+# usage: &init_merit_radius_vars();
+#
+
+sub init_merit_radius_vars() {
+    $merit_radius_auth          = 0;
+    $merit_radius_auth_ok       = 0;
+    $merit_radius_auth_nok      = 0;
+
+    $merit_radius_acct_start    = 0;
+    $merit_radius_acct_stop     = 0;
+
+    $merit_radius_rem_auth      = 0;
+    $merit_radius_rem_auth_ok   = 0;
+    $merit_radius_rem_auth_nok  = 0;
+
+    $merit_radius_undefs        = 0;
+}
+
+
+# -------------------------------------------------------------------
+#
+# Get values for merit_radius columns
+#
+# usage: &measure_merit_radius( );
+#
+
+sub measure_merit_radius () {
+
+
+    #################################### insert bail out for too much
+    #################################### time spent ??
+    $buf = <$Merit_RADIUSFD>;
+    while ($buf) {
+	## process line read and check for eof
+	if ($buf) {
+	    &process_merit_radius_line ($buf);
+	}
+	if ($Merit_RADIUSFD->eof) {
+	    printf "Merit_RADIUS: eof on $Merit_RADIUSFile\n" if $debug;
+	    last; # get out of while($buf)
+	}
+	$buf = <$Merit_RADIUSFD>;
+    } ## while ($buf)
+
+
+    # test for file change via different inode or filesize decrease
+    $dev = $ino = $mode = $nlink = $uid = $gid = $rdev =
+	$size = $atime = $mtime = $ctime = $blksize = $blocks = '';
+    ($dev,$ino,$mode,$nlink,$uid,$gid,$rdev,$size,
+     $atime,$mtime,$ctime,$blksize,$blocks) = stat($Merit_RADIUSFile);
+    if (!$dev) {
+	&logit ("can't stat $Merit_RADIUSFile");
+	warn "$progname: can't stat $Merit_RADIUSFile\n";
+	return 1;
+    }
+    printf "Merit_RADIUSFD: merit_radius_ino=%s vs. ino=%s\tmerit_radius_size=%s vs. size=%s\n", $merit_radius_ino, $ino, $merit_radius_size, $size if $debug;
+    if (($merit_radius_ino != $ino) || ($merit_radius_size > $size)) {
+	undef $Merit_RADIUSFD;
+	printf "Merit_RADIUS: file change on $Merit_RADIUSFile\n" if $debug;
+	$Merit_RADIUSFD = new IO::File "$Merit_RADIUSFile", "r";
+	if (!defined ($Merit_RADIUSFD)) {
+	    &logit ("can't re-open $Merit_RADIUSFile");
+	    warn "$progname: can't re-open $Merit_RADIUSFile\n";
+	    $merit_radius_ino = $merit_radius_size = 0;
+	    return 2;
+	}
+	$merit_radius_ino = $ino;
+	$merit_radius_size = $size;
+    }
+
+    return 0;
+}
+
+
+# -------------------------------------------------------------------
+#
+# Parse merit_radius log line
+#
+# usage: &process_merit_radius_line ($buf);
+#
+
+sub process_merit_radius_line () {
+    my ($line) = @_;
+
+
+### AUTH RECEIVED
+# Mon Jul 24 00:02:16 2000: Received-Authentication: 214/28832 'luser' from 13.12.15.17 port 25 PPP
+
+    if ($line =~ /: Received-Authentication: .* from /i) {
+	$merit_radius_auth ++;
+	printf "Merit_RADIUS_AUTH: %s", $line if $debug;
+	printf "merit_radius_auth=%s\n", $merit_radius_auth if $debug;
+	return 0;
+    }
+
+### AUTH OK
+# Mon Jul 24 00:02:16 2000: Authentication: 214/28832 'luser2' from 13.12.25.17 port 35 PPP - OK -- total 0, holding 0
+
+    if ($line =~ /: Authentication: .* from .* OK /i) {
+	$merit_radius_auth_ok ++;
+	printf "Merit_RADIUS_AUTH_OK: %s", $line if $debug;
+	printf "merit_radius_auth_ok=%s\n", $merit_radius_auth_ok if $debug;
+	return 0;
+    }
+
+### AUTH FAILED
+# Mon Jul 24 01:49:20 2000: Authentication: 201/29347 'luser3' from 13.16.19.20 port 2 PPP - FAILED Authentication failure -- total 0, holding 0
+
+    if ($line =~ /: Authentication: .* from .* FAILED Authentication /i) {
+	$merit_radius_auth_nok ++;
+	printf "Merit_RADIUS_AUTH_NOK: %s", $line if $debug;
+	printf "merit_radius_auth_nok=%s\n", $merit_radius_auth_nok if $debug;
+	return 0;
+    }
+
+### ACCT START RECEIVED
+# Mon Jul 24 00:02:16 2000: Received-Accounting: 215/8376 'luser4' from 13.16.15.17 port 35 $"5200DB70" PPP/13.16.19.25 Start
+### ACCT STOP RECEIVED
+# Mon Jul 24 00:02:19 2000: Received-Accounting: 176/8377 'luser5' from 13.16.11.18 port 1 $"040065AE" PPP/13.16.24.22 Stop/User-Request
+# Wed Aug  9 16:55:15 2000: getpwnam: good line for luser6 on file
+    if ( ($line =~ /: Received-Accounting: .* from /i) ||
+	 ($line =~ /: getpwnam: good line for /i) ){
+	printf "Merit_RADIUS_IGNORE: %s", $line if $debug;
+	return 0;
+    }
+
+### ACCT START OK
+# Mon Jul 24 00:02:16 2000: Accounting: 215/8376 'luser6' from 13.16.15.17 port 35 $"5200DB70" PPP/13.16.19.24 Start - OK -- total 0, holding 0
+
+    if ($line =~ /: Accounting: .* from .* Start - OK /i) {
+	$merit_radius_acct_start ++;
+	printf "Merit_RADIUS_ACCT_START: %s", $line if $debug;
+	printf "merit_radius_acct_start=%s\n", $merit_radius_acct_start if $debug;
+	return 0;
+    }
+
+### ACCT STOP OK
+# Mon Jul 24 00:02:19 2000: Accounting: 176/8377 'luser7' from 13.16.11.18 port 1 $"040065AE" PPP/13.16.24.22 Stop/User-Request - OK -- total 0, holding 0
+
+    if ($line =~ /: Accounting: .* from .* Stop.* OK /i) {
+	$merit_radius_acct_stop ++;
+	printf "Merit_RADIUS_ACCT_STOP: %s", $line if $debug;
+	printf "merit_radius_acct_stop=%s\n", $merit_radius_acct_stop if $debug;
+	return 0;
+    }
+
+### REMOTE AUTH RECEIVED
+# Mon Jul 24 20:53:38 2000: Received-AUTHENTICATE: 167/44566 'luser9@realm.com' via some.host.com from some.nas.com port 6 PPP
+
+    if ($line =~ /: Received-AUTHENTICATE: .* via .* from /i) {
+	$merit_radius_rem_auth ++;
+	printf "Merit_RADIUS_REM_AUTH: %s", $line if $debug;
+	printf "merit_radius_rem_auth=%s\n", $merit_radius_rem_auth if $debug;
+	return 0;
+    }
+
+### REMOTE AUTH OK
+# Mon Jul 24 20:53:38 2000: AUTHENTICATE: 167/44566 'luser9@realm.com' via some.host.com from some.nas.com port 6 PPP - OK -- total 0, holding 0
+
+    if ($line =~ /: AUTHENTICATE: .* via .* from .* OK /i) {
+	$merit_radius_rem_auth_ok ++;
+	printf "Merit_RADIUS_REM_AUTH_OK: %s", $line if $debug;
+	printf "merit_radius_rem_auth_ok=%s\n", $merit_radius_rem_auth_ok if $debug;
+	return 0;
+    }
+
+### REMOTE AUTH FAILED
+# Mon Jul 24 14:05:56 2000: AUTHENTICATE: 230/37578 'luser9@realm.com' via some.host.com from i-Pass VNAS\0\0\0\0 port 1 - FAILED Authentication failure -- total 0, holding 0
+
+    if ($line =~ /: AUTHENTICATE: .* via .* from .* FAILED Authentication /i) {
+	$merit_radius_rem_auth_nok ++;
+	printf "Merit_RADIUS_REM_AUTH_NOK: %s", $line if $debug;
+	printf "merit_radius_rem_auth_nok=%s\n", $merit_radius_rem_auth_nok if $debug;
+	return 0;
+    }
+
+
+    $merit_radius_undefs ++;
+    printf "Merit_RADIUS_UNDEF: %s", $line if $debug;
+    printf "merit_radius_undefs=%s\n", $merit_radius_undefs if $debug;
+    return 0;
+}
+
+
+# -------------------------------------------------------------------
+#
+# Put the merit_radius values for output
+#
+# usage: &put_merit_radius();
+#
+
+sub put_merit_radius() {
+
+    &put_output("merit_radius_auth",  sprintf("%8.2f", $merit_radius_auth));
+    &put_output("merit_radius_auth_ok",  sprintf("%8.2f", $merit_radius_auth_ok));
+    &put_output("merit_radius_auth_nok",  sprintf("%8.2f", $merit_radius_auth_nok));
+    &put_output("merit_radius_acct_start",  sprintf("%8.2f", $merit_radius_acct_start));
+    &put_output("merit_radius_acct_stop",  sprintf("%8.2f", $merit_radius_acct_stop));
+    &put_output("merit_radius_rem_auth",  sprintf("%8.2f", $merit_radius_rem_auth));
+    &put_output("merit_radius_rem_auth_ok",  sprintf("%8.2f", $merit_radius_rem_auth_ok));
+    &put_output("merit_radius_rem_auth_nok",  sprintf("%8.2f", $merit_radius_rem_auth_nok));
+
+    &put_output("merit_radius_undefs",  sprintf("%8.2f", $merit_radius_undefs));
+
+    return 0;
+}
+
+
+
+# -------------------------------------------------------------------
+#
+# init pop vars
+#
+# usage: &init_pop_vars();
+#
+
+sub init_pop_vars() {
+    $pop_connect      = 0;
+    $pop_login        = 0;
+    $pop_logout       = 0;
+
+    $pop_failure      = 0;
+    $pop_refused      = 0;
+
+    $pop_net_error    = 0;
+    $pop_local_error  = 0;
+
+    $pop_undefs       = 0;
+}
+
+
+# -------------------------------------------------------------------
+#
+# Get values for pop columns
+#
+# usage: &measure_pop( );
+#
+
+sub measure_pop () {
+
+
+    #################################### insert bail out for too much
+    #################################### time spent ??
+    $buf = <$POPFD>;
+    while ($buf) {
+	## process line read and check for eof
+	if ($buf) {
+	    &process_pop_line ($buf);
+	}
+	if ($POPFD->eof) {
+	    printf "POP: eof on $POPFile\n" if $debug;
+	    last; # get out of while($buf)
+	}
+	$buf = <$POPFD>;
+    } ## while ($buf)
+
+
+    # test for file change via different inode or filesize decrease
+    $dev = $ino = $mode = $nlink = $uid = $gid = $rdev =
+	$size = $atime = $mtime = $ctime = $blksize = $blocks = '';
+    ($dev,$ino,$mode,$nlink,$uid,$gid,$rdev,$size,
+     $atime,$mtime,$ctime,$blksize,$blocks) = stat($POPFile);
+    if (!$dev) {
+	&logit ("can't stat $POPFile");
+	warn "$progname: can't stat $POPFile\n";
+	return 1;
+    }
+    printf "POPFD: pop_ino=%s vs. ino=%s\tpop_size=%s vs. size=%s\n", $pop_ino, $ino, $pop_size, $size if $debug;
+    if (($pop_ino != $ino) || ($pop_size > $size)) {
+	undef $POPFD;
+	printf "POP: file change on $POPFile\n" if $debug;
+	$POPFD = new IO::File "$POPFile", "r";
+	if (!defined ($POPFD)) {
+	    &logit ("can't re-open $POPFile");
+	    warn "$progname: can't re-open $POPFile\n";
+	    $pop_ino = $pop_size = 0;
+	    return 2;
+	}
+	$pop_ino = $ino;
+	$pop_size = $size;
+    }
+
+    return 0;
+}
+
+
+# -------------------------------------------------------------------
+#
+# Parse pop log line
+#
+# usage: &process_pop_line ($buf);
+#
+
+sub process_pop_line () {
+    my ($line) = @_;
+
+
+    if ($line !~ / ipop3d\[\d+\]: /) {
+        return 0;
+    }
+
+### connect
+# Aug 11 07:01:50 host1 ipop3d[13929]: connect from 14.5.8.10
+
+    if ($line =~ /: connect from /i) {
+	$pop_connect ++;
+	printf "POP_CONNECT: %s", $line if $debug;
+	printf "pop_connect=%s\n", $pop_connect if $debug;
+	return 0;
+    }
+
+### login + auth
+# Aug 11 07:01:57 host1 ipop3d[13928]: Login user=luser2 host=host.domain.pt [13.16.6.27] nmsgs=0/0
+# Aug 11 07:02:06 host1 ipop3d[13936]: Auth user=luser3 host=2-4-4.domain.pt [13.16.2.18] nmsgs=0/0
+
+    if ( ($line =~ /: Login user=/i) ||
+	 ($line =~ /: Auth user=/i) ) {
+	$pop_login ++;
+	printf "POP_LOGIN: %s", $line if $debug;
+	printf "pop_login=%s\n", $pop_login if $debug;
+	return 0;
+    }
+
+### logout
+# Aug 11 07:01:50 host1 ipop3d[13929]: Logout user=luser4 host=[14.6.8.10] nmsgs=0 ndele=0
+# Aug 11 11:20:24 host1 ipop3d[1866]: Autologout user=luser5 host=3-0-0.domain.pt [13.16.1.18]
+
+    if ($line =~ /: .*[lL]ogout user=/i) {
+	$pop_logout ++;
+	printf "POP_LOGOUT: %s", $line if $debug;
+	printf "pop_LOGOUT=%s\n", $pop_logout if $debug;
+	return 0;
+    }
+
+### failure
+# Aug 11 09:19:19 host1 ipop3d[22171]: Login failure user=luser44 host=4-0-0.domain.pt [13.16.12.1]
+# Aug 11 09:19:22 host1 ipop3d[22171]: AUTHENTICATE LOGIN failure host=4-0-0.domain.pt [13.16.12.1]
+# Aug 11 09:47:47 host1 ipop3d[25308]: AUTHENTICATE luser323 failure host=[13.12.24.24]
+
+    if ($line =~ / failure /i) {
+	$pop_failure ++;
+	printf "POP_FAILURE: %s", $line if $debug;
+	printf "pop_failure=%s\n", $pop_failure if $debug;
+	return 0;
+    }
+
+### refused
+# Aug 11 13:32:14 host1 ipop3d[28886]: refused connect from 13.17.8.28
+
+    if ($line =~ /: refused connect from /i) {
+	$pop_refused ++;
+	printf "POP_REFUSED: %s", $line if $debug;
+	printf "pop_refused=%s\n", $pop_refused if $debug;
+	return 0;
+    }
+
+### local_error
+# Aug 11 11:50:36 host1 ipop3d[13132]: Error opening or locking INBOX user=luser10 host=3-4-3.domain.pt [13.16.4.7]
+
+    if ($line =~ /: Error opening or locking INBOX user=/i) {
+	$pop_local_error ++;
+	printf "POP_LOCAL_ERROR: %s", $line if $debug;
+	printf "pop_local_error=%s\n", $pop_local_error if $debug;
+	return 0;
+    }
+
+### net_error
+# Aug 11 07:36:14 host1 ipop3d[15759]: Command stream end of file while reading line user=luser234 host=9-9-9-domain.pt [13.16.4.5]
+# Aug 11 09:50:09 host1 ipop3d[24960]: Connection reset by peer while reading line user=luser555 host=[12.5.19.16]
+# Aug 11 12:15:01 host1 ipop3d[16601]: Connection timed out while reading line user=luser7985 host=4-5-6.domain.pt [13.16.1.15]
+
+    if ( ($line =~ /: Command stream end of file while reading line user=/i) ||
+	 ($line =~ /: Connection reset by peer while reading line user=/i) ||
+	 ($line =~ /: Connection timed out while reading line user=/i) ){
+	$pop_net_error ++;
+	printf "POP_NET_ERROR: %s", $line if $debug;
+	printf "pop_net_error=%s\n", $pop_net_error if $debug;
+	return 0;
+    }
+
+
+    $pop_undefs ++;
+    printf "POP_UNDEF: %s", $line if $debug;
+    printf "pop_undefs=%s\n", $pop_undefs if $debug;
+    return 0;
+}
+
+
+# -------------------------------------------------------------------
+#
+# Put the pop values for output
+#
+# usage: &put_pop();
+#
+
+sub put_pop() {
+
+    &put_output("pop_connect",  sprintf("%8.2f", $pop_connect));
+    &put_output("pop_login",  sprintf("%8.2f", $pop_login));
+    &put_output("pop_logout",  sprintf("%8.2f", $pop_logout));
+
+    &put_output("pop_failure",  sprintf("%8.2f", $pop_failure));
+    &put_output("pop_refused",  sprintf("%8.2f", $pop_refused));
+
+    &put_output("pop_net_error",  sprintf("%8.2f", $pop_net_error));
+    &put_output("pop_local_error",  sprintf("%8.2f", $pop_local_error));
+
+    &put_output("pop_undefs",  sprintf("%8.2f", $pop_undefs));
+
+    return 0;
+}
+
+
+# -------------------------------------------------------------------
+#
+# Get values for radiator radius columns
+#
+# usage: &measure_radius( );
+#
+
+sub measure_radius () {
+    #################################### insert bail out for too much
+    #################################### time spent ??
+
+  my $upper_ts= time;
+
+#Begin GET Accounting
+
+    $query  = "SELECT ACCT_SESSION_TIME,ACCT_STATUS_TYPE FROM ACCOUNTING ";
+    $query .= " WHERE ACCT_STATUS_TYPE = 'Stop'";
+    $query .= " AND TIMESTAMP > $radius_base_ts";
+    $query .= " AND TIMESTAMP < $upper_ts";
+
+    ($rad_time,$rad_sessions) = calculateRadVals($query);
+
+    ## incremental/accumulated values
+##    $radius_inc_time += $rad_time;
+##    $radius_inc_sessions += $rad_sessions;
+
+#END GET Accounting
+
+##    `$ECHO "$radius_inc_time:$radius_inc_sessions" > $ACCUM_radius_DB`;
+    $radius_base_ts += ($upper_ts - $radius_base_ts);
+    return 0;
+}
+
+##
+# IN:   query
+# RET:  time, sessions
+##
+sub calculateRadVals{
+  my $query = shift(@_);
+
+#print "radius query: $query\n";
+
+    my ($rad_t,$rad_s)= (0,0);
+    $sth = $RADdbh->prepare($query);
+    $sth ->execute();
+
+    $"=" \t ";
+    while ( @row = $sth -> fetchrow_array()){
+        #print "$row[0].$row[1]: $eca\n";
+        $rad_t += $row[0];
+        $rad_s++;
+    }
+
+    #print "Time: $rad_t seconds\t Sess: $rad_s sessions\n";
+    return ($rad_t,$rad_s);
+}
+
+
+# -------------------------------------------------------------------
+#
+# Put the radiator radius  values for output
+#
+# usage: &put_radius();
+#
+
+sub put_radius() {
+
+    &put_output("rad_time",  sprintf("%8.2f", $rad_time));
+    &put_output("rad_sessions",  sprintf("%8.2f", $rad_sessions));
+
+#incremental graph
+##    &put_output("radius_inc_time",  sprintf("%8.2f", $radius_inc_time));
+ ##   &put_output("radius_inc_sessions",  sprintf("%8.2f", $radius_inc_sessions));
+
+
+    return 0;
+}
+
+
+# -------------------------------------------------------------------
+#
+# Get values for dns columns
+#
+# usage: &measure_dns( );
+#
+
+sub measure_dns () {
+
+
+    #################################### insert bail out for too much
+    #################################### time spent ??
+    $buf = <$DNSFD>;
+    while ($buf) {
+	## process line read and check for eof
+	if ($buf) {
+	    &process_dns_line ($buf);
+	}
+	if ($DNSFD->eof) {
+	    printf "DNS: eof on $DNSFile\n" if $debug;
+	    last; # get out of while($buf)
+	}
+	$buf = <$DNSFD>;
+    } ## while ($buf)
+
+
+    # test for file change via different inode or filesize decrease
+    $dev = $ino = $mode = $nlink = $uid = $gid = $rdev =
+	$size = $atime = $mtime = $ctime = $blksize = $blocks = '';
+    ($dev,$ino,$mode,$nlink,$uid,$gid,$rdev,$size,
+     $atime,$mtime,$ctime,$blksize,$blocks) = stat($DNSFile);
+    if (!$dev) {
+	&logit ("can't stat $DNSFile");
+	warn "$progname: can't stat $DNSFile\n";
+	return 1;
+    }
+    printf "DNSFD: dns_ino=%s vs. ino=%s\tdns_size=%s vs. size=%s\n", $dns_ino, $ino, $dns_size, $size if $debug;
+    if (($dns_ino != $ino) || ($dns_size > $size)) {
+	undef $DNSFD;
+	printf "DNS: file change on $DNSFile\n" if $debug;
+	$DNSFD = new IO::File "$DNSFile", "r";
+	if (!defined ($DNSFD)) {
+	    &logit ("can't re-open $DNSFile");
+	    warn "$progname: can't re-open $DNSFile\n";
+	    $dns_ino = $dns_size = 0;
+	    return 2;
+	}
+	$dns_ino = $ino;
+	$dns_size = $size;
+    }
+
+    return 0;
+}
+
+
+# -------------------------------------------------------------------
+#
+# init dns vars
+#
+# usage: &init_dns_vars();
+#
+
+sub init_dns_vars() {
+
+    $dns_usage_started       = 0;
+    $dns_nstats_started      = 0;
+    $dns_xstats_started      = 0;
+
+    &init_dns_usage_vars();
+    &init_dns_nstats_vars();
+    &init_dns_xstats_vars();
+
+    &init_odns_vars();
+}
+sub init_dns_usage_vars () {
+    $dns_cpu_u      = 0;
+    $dns_cpu_s      = 0;
+    $dns_ccpu_u     = 0;
+    $dns_ccpu_s     = 0;
+}
+sub init_dns_nstats_vars () {
+    $dns_a          = 0;
+    $dns_ptr        = 0;
+    $dns_mx         = 0;
+    $dns_any        = 0;
+
+    $dns_ns         = 0;
+    $dns_soa        = 0;
+    $dns_axfr       = 0;
+    $dns_aaaa       = 0;
+    $dns_other      = 0;
+}
+sub init_dns_xstats_vars () {
+    $dns_rr         = 0;
+    $dns_rq         = 0;
+    $dns_rother     = 0;
+
+    $dns_sans       = 0;
+    $dns_snaans     = 0;
+    $dns_snxd       = 0;
+    $dns_sother     = 0;
+}
+
+
+# -------------------------------------------------------------------
+#
+# init odns vars    (save old values)
+#
+# usage: &init_odns_vars();
+#
+
+sub init_odns_vars() {
+    &init_odns_usage_vars();
+    &init_odns_nstats_vars();
+    &init_odns_xstats_vars();
+}
+
+sub init_odns_usage_vars() {
+    $odns_cpu_u      = $dns_cpu_u      ;
+    $odns_cpu_s      = $dns_cpu_s      ;
+    $odns_ccpu_u     = $dns_ccpu_u     ;
+    $odns_ccpu_s     = $dns_ccpu_s     ;
+
+    &init_dns_usage_vars();
+}
+sub init_odns_nstats_vars() {
+    $odns_a          = $dns_a          ;
+    $odns_ptr        = $dns_ptr        ;
+    $odns_mx         = $dns_mx         ;
+    $odns_any        = $dns_any        ;
+
+    $odns_ns         = $dns_ns         ;
+    $odns_soa        = $dns_soa        ;
+    $odns_axfr       = $dns_axfr       ;
+    $odns_aaaa       = $dns_aaaa       ;
+    $odns_other      = $dns_other      ;
+
+    &init_dns_nstats_vars();
+}
+sub init_odns_xstats_vars() {
+    $odns_rr         = $dns_rr         ;
+    $odns_rq         = $dns_rq         ;
+    $odns_rother     = $dns_rother     ;
+
+    $odns_sans       = $dns_sans       ;
+    $odns_snaans     = $dns_snaans     ;
+    $odns_snxd       = $dns_snxd       ;
+    $odns_sother     = $dns_sother     ;
+
+    &init_dns_xstats_vars();
+}
+
+
+# -------------------------------------------------------------------
+#
+# calc dns delta
+#
+# usage: &calc_dns_delta();
+#
+
+sub calc_dns_delta() {
+    &calc_dns_usage_delta();
+    &calc_dns_nstats_delta();
+    &calc_dns_xstats_delta();
+}
+
+sub calc_dns_usage_delta() {
+    my $temp = 0;
+
+    if ($dns_cpu_u < $odns_cpu_u) {
+	$odns_cpu_u = $dns_cpu_u;
+    } else {
+	$temp = $dns_cpu_u; $dns_cpu_u = $dns_cpu_u - $odns_cpu_u; $odns_cpu_u = $temp;
+    }
+    if ($dns_cpu_s < $odns_cpu_s) {
+	$odns_cpu_s = $dns_cpu_s;
+    } else {
+	$temp = $dns_cpu_s; $dns_cpu_s = $dns_cpu_s - $odns_cpu_s; $odns_cpu_s = $temp;
+    }
+    if ($dns_ccpu_u < $odns_ccpu_u) {
+	$odns_ccpu_u = $dns_ccpu_u;
+    } else {
+	$temp = $dns_ccpu_u; $dns_ccpu_u = $dns_ccpu_u - $odns_ccpu_u; $odns_ccpu_u = $temp;
+    }
+    if ($dns_ccpu_s < $odns_ccpu_s) {
+	$odns_ccpu_s = $dns_ccpu_s;
+    } else {
+	$temp = $dns_ccpu_s; $dns_ccpu_s = $dns_ccpu_s - $odns_ccpu_s; $odns_ccpu_s = $temp;
+    }
+}
+sub calc_dns_nstats_delta() {
+    my $temp = 0;
+
+    if ($dns_a < $odns_a) {
+	$odns_a = $dns_a;
+    } else {
+	$temp = $dns_a; $dns_a = $dns_a - $odns_a; $odns_a = $temp;
+    }
+    if ($dns_ptr < $odns_ptr) {
+	$odns_ptr = $dns_ptr;
+    } else {
+	$temp = $dns_ptr; $dns_ptr = $dns_ptr - $odns_ptr; $odns_ptr = $temp;
+    }
+    if ($dns_mx < $odns_mx) {
+	$odns_mx = $dns_mx;
+    } else {
+	$temp = $dns_mx; $dns_mx = $dns_mx - $odns_mx; $odns_mx = $temp;
+    }
+    if ($dns_any < $odns_any) {
+	$odns_any = $dns_any;
+    } else {
+	$temp = $dns_any; $dns_any = $dns_any - $odns_any; $odns_any = $temp;
+    }
+
+    if ($dns_ns < $odns_ns) {
+	$odns_ns = $dns_ns;
+    } else {
+	$temp = $dns_ns; $dns_ns = $dns_ns - $odns_ns; $odns_ns = $temp;
+    }
+    if ($dns_soa < $odns_soa) {
+	$odns_soa = $dns_soa;
+    } else {
+	$temp = $dns_soa; $dns_soa = $dns_soa - $odns_soa; $odns_soa = $temp;
+    }
+    if ($dns_axfr < $odns_axfr) {
+	$odns_axfr = $dns_axfr;
+    } else {
+	$temp = $dns_axfr; $dns_axfr = $dns_axfr - $odns_axfr; $odns_axfr = $temp;
+    }
+    if ($dns_aaaa < $odns_aaaa) {
+	$odns_aaaa = $dns_aaaa;
+    } else {
+	$temp = $dns_aaaa; $dns_aaaa = $dns_aaaa - $odns_aaaa; $odns_aaaa = $temp;
+    }
+    if ($dns_other < $odns_other) {
+	$odns_other = $dns_other;
+    } else {
+	$temp = $dns_other; $dns_other = $dns_other - $odns_other; $odns_other = $temp;
+    }
+}
+sub calc_dns_xstats_delta() {
+    my $temp = 0;
+
+    if ($dns_rr < $odns_rr) {
+	$odns_rr = $dns_rr;
+    } else {
+	$temp = $dns_rr; $dns_rr = $dns_rr - $odns_rr; $odns_rr = $temp;
+    }
+    if ($dns_rq < $odns_rq) {
+	$odns_rq = $dns_rq;
+    } else {
+	$temp = $dns_rq; $dns_rq = $dns_rq - $odns_rq; $odns_rq = $temp;
+    }
+    if ($dns_rother < $odns_rother) {
+	$odns_rother = $dns_rother;
+    } else {
+	$temp = $dns_rother; $dns_rother = $dns_rother - $odns_rother; $odns_rother = $temp;
+    }
+
+    if ($dns_sans < $odns_sans) {
+	$odns_sans = $dns_sans;
+    } else {
+	$temp = $dns_sans; $dns_sans = $dns_sans - $odns_sans; $odns_sans = $temp;
+    }
+    if ($dns_snaans < $odns_snaans) {
+	$odns_snaans = $dns_snaans;
+    } else {
+	$temp = $dns_snaans; $dns_snaans = $dns_snaans - $odns_snaans; $odns_snaans = $temp;
+    }
+    if ($dns_snxd < $odns_snxd) {
+	$odns_snxd = $dns_snxd;
+    } else {
+	$temp = $dns_snxd; $dns_snxd = $dns_snxd - $odns_snxd; $odns_snxd = $temp;
+    }
+    if ($dns_sother < $odns_sother) {
+	$odns_sother = $dns_sother;
+    } else {
+	$temp = $dns_sother; $dns_sother = $dns_sother - $odns_sother; $odns_sother = $temp;
+    }
+}
+
+
+# -------------------------------------------------------------------
+#
+# Parse dns log line
+#
+# usage: &process_dns_line ($buf);
+#
+
+sub process_dns_line () {
+    my ($line) = @_;
+
+#
+# Oct 24 14:27:49 Ns named[17279]: USAGE 972394069 970586866 CPU=188.82u/82.79s CHILDCPU=0u/0s
+# Oct 24 14:27:49 Ns named[17279]: NSTATS 972394069 970586866 0=6 A=322014 NS=25 SOA=415 PTR=35772 MX=111 SRV=110 ANY=238
+# Oct 24 14:27:49 Ns named[17279]: XSTATS 972394069 970586866 RR=293985 RNXD=22941 RFwdR=205718 RDupR=3603 RFail=508 RFErr=0 RErr=141 RAXFR=0 RLame=2636 ROpts=0 SSysQ=58851 SAns=205888 SFwdQ=169140 SDupQ=23529 SErr=0 RQ=358773 RIQ=0 RFwdQ=0 RDupQ=8397 RTCP=206 SFwdR=205718 SFail=3 SFErr=0 SNaAns=204478 SNXD=45736
+#
+    if ($line !~ / named\[\d+\]: (USAGE|NSTATS|XSTATS) /) {
+	return 0;
+    }
+
+
+# Oct 24 14:27:49 Ns named[17279]: USAGE 972394069 970586866 CPU=188.82u/82.79s CHILDCPU=0u/0s
+    if ($line =~ /: USAGE \d+ \d+ CPU=([\d\.]+)u\/([\d\.]+)s CHILDCPU=([\d\.]+)u\/([\d\.]+)s/) {
+
+	$dns_cpu_u = $1;
+	$dns_cpu_s = $2;
+	$dns_ccpu_u = $3;
+	$dns_ccpu_s = $4;
+
+	printf "DNS_USAGE: %s", $line if $debug;
+	printf "dns_cpu_u=%s, dns_cpu_s=%s, dns_ccpu_u=%s, dns_ccpu_s=%s\n", $dns_cpu_u, $dns_cpu_s, $dns_ccpu_u, $dns_ccpu_s if $debug;
+
+	if ($dns_usage_started) {
+	    &calc_dns_usage_delta(); # puts delta into vars to print -&- saves into old
+	} else {
+	    $dns_usage_started = 1;
+	    &init_odns_usage_vars();  # saves old and cleans current values
+	}
+
+# Oct 24 14:27:49 Ns named[17279]: NSTATS 972394069 970586866 0=6 A=322014 NS=25 SOA=415 PTR=35772 MX=111 SRV=110 ANY=238
+    } elsif ($line =~ /: NSTATS \d+ \d+ /) {
+	my $l;
+
+	($l = $line) =~ s/^.*: NSTATS \d+ \d+ //;  # trim beginning
+	chop $l;
+
+	@types = split(' ',$l);
+
+	$dns_other = 0;
+	while (@types) {
+	    ($t,$v) = split ('=', pop @types);
+	    if ($t eq 'A') {
+		$dns_a = $v;
+	    } elsif ($t eq 'PTR') {
+		$dns_ptr = $v;
+	    } elsif ($t eq 'MX') {
+		$dns_mx = $v;
+	    } elsif ($t eq 'ANY') {
+		$dns_any = $v;
+	    } elsif ($t eq 'NS') {
+		$dns_ns = $v;
+	    } elsif ($t eq 'SOA') {
+		$dns_soa = $v;
+	    } elsif ($t eq 'AXFR') {
+		$dns_axfr = $v;
+	    } elsif ($t eq 'AAAA') {
+		$dns_aaaa = $v;
+	    } else {
+		$dns_other += $v;
+	    }
+	}
+
+	printf "DNS_NSTATS: %s", $line if $debug;
+	printf "dns_a=%s, dns_ptr=%s, dns_mx=%s, dns_any=%s, dns_ns=%s, dns_soa=%s, dns_axfr=%s, dns_aaaa=%s, dns_other=%s\n", $dns_a, $dns_ptr, $dns_mx, $dns_any, $dns_ns, $dns_soa, $dns_axfr, $dns_aaaa, $dns_other if $debug;
+
+	if ($dns_nstats_started) {
+	    &calc_dns_nstats_delta(); # puts delta into vars to print -&- saves into old
+	} else {
+	    $dns_nstats_started = 1;
+	    &init_odns_nstats_vars();  # saves old and cleans current values
+	}
+
+# Oct 24 14:27:49 Ns named[17279]: XSTATS 972394069 970586866 RR=293985 RNXD=22941 RFwdR=205718 RDupR=3603 RFail=508 RFErr=0 RErr=141 RAXFR=0 RLame=2636 ROpts=0 SSysQ=58851 SAns=205888 SFwdQ=169140 SDupQ=23529 SErr=0 RQ=358773 RIQ=0 RFwdQ=0 RDupQ=8397 RTCP=206 SFwdR=205718 SFail=3 SFErr=0 SNaAns=204478 SNXD=45736
+    } elsif ($line =~ /: XSTATS \d+ \d+ /) {
+	my $l;
+
+	($l = $line) =~ s/^.*: XSTATS \d+ \d+ //;  # trim beginning
+	chop $l;
+
+	@types = split(' ',$l);
+
+	$dns_rother = $dns_sother = 0;
+	while (@types) {
+	    ($t,$v) = split ('=', pop @types);
+	    if ($t eq 'RR') {
+		$dns_rr = $v;
+	    } elsif ($t eq 'RQ') {
+		$dns_rq = $v;
+	    } elsif ($t =~ /^R/) {
+		$dns_rother += $v;
+	    } elsif ($t eq 'SAns') {
+		$dns_sans = $v;
+	    } elsif ($t eq 'SNaAns') {
+		$dns_snaans = $v;
+	    } elsif ($t eq 'SNXD') {
+		$dns_snxd = $v;
+	    } elsif ($t =~ /^S/) {
+		$dns_sother += $v;
+	    }
+	}
+
+	printf "DNS_XSTATS: %s", $line if $debug;
+	printf "dns_rr=%s, dns_rq=%s, dns_rother=%s, dns_sans=%s, dns_snaans=%s, dns_snxd=%s, dns_sother=%s\n", $dns_rr, $dns_rq, $dns_rother, $dns_sans, $dns_snaans, $dns_snxd, $dns_sother if $debug;
+
+	if ($dns_xstats_started) {
+	    &calc_dns_xstats_delta(); # puts delta into vars to print -&- saves into old
+	} else {
+	    $dns_xstats_started = 1;
+	    &init_odns_xstats_vars();  # saves old and cleans current values
+	}
+
+    }
+
+    return 0;
+}
+
+
+# -------------------------------------------------------------------
+#
+# Put the dns values for output
+#
+# usage: &put_dns();
+#
+
+sub put_dns() {
+
+    &put_output("dns_cpu_u",  sprintf("%8.2f", $dns_cpu_u));
+    &put_output("dns_cpu_s",  sprintf("%8.2f", $dns_cpu_s));
+    &put_output("dns_ccpu_u",  sprintf("%8.2f", $dns_ccpu_u));
+    &put_output("dns_ccpu_s",  sprintf("%8.2f", $dns_ccpu_s));
+
+    &put_output("dns_a",  sprintf("%8.2f", $dns_a));
+    &put_output("dns_ptr",  sprintf("%8.2f", $dns_ptr));
+    &put_output("dns_mx",  sprintf("%8.2f", $dns_mx));
+    &put_output("dns_any",  sprintf("%8.2f", $dns_any));
+
+    &put_output("dns_ns",  sprintf("%8.2f", $dns_ns));
+    &put_output("dns_soa",  sprintf("%8.2f", $dns_soa));
+    &put_output("dns_axfr",  sprintf("%8.2f", $dns_axfr));
+    &put_output("dns_aaaa",  sprintf("%8.2f", $dns_aaaa));
+    &put_output("dns_other",  sprintf("%8.2f", $dns_other));
+
+    &put_output("dns_rr",  sprintf("%8.2f", $dns_rr));
+    &put_output("dns_rq",  sprintf("%8.2f", $dns_rq));
+    &put_output("dns_rother",  sprintf("%8.2f", $dns_rother));
+
+    &put_output("dns_sans",  sprintf("%8.2f", $dns_sans));
+    &put_output("dns_snaans",  sprintf("%8.2f", $dns_snaans));
+    &put_output("dns_snxd",  sprintf("%8.2f", $dns_snxd));
+    &put_output("dns_sother",  sprintf("%8.2f", $dns_sother));
+
+    return 0;
+}
+

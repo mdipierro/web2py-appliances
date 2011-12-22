@@ -1,0 +1,4 @@
+{{for server in servers:}}
+  <input id=server_{{=server.id}} type="radio"  name="server" value={{=server.id}}> {{=server.name}}
+  <br>
+{{pass}}

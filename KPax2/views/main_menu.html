@@ -1,0 +1,16 @@
+{{if auth.user:}}
+<link rel="stylesheet" type="text/css" href="/{{=request.application}}/static/fisheye-menu.css" />
+<script type="text/javascript" src="/{{=request.application}}/static/fisheye.js"></script>
+<div style="position: absolute; left: 0px; top: 0px;">
+<ul id="fisheye_menu">
+  <li id="fisheye_menu"><a href="http://www.depaul.edu"><img src="/{{=request.application}}/static/main_images/main_depaul_small.png"/><span>DePaul University</span></a></li>
+  <li id="fisheye_menu"><a href="/{{=request.application}}/news"><img src="/{{=request.application}}/static/main_images/main_news_small.png"/><span>Post and Read News Announcements</span></a></li>
+  <li id="fisheye_menu"><a href="/{{=request.application}}/folders"><img src="/{{=request.application}}/static/main_images/main_folders_small.png"  /><span>Create and Manage Folders, Documents, Wikis, Blogs</span></a></li>
+  <li id="fisheye_menu"><a href="/{{=request.application}}/surveys"><img src="/{{=request.application}}/static/main_images/main_surveys_small.png"  /><span>Create and Manage Surveys, Assignments</span></a></li>
+  <!-- <li id="fisheye_menu"><a href="/{{=request.application}}/tasks"><img src="/{{=request.application}}/static/main_images/main_tasks_small.png"  /><span>Assign Tasks and Grades</span></a></li> //-->
+  <li id="fisheye_menu"><a href="/{{=request.application}}/chats"><img src="/{{=request.application}}/static/main_images/main_chats_small.png"  /><span>Create and Join Chat Lines</span></a></li>
+  <li id="fisheye_menu"><a href="/{{=request.application}}/groups"><img src="/{{=request.application}}/static/main_images/main_groups_small.png"  /><span>Create and Manage Groups</span></a></li>
+  </ul>
+  </div>
+{{pass}}
+{{=auth.navbar()}}

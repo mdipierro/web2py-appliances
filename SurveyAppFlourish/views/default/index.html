@@ -1,0 +1,9 @@
+{{extend 'layout.html'}}
+
+<div class="center">
+<br/><br/>
+{{try:}}{{=H1(message)}}{{except:}}{{=BEAUTIFY(response._vars)}}{{pass}}
+<br/><br/>
+[ <a href='/admin'>{{=T("click here for the administrative interface")}}</a>
+| <a href='/examples'>{{=T("click here for online examples")}}</a> ]
+</div>

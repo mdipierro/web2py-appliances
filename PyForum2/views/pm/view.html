@@ -1,0 +1,75 @@
+{{extend 'zlayout.html'}}
+
+<h2 class="fancy">{{=XML(T('Messages - View Message'))}}</h2>
+
+{{if view_info['errors']:}}
+    <p class="err">{{=XML(T('There was one or more errors while processing your request, please correct the following'))}}</p>
+    <ul>
+        {{for error in view_info['errors']:}}
+            <li class="err">{{=XML(T(error))}}</li>
+        {{pass}}
+    </ul>
+{{pass}}
+
+<div class="subnav">
+    <a href="{{=URL(r=request, c='pm', f='index')}}" title="{{=XML(T('Back to Messages'))}}">{{=XML(T('Back to Messages'))}}</a>
+</div>
+
+<table cellspacing="0" cellpadding="0" style="width:100%;" class="zf-table">
+    <tbody>
+        <tr class="shadedarker">
+            <td class="cell3d" style="width:15%;"><b>{{=XML(T('From'))}}:</b></td>
+            <td class="cell3d" style="width:85%;">
+                <a href="{{=URL(r=request, c='pm', f='message_new', args=[msg.from_user_id])}}" title="">{{=forumhelper.get_member_property('zfmp_display_name', msg.from_user_id, 'user_%s' % (msg.from_user_id))}}</a>
+            </td>
+        </tr>
+        <tr class="shadedarker">
+            <td class="cell3d" style="width:15%;"><b>{{=XML(T('To'))}}:</b></td>
+            <td class="cell3d" style="width:85%;">{{=forumhelper.get_member_property('zfmp_display_name', msg.user_id, 'user_%s' % (msg.user_id))}}</td>
+        </tr>
+        <tr class="shadedarker">
+            <td class="cell3d" style="width:15%;"><b>{{=XML(T('Subject'))}}:</b></td>
+            <td class="cell3d" style="width:85%;">{{=msg.subject}}</td>
+        </tr>
+        <tr class="shadedarker">
+            <td class="cell3d" style="width:15%;"><b>{{=XML(T('Date'))}}:</b></td>
+            <td class="cell3d" style="width:85%;">{{=msg.creation_date.strftime(str(T('%b %d, %Y - %I:%M %p')))}}</td>
+        </tr>
+        <tr class="shadelight">
+            <td class="cell3d" style="width:100%;" colspan="2"><div style="padding:10px;">{{=XML(parse_content(msg.message, 'forumfull'))}}</div></td>
+        </tr>
+    </tbody>
+</table>
+
+<div class="both-separator">
+    <form id="response_form" method="post" action="">
+        <fieldset id="response_form_fields">
+            <input type="hidden" id="msg_id" name="msg_id" value="{{=msg.id}}" />
+            <input type="hidden" id="form_submitted" name="form_submitted" value="1" />
+            <table cellspacing="0" cellpadding="0" style="width:100%;" class="zf-table">
+                <tbody>
+                    <tr class="shadedarker">
+                        <th class="cell3d">{{=XML(T('Send a response to this message'))}}</th>
+                    </tr>
+                    <tr class="shadelight">
+                        <td class="cell3d" style="text-align:center;">
+                            <textarea id="response_msg" name="response_msg" cols="0" rows="0" style="width:98%;height:200px;"></textarea>
+                        </td>
+                    </tr>
+                    <tr class="shadedark">
+                        <td class="cell3d" style="text-align:center;">
+                            <input type="submit" id="reply_b" name="reply_b" value="{{=XML(T('Send Reply'))}}" />
+                        </td>
+                    </tr>
+                    </tr>
+                </tbody>
+            </table>
+        </fieldset>
+    </form>
+</div>
+
+<script type="text/javascript">
+<!--
+    document.getElementById('response_msg').focus();
+//-->
+</script>

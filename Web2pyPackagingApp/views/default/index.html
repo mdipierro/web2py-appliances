@@ -1,0 +1,43 @@
+{{extend 'layout.html'}}
+{{=DIV(
+  FIELDSET(LEGEND('Tutorial: How to build your web2py application into a binary distribution setup.exe for Windows platform'),
+    OL(
+    LI('Download and install the inno plugin into your web2py development environment.'),
+    LI('Download and install the free ',
+      A('Inno Setup',_href='http://www.jrsoftware.org/isdl.php')),
+    LI('In your own application (or you can use welcome to test), add the following action in controller/default.py',
+      CODE('''def inno():
+        from applications.inno.modules.inno import Inno as Inno
+        return {'':Inno(globals(),
+          needAdmin=False, # Set this to True if you wish to distribute the admin app with your app too
+          needT3=False # Set this to True if your app need to do "from applications.t3.modules.t2 import T2"
+          ).widget()}'''),),
+    LI('Visit http://127.0.0.1:8000/yourapp/default/inno, then you will see a page asking for your Application Name, etc.'),
+    LI('''Fill the page and submit. You will be able to download the yourapp_setup.exe within minutes.
+      (Sometimes you will encounter an error message from Inno Compiler saying "File is already opened by others".
+      In most cases it is believed to be an InnoSetup issue.
+      What you need to do is just retry several times until it works. //shrug)'''),
+    ),
+    LI('''Note: If your app has an applications/yourapp/static/logo.ico file,
+      it will be used as the shortcut icon of the final setup.exe'''),
+    LI('''Note: yourapp/databases/* is NOT packed into setup.exe.
+      If you really need to prepopulate your databases,
+      consider putting raw material in yourapp/private,
+      then let your app do an auto init when being visited for the first time.'''),
+  ),
+  FIELDSET(LEGEND('Optional: How to hide web2py console (on Windows platform)?'),
+    LI('''By default, web2py.exe runs in a console window even when its GUI is activated.
+      That is good for developers to check console log conveniently, but that is annoying for end users.'''),
+    LI('You can download and manually use a tool named ',
+      A("Hidden Start",_href='http://www.ntwind.com/software/utilities/hstart.html'),
+      ' to hide the console when necessary.'),
+    LI('Moreover, if you put the hstart.exe inside applications/inno/static, then you can change this line in above sample:',
+      CODE('from applications.inno.modules.inno import Inno as Inno'),
+      'into this line:',
+      CODE('from applications.inno.modules.inno import InnoAndHstart as Inno'),
+      'then it will compile a yourapp_setup.exe with a web2py only appear in systray!'),
+    LI("HOWEVER, if you wish to distribute such a setup.exe with hstart-inside, please read its ",
+      A('Commercial Licensing and Distribution Requirements',
+        _href='http://www.ntwind.com/software/utilities/hstart/distribution.html')),
+  ),
+)}}

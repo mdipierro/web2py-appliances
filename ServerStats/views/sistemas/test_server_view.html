@@ -1,0 +1,33 @@
+{{response.files.append(URL(r=request,c='static',f='jquery.dataTables.min.js'))}}
+{{response.files.append(URL(r=request,c='static',f='demo_table.css'))}}
+{{extend 'layout_simple.html'}}
+
+<script>
+$(document).ready(function() { 
+   jQuery('.smarttable').dataTable(); 
+});
+</script>
+
+<br><br>
+Testing conectivity with servers:
+<br><br>
+<table class="smarttable">
+<thead>
+  <tr>
+    <th>Server name</th>><th>IP</th><th>Port</th>><th>SSH Service</th><th>SSH Login</th>
+  </tr>
+</thead>
+<tbody>
+{{for server in servers:}}
+<tr>
+<td>{{=server.name}}</td>
+<td>{{=server.ip}}</td>
+<td>{{=server.port}}</td>
+<td><h2 id="t{{=server.id}}_1"><blink>probing...</blink></h2>
+<script>ajax('test_port_ssh/{{=server.id}}',[],'t{{=server.id}}_1');</script></td>
+<td><h2 id="t{{=server.id}}_2"><blink>probing...</blink></h2>
+<script>ajax('test_connect_ssh/{{=server.id}}',[],'t{{=server.id}}_2');</script></td>
+</tr>
+{{pass}}
+</tbody>
+</table>

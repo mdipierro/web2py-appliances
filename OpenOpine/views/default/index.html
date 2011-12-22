@@ -1,0 +1,20 @@
+<!--
+#########################################################################
+## (C) Equimind Financial LLC.
+##  Written by Casey Schroeder, A Theory of Publishing
+##  MIT License
+##
+##  See www.atheoryofpublishing.com for 
+##  full licensing of OpenOpine
+##
+##  Powered by web2py, Thanks Massimo!
+#########################################################################
+-->
+
+{{extend 'layout.html'}}
+
+{{if 'message' in globals():}}
+<h1>{{=message}}</h1>
+<hr/>
+<img width='550' src="{{=URL(request.application, 'static', 'images/gadget.jpg')}}"/>
+<p><h3>tech review site content</h3></p>

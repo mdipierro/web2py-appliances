@@ -1,0 +1,147 @@
+/* 2009 -2010 (c) | ez-css.org
+ * ez-plug.css :: version 1.1 :: 01182010
+ *
+ * This style sheet can be added to any document (there is no styling of HTML elements) 
+ * With this style sheet, use the code snippets from http://www.ez-css.org/layouts 
+ */
+
+/*
+ * this is the clearfix method
+ * we rely on this to contain floats in "stand-alone" modules 
+ */
+ 
+.ez-wr:after,
+.ez-box:after {
+      content: ".";
+      display: block;
+      height: 0;
+      clear: both;
+      visibility: hidden;
+}
+
+/*
+ * hacks for IE 5 (Win and Mac)
+ * (min-height is the "hasLayout" trigger used for IE7)
+ */
+ 
+.ez-wr,.ez-box,.ez-last {display: inline-block;min-height: 0;}    
+/* hides from IE-mac \*/  
+* html .ez-wr,
+* html .ez-box,
+* html .ez-last {height: 1%;}  
+.ez-wr,.ez-box,.ez-last {display: block;}  
+/* end hide from IE-mac */
+
+/*
+ * the last DIV in the HTML flow (a column) must create a new block formatting context.
+ * by default, we rely on "overflow:hidden", but if this creates an issue with your design, then try one of these classes instead: 
+ * ez-oa
+ * ez-dt 
+ * ez-it
+ * ez-tc
+ * ez-ib
+ */
+ 
+.ez-oh {
+	overflow: hidden;
+}
+
+* html .ez-oh {
+	overflow: visible;
+}
+
+.ez-oa {
+	overflow: auto;
+}
+.ez-dt {
+	display: table;
+}
+
+.ez-it {
+	display: inline-table;
+}
+.ez-tc {
+	display: table-cell;
+}
+
+.ez-ib {
+	display: inline-block;
+}
+
+/* 
+ * DIVs to be columns
+ * we float them left or right depending on module or layout
+ * the negative margin is used to fix a IE6 bug (3px jog).
+ */
+.ez-fl {
+	float: left;
+}
+
+* html .ez-fl {
+	margin-right: -3px;
+}
+
+.ez-fr {
+	float: right;
+}
+
+* html .ez-fr {
+	margin-left: -3px;
+}
+
+/*
+ * every floated column in a module or layout needs a width
+ * here we have 5 default values: 1/4, 1/3, 1/2, 2/3 and 3/4
+ */
+
+.ez-25 {width: 25%;}
+.ez-33 {width: 33.33%;}
+.ez-50 {width: 50%;}
+.ez-66 {width: 66.66%;}
+.ez-75 {width: 75%;}
+
+/* 
+ * the following classes are used to make columns that are siblings overlap by 1 pixel (to vertically align 1 pixel borders between containers)
+ * for this to work, this class must be applied to the following elements: 
+ * - column 1 of Module 2A, 
+ * - column 2 of Module 3A,
+ * - column 1 of Module 3B, 
+ * - column 3 of Module 4A, 
+ * - column 1 of Module 4B, 
+ * - column 1 in column 1 of Module 4B, 
+ * - column 2 in column 1 of Module 4B 
+ */
+ 
+.ez-negmr {
+	margin-right: -1px;
+}
+
+* html .ez-negmr {
+	margin-right:-4px;
+}
+
+/* 
+ * same as above, but for these elements:
+ * - column 1 of Module 3A,
+ * - column 1 of Module 4A,
+ * - column 2 of Module 4A 
+ */
+ 
+.ez-negmx {
+	margin-right: -1px;
+}
+
+/* 
+ * same as above, but for these elements:
+ * - column 1 of Module 2B,
+ * - column 2 of Module 3B 
+ */
+ 
+.ez-negml {
+	margin-left: -1px; 
+}
+
+* html .ez-negml {
+	margin-left:-4px;
+}
+

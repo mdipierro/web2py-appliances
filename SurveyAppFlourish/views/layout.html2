@@ -1,0 +1,44 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<meta name="author" lang="en" content="{{=response.author}}" />
+<meta name="keywords" content="{{=response.keywords}}" />
+<meta name="description" content="{{=response.description}}" />
+<title>{{=response.title or URL(r=request)}}</title>
+<link rel="stylesheet" media="screen,projection" type="text/css" href="{{=URL(r=request,c='static',f='styles.css')}}" />
+{{include 'web2py_ajax.html'}}
+</head>
+<body>
+<div id="header">
+ <div id="header_inner" class="fixed">
+   <div id="logo">
+     <h1><a href="http://www.web2py.com">[web2py<sup style="font-size:0.5em;">TM</sup>]</a></h1>
+     <h2>{{=request.application}}</h2>
+   </div>
+   <div id="menu">
+   <ul>
+    {{for _name,_active,_link in response.menu or []:}}
+     <li><a href="{{=_link}}" onmouseover="this.ccc=this.style.backgroundColor;this.style.backgroundColor='white';" onmouseout="this.style.backgroundColor=this.ccc;" {{if not _active:}}class="inactive"{{pass}}>{{=_name}}</a></li>
+    {{pass}}
+   </ul>
+   </div>
+  </div>
+</div>
+<div id="main">
+  <div id="main_inner" class="fixed">
+    <div id="primaryContent_columnless">
+      <div id="columnA_columnless">  
+        {{if response.flash:}}
+        <div class="flash">{{=response.flash}}</div>
+        {{pass}}
+        {{include}}
+      </div>
+    </div>
+  </div>
+</div>
+<div id="footer" class="fixed">
+   Powered by <a href="http://www.web2py.com">web2py</a> (TM) created by Massimo Di Pierro &copy; 2007, 2008
+</div>
+</body>
+</html>

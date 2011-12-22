@@ -1,0 +1,50 @@
+{{extend 'layout.html'}}
+
+<script type="text/javascript" src="{{=URL(r=request,c='static',f='plugin_wiki')}}/markitup/jquery.markitup.pack.js"></script>
+<script type="text/javascript" src="{{=URL(r=request,c='static',f='plugin_wiki')}}/markitup/sets/markmin/set.js"></script>
+<link rel="stylesheet" type="text/css" href="{{=URL(r=request,c='static',f='plugin_wiki')}}/markitup/skins/markitup/style.css" />
+<link rel="stylesheet" type="text/css" href="{{=URL(r=request,c='static',f='plugin_wiki')}}/markitup/sets/markmin/style.css" />
+
+<h1>Backlog<h1>
+<h2>Patient: {{=patient.first_name}} {{=patient.last_name}} ({{=patient.sex}}/{{=patient.birth_date.year}})</h2>
+
+{{if form:}}
+[<a href="#" onclick="jQuery('#post').slideToggle(); return false">Post</a>]
+<div class="hidden" id="post">
+[{{=plugin_wiki.attachments('auth_user',patient.id)}}]
+{{=form}}</div>
+<script>
+jQuery(document).ready(function(){jQuery('textarea').css('width','700px').css('height','200px').markItUp(mySettings);});
+</script>
+{{pass}}
+
+<style>
+.fact { margin: 0 200px 10px 0}
+.assumption { margin: 0px 100px 10px 100px}
+.action { margin: 0 0 10px 200px; width}
+.high { background-color: #ff9999 }
+.medium { background-color: #ffff99 }
+.low { background-color: #99ff99 }
+.post { color: black; padding: 5px; 
+    -moz-border-radius: 5px;     
+    -webkit-border-radius: 5px;
+    border: 1px solid #666;
+}
+.expired { opacity: 0.5 }
+</style>
+
+{{if not posts:}}
+No information reported
+{{pass}}
+
+{{for post in posts:}}
+<div class="post {{=post.category}} {{=post.importance}} {{='expired' if post.expired else ''}}">
+#{{=post.id}}) {{=prettydate(post.posted_on)}} by {{=db.post.posted_by.represent(post.posted_by)}}: <i>{{=post.title}}</i>
+{{if (request.now-post.posted_on).seconds<3600:}}
+   [<a href="{{=URL('post_edit',args=post.id)}}">edit</a>]
+{{pass}}
+[<a href="#" onclick="jQuery('#p{{=post.id}}').slideToggle();return false">more</a>]
+<div class="hidden" id="p{{=post.id}}">{{=plugin_wiki.widget('comments',post.comment)}}<br/>Reasons: {{=post.reasons.replace('|',' ')}}</div>
+</div>
+{{pass}}
+

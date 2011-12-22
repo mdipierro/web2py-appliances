@@ -1,0 +1,10 @@
+{{extend 'layout.html'}}
+<div class="title">
+        {{=H1(title)}}
+</div>
+<div class="showcase">
+    {{ for car in showcase:}}
+        {{=XML(car)}}
+    {{pass}}
+</div>
+  

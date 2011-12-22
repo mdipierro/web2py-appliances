@@ -1,0 +1,570 @@
+{{extend 'zlayout.html'}}
+{{import json}}
+
+{{if view_info['errors']:}}
+    <p class="err">{{=XML(T('There was one or more errors while processing your request, please correct the following'))}}</p>
+    <ul>
+        {{for error in view_info['errors']:}}
+            <li class="err">{{=XML(T(error))}}</li>
+        {{pass}}
+    </ul>
+{{pass}}
+
+<div class="breadcrumbs">
+    <a href="{{=URL(r=request, c='default', f='index')}}" title="{{=XML(T('Home'))}}">{{=XML(T('Home'))}}</a><span
+       class="sep"> / </span>
+       <!--- MODIFIED CODE
+                 The forum link is replaced with a link to a public profile if this
+                 is a thread in the 'Profile' forum. -->
+       {{if forum.forum_title=='Profile':}}
+           <a href="{{=URL(r=request, c='default', f='view_profile', args=[topic.creation_user_id])}}"
+              title="{{=forumhelper.get_display_name(topic.creation_user_id)}} {{=XML(T("Profile"))}}">{{=forumhelper.get_display_name(topic.creation_user_id)}} {{=XML(T("Profile"))}}</a>
+       {{else:}}
+           <a href="{{=URL(r=request, c='default', f='view_forum', args=[forum.id])}}"
+              title="{{=forum.forum_title}}">{{=forum.forum_title}}</a>
+       {{pass}}
+       <!--- END MODIFIED CODE -->
+       <span class="sep"> / </span><b>{{=XML(parse_content(topic.title))}}</b>
+    {{if view_info['subscribed_to_topic']:}}<i>({{=XML(T('You are subscribed to this topic'))}})</i>{{pass}}
+</div>
+
+<div class="subnav">
+    <!-- !MODIFIED CODE
+             Hide 'back' option if this is a profile thread. -->
+    {{if forum.forum_title!="Profile":}}
+        <a href="{{=URL(r=request, c='default', f='view_forum', args=[forum.id])}}"
+            title="{{=XML(T('Back To'))}} {{=forum.forum_title}}">{{=XML(T('Back'))}}</a>
+    {{pass}}
+    <!-- !END MODIFIED CODE -->
+    {{if (security_info['can_reply'] and not topic.locked_flag) or auth_user.is_admin():}}
+        <span class="sep">|</span>
+        <a href="#add_comment" title="{{=XML(T('Add a Topic Response'))}}">{{=XML(T('Add a Topic Response'))}}</a>
+    {{pass}}
+    {{if auth_user.is_auth():}}
+        <span class="sep">|</span>
+        {{if view_info['subscribed_to_topic']:}}
+            <a href="{{=URL(r=request, c='default', f='view_topic', args=[topic.id, 0])}}" title="{{=XML(T('Unsubscribe from Topic'))}}">{{=XML(T('Unsubscribe from Topic'))}}</a>
+        {{else:}}
+            <a href="{{=URL(r=request, c='default', f='view_topic', args=[topic.id, 1])}}" title="{{=XML(T('Subscribe to Topic'))}}">{{=XML(T('Subscribe to Topic'))}}</a>
+        {{pass}}
+    {{pass}}
+</div>
+
+<div>{{=XML(view_info['pagination_widget'])}}</div>
+
+<form id="topics_form" method="post" name="topics_form" action="">
+    <fieldset id="topics_form_fields">
+        <input type="hidden" id="topic_id" name="topic_id" value="{{=topic.id}}" />
+        <input type="hidden" id="forum_id" name="forum_id" value="{{=forum.id}}" />
+        <input type="hidden" id="form_submitted" name="form_submitted" value="1" />
+        <input type="hidden" id="action" name="action" value="remove" />
+        <input type="hidden" id="confirm_delete_msg" name="confirm_delete_msg" value="{{=XML(T('Please confirm the removal of the selected topics'))}}" />
+        <input type="hidden" id="warn_delete_parent_msg" name="warn_delete_parent_msg" value="{{=XML(T('Warning: Removing this topic will remove all its sibling topics'))}}" />
+        <input type="hidden" id="confirm_inapp" name="confirm_inapp" value="{{=XML(T('Please confirm you wish to report this topic as inappropriate'))}}" />
+        <input type="hidden" id="c" name="c" value="{{=view_info['anon_captcha_base64']}}" />
+
+        {{if view_info.has_key('preview'):}}
+            <div class="preview">
+                <b>{{=XML(T('Message Preview'))}}</b>
+                <div class="hr"><hr /></div>
+                <div>{{=XML(parse_content(request.vars.get('response_content', ''), mode='forumfull'))}}</div>
+                <a href="#add_comment" title="{{=XML(T('Add This Comment'))}}">{{=XML(T('Add This Comment'))}}</a>
+            </div>
+        {{pass}}
+
+        {{if auth_user.is_admin():}}
+            <div class="bottom-separator">
+                <input type="submit" id="submit_del" name="remove" value="Remove Checked Topics" onclick="return confirm(document.getElementById('confirm_delete_msg').value);" />
+            </div>
+        {{pass}}
+
+        <table cellspacing="0" cellpadding="0" class="zf-table" class="max-width" style="width:100%;">
+            <thead>
+                <tr class="shadedarker">
+                    <td class="cell3d" colspan="2" class="max-width"><b>{{=topic.title}}</b></td>
+                </tr>
+            </thead>
+            <tbody>
+                <tr class="shadedarker">
+                    <td class="cell3d" style="width:15%;">
+                        <div class="topic-information">
+                            {{=XML(T('By'))}}:
+                            {{if not topic.creation_user_id:}}
+                                <b class="small">Anonymous User</b>
+                            {{else:}}
+                                <!-- !MODIFIED CODE 
+                                         Changed hyperlink with author's name to point to profile instead of taking them to write a pm
+                                         and now hide user's location if this is in the list of hidden fields for that user. -->
+                                {{if auth_user.is_auth():}}
+                                    <a href="{{=URL(r=request, c='default', f='view_profile', args=[topic.creation_user_id])}}"
+                                       title=""
+                                       class="smallb">{{=forumhelper.get_display_name(topic.creation_user_id)}}</a>
+                                {{else:}}
+                                    <b>{{=forumhelper.get_display_name(topic.creation_user_id)}}</b>
+                                {{pass}}
+                                {{if forumhelper.get_system_property('zfsp_use_ranking_system', '') != '':}}
+                                    <br />{{=XML(T('Rank'))}}: {{=forumhelper.get_user_rank(topic.creation_user_id)}}
+                                {{pass}}
+                                <br />{{=XML(T('Postings'))}}: {{=forumhelper.get_member_property('zfmp_postings', topic.creation_user_id, '0')}}
+                                {{if not forumhelper.get_member_property_hidden('zfmp_country', topic.creation_user_id, False):}}
+                                    <br />{{=XML(T('From'))}}: {{=forumhelper.get_member_property('zfmp_country', topic.creation_user_id, XML(T('<i>Unknown</i>')))}}
+                                {{pass}}
+                                <!-- !END MODIFIED CODE -->
+                                {{if forumhelper.get_system_property('zfsp_allow_member_avatars', '') != '' and forumhelper.has_member_avatar(topic.creation_user_id):}}
+                                    <br /><img src="{{=URL(r=request, c='zadmin', f='get_avatar_image', args=[topic.creation_user_id])}}" alt="" />
+                                {{pass}}
+                                <!-- !NEW CODE
+                                         Added extra code to left of posts to let the user pm the author provided they aren't the author
+                                         and a link to add target user to their friend's list or remove from friend's list depending
+                                         depending on whether they're already on the list or not.  -->
+                                {{if auth_user.is_auth() and auth_user.get_user_id() != topic.creation_user_id:}}
+                                    <br /><a href="{{=URL(r=request, c='pm', f='message_new', args=[topic.creation_user_id])}}"
+                                       title=""
+                                       class="smallb">{{=XML(T('Send private message'))}}</a>
+                                {{pass}}
+                                {{if auth_user.is_auth() and not forumhelper.get_friend_status(auth_user.get_user_id(), topic.creation_user_id):}}
+                                    <br /><a href="{{=URL(r=request, c='default', f='edit_profile', args=['add_friend', topic.creation_user_id])}}"
+                                       title=""
+                                       class="smallb">{{=XML(T('Add to friendslist'))}}</a>
+                                {{elif auth_user.is_auth():}}
+                                    <br /><a href="{{=URL(r=request, c='default', f='edit_profile', args=['remove_friend', topic.creation_user_id])}}"
+                                       title=""
+                                       class="smallb">{{=XML(T('Remove from friendslist'))}}</a>
+                                {{pass}}
+                                <!-- !END NEW CODE -->
+                            {{pass}}
+                        </div>
+                    </td>
+                    <td class="cell3d">
+                        <div style="float:left;" class="topic-information">
+                            <a id="{{=topic.id}}">{{=XML(T('Posted'))}}</a>:
+                            {{=XML(T(str(topic.creation_date.strftime('%a, %d %B, %Y - %I:%M %p'))))}}
+                        </div>
+                        <div style="float:right;" class="topic-information">
+                            <!-- !MODIFIED CODE 
+                                     Modfied the code to allow users to edit (unlocked) posts even if they aren't the admin. The logic of who can
+                                     edit posts is found in the controller. It also changes what content is passed to the textarea used to quote
+                                     posts. Before, it was the identifier for the div id containing the content code so the reponse would
+                                     quote raw html code. Now it is being sent a processed version of the text as stored in the database. --->
+                            {{if auth_user.is_admin() or (not topic.locked_flag and security_info['can_edit']):}}
+                                <a href="{{=URL(r=request, c='default', f='edit_topic', args=[topic.id])}}"
+                                   title="{{=XML(T('Edit Post'))}}">{{=XML(T('Edit Post'))}}</a> |
+                            {{pass}}
+                            {{if (security_info['can_reply'] and not topic.locked_flag) or auth_user.is_admin():}}
+                                {{content=topic.content}}
+                                {{content=content.replace('\r\n','[r]')}}
+                                <a href="#add_comment"
+                                   title=""
+                                   onclick="reply_quote('{{=forumhelper.get_display_name(topic.creation_user_id)}}','{{=content}}','{{=security_info['can_embed']}}');">{{=XML(T('Reply w/Quote'))}}</a> |
+                            {{pass}}
+                            <!-- !END MODIFIED CODE -->
+                            <a href="{{=URL(r=request, c='default', f='report_inappropriate', args=[topic.id, topic.id])}}"
+                               onclick="return confirm(document.getElementById('confirm_inapp').value);"
+                               title="{{=XML(T('Report as inappropriate'))}}">{{=XML(T('Report as inappropriate'))}}</a>
+                            {{if auth_user.is_admin():}}
+                                |
+                                <input type="checkbox" id="remove_topic_parent_{{=topic.id}}"
+                                       name="remove_topic_parent_{{=topic.id}}"
+                                       value="{{=topic.id}}"
+                                       onclick="if(this.checked){alert(document.getElementById('warn_delete_parent_msg').value);}"
+                                       style="vertical-align:middle;" />
+                                <label for="remove_topic_parent_{{=topic.id}}" style="font-weight:bold;">{{=XML(T('Remove Topic'))}}</label>
+                            {{pass}}
+                        </div>
+                        <div class="hr" style="clear:both;"><hr /></div>
+                        <div id="topic_id_{{=topic.id}}" class="both-separator">{{=XML(parse_content(topic.content, mode='forumfull'))}}</div>
+                    </td>
+                </tr>
+                {{if len(children):}}
+                    {{for row, this_child in enumerate(children):}}
+                        <tr class="{{if row%2:}}shadedark{{else:}}shadelight{{pass}}">
+
+                            <td class="cell3d" style="width:15%;">
+                                <div class="topic-information">
+                                    {{=XML(T('By'))}}:
+                                    {{if not this_child.creation_user_id:}}
+                                        <b class="small">Anonymous User</b>
+                                    {{else:}}
+                                        <!-- !MODIFIED CODE
+                                                 Changed hyperlink to point to profile rather than pm screen.  -->
+                                        {{if auth_user.is_auth():}}
+                                            <a href="{{=URL(r=request, c='default', f='view_profile', args=[this_child.creation_user_id])}}"
+                                               title="">{{=forumhelper.get_display_name(this_child.creation_user_id)}}</a>
+                                        {{else:}}
+                                            <b>{{=forumhelper.get_display_name(this_child.creation_user_id)}}</b>
+                                        {{pass}}
+                                        <!-- !END MODIFIED CODE -->
+                                        {{if forumhelper.get_system_property('zfsp_use_ranking_system', '') != '':}}
+                                            <br />{{=XML(T('Rank'))}}: {{=forumhelper.get_user_rank(this_child.creation_user_id)}}
+                                        {{pass}}
+                                        <br />{{=XML(T('Postings'))}}: {{=forumhelper.get_member_property('zfmp_postings', this_child.creation_user_id, '0')}}
+                                        <br />{{=XML(T('From'))}}: {{=forumhelper.get_member_property('zfmp_country', this_child.creation_user_id, XML(T('<i>Unknown</i>')))}}
+                                        {{if forumhelper.get_system_property('zfsp_allow_member_avatars', '') != '' and forumhelper.has_member_avatar(this_child.creation_user_id):}}
+                                            <img src="{{=URL(r=request, c='zadmin', f='get_avatar_image', args=[this_child.creation_user_id])}}" alt="" />
+                                        {{pass}}
+                                        <!-- !NEW CODE 
+                                                 Added code to allow users to pm post's author and to add or remove them from 
+                                                 their friend's list depending on the current friend status. -->
+                                        {{if auth_user.is_auth() and auth_user.get_user_id() != this_child.creation_user_id:}}
+                                            <br /><a href="{{=URL(r=request, c='pm', f='message_new', args=[this_child.creation_user_id])}}"
+                                               title=""
+                                               class="smallb">{{=XML(T('Send private message'))}}</a>
+                                        {{pass}}
+                                        {{if auth_user.is_auth() and not forumhelper.get_friend_status(auth_user.get_user_id(), this_child.creation_user_id):}}
+                                            <br /><a href="{{=URL(r=request, c='default', f='edit_profile', args=['add_friend', this_child.creation_user_id])}}"
+                                               title=""
+                                               class="smallb">{{=XML(T('Add to friendslist'))}}</a>
+                                        {{elif auth_user.is_auth():}}
+                                            <br /><a href="{{=URL(r=request, c='default', f='edit_profile', args=['remove_friend', this_child.creation_user_id])}}"
+                                               title=""
+                                               class="smallb">{{=XML(T('Remove from friendslist'))}}</a>
+                                        {{pass}}
+                                        <!-- !END NEW CODE -->
+                                    {{pass}}
+                                </div>
+                            </td>
+                            <td class="cell3d">
+                                <div style="float:left;" class="topic-information">
+                                    <a id="{{=this_child.id}}">{{=XML(T('Posted'))}}</a>:
+                                    {{=XML(T(str(this_child.creation_date.strftime('%a, %d %B, %Y - %I:%M %p'))))}}
+                                </div>
+                                <div style="float:right;" class="topic-information">
+                                    <!-- !MODIFIED CODE
+                                             Edit post hyperlink now appears if user is author of (unlocked) post
+                                             in addition to admins having access. Adding a quote uses the post
+                                             content pulled from the db now rather than pulling the content html
+                                             from this view.  --->
+                                    {{if (not this_child.locked_flag and auth_user.is_auth() and (auth_user.is_admin() or this_child.creation_user_id==auth_user.get_user_id())):}}
+                                        <a href="{{=URL(r=request, c='default', f='edit_topic', args=[this_child.id])}}" title="{{=XML(T('Edit Post'))}}">{{=XML(T('Edit Post'))}}</a> |
+                                    {{pass}}
+                                    {{if (security_info['can_reply'] and not topic.locked_flag) or auth_user.is_admin():}}
+                                        {{content=this_child.content}}
+                                        {{content=content.replace('\r\n','[r]')}}
+                                        <a href="#add_comment"
+                                           title=""
+                                           onclick="reply_quote('{{=forumhelper.get_display_name(this_child.creation_user_id)}}','{{=content}}','{{=security_info['can_embed']}}');">{{=XML(T('Reply w/Quote'))}}</a> |
+                                    {{pass}}
+                                    <!-- !END MODIFIED CODE -->
+                                    <a href="{{=URL(r=request, c='default', f='report_inappropriate', args=[this_child.id, topic.id])}}"
+                                       onclick="return confirm(document.getElementById('confirm_inapp').value);"
+                                       title="{{=XML(T('Report as inappropriate'))}}">{{=XML(T('Report as inappropriate'))}}</a>
+                                    {{if auth_user.is_admin():}}
+                                        |
+                                        <input type="checkbox" id="remove_topic_child_{{=this_child.id}}"
+                                               name="remove_topic_child_{{=this_child.id}}"
+                                               value="{{=this_child.id}}"
+                                               style="vertical-align:middle;" />
+                                        <label for="remove_topic_child_{{=this_child.id}}"
+                                               style="font-weight:bold;">{{=XML(T('Remove Topic'))}}</label>
+                                    {{pass}}
+                                </div>
+                                <div class="hr" style="clear:both;"><hr /></div>
+                                <div id="topic_id_{{=this_child.id}}" class="both-separator">{{=XML(parse_content(this_child.content, mode='forumfull'))}}</div>
+                            </td>
+                        </tr>
+                    {{pass}}
+                {{pass}}
+            </tbody>
+        </table>
+
+        {{if not len(children):}}
+            <p class="information" style="font-style:italic;text-align:center;">{{=XML(T('This topic contains no responses'))}}.</p>
+        {{pass}}
+
+        {{if topic.locked_flag:}}
+            <p class="information" style="font-style:italic;text-align:center;">{{=XML(T('The forum administrator has restricted adding any more comments to this topic'))}}.</p>
+        {{pass}}
+
+        {{if (security_info['can_reply'] and not topic.locked_flag) or auth_user.is_admin():}}
+
+            <div class="both-separator">
+                <a id="add_comment" name="add_comment">&nbsp;</a>
+
+                <table cellspacing="0" cellpadding="0" class="zf-table" style="margin-left:auto;margin-right:auto;width:90%;">
+                    <thead>
+                        <tr class="shadedarker">
+                            <th colspan="2" class="cell3d">{{=XML(T('Add Reply'))}}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="shadedarker">
+                            <td class="cell3d">{{=XML(T('Title'))}}:</td>
+                            <td class="cell3d"><b>{{=topic.title}}</b></td>
+                        </tr>
+                        <tr class="shadedarker">
+                            <td class="cell3d">{{=XML(T('By'))}}:</td>
+                            <td class="cell3d">{{=forumhelper.get_display_name(None, 'Anonymous User')}}, {{=XML(T('on'))}} {{=XML(T(str(request.now.strftime('%A, %d %B, %Y'))))}}</td>
+                        </tr>
+                        <!-- !NEW CODE
+                                 Added buttons for text formatting as well as video embedding
+                                 if users has required roles or is an admin. -->
+                        <tr>
+                            <td >
+                            </td>
+                            <td class="cell3d">
+                                {{for icon in view_info['font_effects']:}}
+                                    {{if icon=="I":}}
+                                        {{style = "font-style:italic;width:24px;height:24px;vertical-align:text-top;"}}
+                                    {{elif icon=="B":}}
+                                        {{style = "font-weight:bold;width:24px;height:24px;vertical-align:text-top;"}}
+                                    {{elif icon=="U":}}
+                                        {{style = "text-decoration:underline;width:24px;height:24px;vertical-align:text-top;"}}
+                                    {{pass}}
+                                    <button type="button" onmouseover="this.style.cursor='pointer';" 
+                                        onmouseout="this.style.cursor='default';"
+                                        onclick="add_font_effect('{{=icon}}');" 
+                                        style={{=style}}>{{=icon}}</button>    
+                                {{pass}} 
+                                {{if security_info['can_embed'] or auth_user.is_admin():}}
+                                    &nbsp;&nbsp;
+                                    {{for icon in view_info['video_icons']:}}
+                                        <img src="{{=URL(r=request, c='static/images', f=icon)}}" alt="{{=icon[5:icon.rfind('.')]}}" 
+                                             class="imgclear" style="width:24px;height:24px;vertical-align:text-top;"
+                                             onmouseover="this.style.cursor='pointer';"
+                                             onmouseout="this.style.cursor='default';"
+                                             onclick="embed_media('{{=icon[5:icon.rfind('.')]}}');" />
+                                    {{pass}}
+                                {{pass}}   
+                            </td>
+                        </tr>
+                        <!-- !END NEW CODE -->
+                        <tr class="shadedarker">
+                            <td class="cell3d" style="vertical-align:middle;">{{=XML(T('Contents'))}}:</td>
+                            <td class="cell3d">
+                                <textarea name="response_content"
+                                          id="z_content"
+                                          style="width:98%;height:200px;" multiline="true">{{=request.vars.get('response_content', '')}}</textarea>
+                            </td>
+                        </tr>
+                        {{if not auth_user.is_auth():}}
+                            <tr class="shadedarker">
+                                <td class="cell3d"><span class="required">*</span>
+                                    {{=XML(T('Verify your humanity'))}}:
+                                </td>
+                                <td class="cell3d">
+                                    <input type="text" id="captcha_response" name="captcha_response" value="" style="width:100px;" />
+                                    <b>{{=view_info['anon_captcha']}}</b>
+                                    <span class="warning">({{=XML(T('Please Enter the acces code shown in order to post your message'))}}.)</span>
+                                </td>
+                            </tr>
+                        {{pass}}
+                        <tr class="shadedarker">
+                            <td class="cell3d" style="text-align:center;" colspan="2">
+                                {{=XML(T('Click on an emoticon to add it'))}}:
+                                {{for icon in view_info['emoticons']:}}
+                                    <img src="{{=URL(r=request, c='static/images', f=icon)}}" alt="{{=icon[5:icon.rfind('.')]}}" class="imgclear" style="width:16px;height:16px;"
+                                         onmouseover="this.style.cursor='pointer';"
+                                         onmouseout="this.style.cursor='default';"
+                                         onclick="add_emoticon('{{=icon[5:icon.rfind('.')]}}');" />
+                                {{pass}}
+                            </td>
+                        </tr>
+                        <tr class="shadedarker">
+                            <td class="cell3d" style="text-align:right;" colspan="2">
+                                <input type="submit" id="preview" name="preview" value="{{=XML(T('Preview'))}}" />
+                                <input type="submit" id="add" name="add" value="{{=XML(T('Add'))}}" />
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        {{pass}}
+
+    </fieldset>
+</form>
+
+<script type="text/javascript">
+<!--
+    function quote(blockquote, topic_id) {
+        var blockquote;
+        var response_form = document.forms['response_form'];
+        var current_content = response_form['content'];
+        var new_content = current_content.value + blockquote;
+        var reply_to_topic_id = document.getElementById('reply_to_topic_id');
+        reply_to_topic_id.value = topic_id;
+        current_content.value = new_content;
+        current_content.focus();
+        return false;
+    }
+
+    function toggle_thread(element_id) {
+        var displaystyle = document.getElementById(element_id).style;
+        if (displaystyle.display == 'none') {
+            displaystyle.display = 'block';
+        } else {
+            displaystyle.display = 'none';
+        }
+        return false;
+    }
+
+    function add_emoticon(e_value) {
+        var emoticon_value = ':' + e_value + ':';
+        var my_field = document.getElementById('z_content');
+
+        //IE support
+        if (document.selection) {
+            my_field.focus();
+            sel = document.selection.createRange();
+            sel.text = emoticon_value;
+        }
+        //MOZILLA/NETSCAPE support
+        else if (my_field.selectionStart || my_field.selectionStart == 0) {
+            var start_pos = my_field.selectionStart;
+            var end_pos = my_field.selectionEnd;
+            my_field.value = my_field.value.substring(0, start_pos) + emoticon_value + my_field.value.substring(end_pos, my_field.value.length);
+        } else {
+            my_field.value += emoticon_value;
+        }
+
+        document.getElementById('z_content').focus();
+    }
+    
+    // !NEW FUNCTION: add_font_effect
+    //     This puts tags around selected text based on what
+    //     text effect the user selected.
+    function add_font_effect(e_value) { 
+        var e_value_start = '[i]';
+        var e_value_end = '[/i]';
+        
+        if (e_value == 'B') {
+            e_value_start = '[b]';
+            e_value_end = '[/b]';
+        }
+        else if(e_value == 'U') {
+            e_value_start = '[u]';
+            e_value_end = '[/u]';
+        }
+        
+        var my_field = document.getElementById('z_content'); 
+        
+        //IE support
+        if (document.selection) {
+            my_field.focus();
+            sel = document.selection.createRange();
+            sel.text = e_value_start + sel.text + e_value_end;
+        }
+        //MOZILLA/NETSCAPE support
+        else if (my_field.selectionStart || my_field.selectionStart == 0) {
+            var start_pos = my_field.selectionStart;
+            var end_pos = my_field.selectionEnd;
+            my_field.value = my_field.value.substring(0, start_pos) + e_value_start 
+                + my_field.value.substring(start_pos, end_pos) + e_value_end 
+                + my_field.value.substring(end_pos, my_field.value.length);
+        } 
+        else {
+            my_field.value += e_value_start + e_value_end;
+        }
+        document.getElementById('z_content').focus();
+    }
+    // !END NEW FUNCTION
+    
+    // !NEW FUNCTION: embed_media
+    //     This prompts the user for a URL for the video file, converts
+    //     the URL to the proper format if it isn't already in it, and
+    //     surrounds the processed url with tags representing the video source.
+    function embed_media(e_value) {
+        var e_value_start = '[youtube]';
+        var e_value_end = '[/youtube]';
+        
+        if (e_value == 'vimeo') {
+            e_value_start = '[vimeo]';
+            e_value_end = '[/vimeo]';
+        }
+        else if (e_value == 'music') {
+            e_value_start = '[music]';
+            e_value_end = '[/music]';
+        }
+        
+        var reply = prompt("Enter media URL:", "");
+        var my_field = document.getElementById('z_content');
+        
+        //If not already in an embedded format, convert here
+        if (e_value == 'youtube') {
+            var watch_index = -1; 
+            watch_index = reply.indexOf("watch?");
+            var video_index = -1; 
+            video_index = reply.indexOf("v=");
+            if (watch_index != -1 && video_index != -1) {
+                var watch = reply.substring(0, watch_index);
+                var vid = reply.substring(video_index+2);
+                if (vid.indexOf("&") != -1) {
+                    vid= vid.substring(0, vid.indexOf("&"))
+                }
+                reply = watch + "embed/" + vid;
+            }
+        }
+        else if (e_value == "vimeo")
+        {
+            var watch_index = -1;
+            watch_index = reply.indexOf("/video/");
+            if (watch_index == -1)
+            {
+                reply = "http://player.vimeo.com/video" + reply.substring(reply.lastIndexOf("/"));
+            }
+        }
+        
+        //IE support
+        if (document.selection) {
+            my_field.focus();
+            sel = document.selection.createRange();
+            sel.text = e_value_start + reply + e_value_end;
+        }
+        
+        //MOZILLA/NETSCAPE support
+        else if (my_field.selectionStart || my_field.selectionStart == 0) {
+            var start_pos = my_field.selectionStart;
+            var end_pos = my_field.selectionEnd;
+            my_field.value = my_field.value.substring(0, start_pos) + e_value_start 
+                + reply + e_value_end 
+                + my_field.value.substring(end_pos, my_field.value.length);
+        } else {
+            my_field.value += e_value_start + e_value_end;
+        }
+        
+        document.getElementById('z_content').focus();
+    }
+    // !END NEW CODE
+    
+    // !MODIFIED CODE: reply_quote
+    //     Before this method just posted html code into the textarea.
+    //     Now it removes media tags if user is not allowed to embed media
+    //     links. It also adds back in new lines - they're stripped from
+    //     the content and replaced with a non-system newline identifier
+    //     in the function parameters so the code won't choke on multiline
+    //     posts. 
+    function reply_quote(username, topic_text, embed) {
+        var content = topic_text;
+        // Add back in newlines
+        var new_text = content.replace(/\[r\]/g, "\n");
+        // Remove media tags if user is not allowed to embed files
+        if (embed == "False")
+        {
+            var emb = "";
+            if (new_text.indexOf("[vimeo]") != -1) {
+                new_text = new_text.replace(/\[vimeo\]/g, '');
+                emb = "yes";
+            }
+            if (new_text.indexOf("[/vimeo]") != -1) {
+                new_text = new_text.replace(/\[\/vimeo\]/g, '');
+                emb = "yes";
+            }
+            if (new_text.indexOf("[youtube]") != -1) {
+                new_text = new_text.replace(/\[youtube\]/g, '');
+                emb = "yes";
+            }
+            if (new_text.indexOf("[/youtube]") != -1) {
+                new_text = new_text.replace(/\[\/youtube\]/g, '');
+                emb = "yes";
+            }
+            
+            if (emb == "yes") {
+                alert("Your account does not have permission to embed media files.");
+            }
+        }
+        var quote_text = '\n\n[quote][smallb]From: ' + username + '[/smallb]\n\n' + new_text + '\n[/quote]';
+        document.getElementById('z_content').value = quote_text;
+        document.getElementById('z_content').focus();
+    }
+    // !END MODIFIED CODE
+//-->
+</script>

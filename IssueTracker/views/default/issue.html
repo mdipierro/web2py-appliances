@@ -1,0 +1,40 @@
+{{extend 'layout.html'}}
+
+<h1>{{=project.name}}</h1>
+
+{{=DIV(A('Back to issues',_href=URL('issues',args=project.id),_class="button"),_style="text-align:right")}}
+
+<h2>{{=items[-1].summary}} [status={{=items[-1].status}}]</h2>
+
+{{=", ".join(items[-1].labels or [])}}
+
+<table width="80%">
+  {{for k,item in enumerate(items):}}
+  <tr>
+    <td>
+      {{if k==0:}}Reported by{{else:}}Comment by{{pass}} {{=item.author}},
+      {{=item.created_on}} [status={{=item.status}}]
+      {{=", ".join(item.labels or [])}}
+    </td>
+  </tr>
+  <tr>
+    <td>
+      {{=MARKMIN(item.description,extra=extra)}}
+    </td>
+  </tr>
+  {{if item.attachment:}}
+  <tr>
+    <td>
+      Attachment {{=A('download',_href=URL('download',args=item.attachment))}}
+    </td>
+  </tr>
+  {{pass}}
+  <tr><td><hr/></td></tr>
+  {{pass}}
+</table>
+
+<h2>New Comment</h2>
+
+<i>You can use the <a href="http://web2py.com/examples/static/markmin.html">markmin syntax</a></i>
+
+{{=form}}

@@ -1,0 +1,6 @@
+{{extend 'layout.html'}}
+<h1>Folder: {{=folder.name}}</h1>
+{{=XML(folder.description)}}
+
+{{=A(IMG(_src=URL(r=request,c='static',f='folder/edit_folder_info.png')),_href=URL('edit_folder',args=request.args))}}
+{{=A(IMG(_src=URL(r=request,c='static',f='folder/open_folder.png')),_href=URL('show_page',args=request.args))}}

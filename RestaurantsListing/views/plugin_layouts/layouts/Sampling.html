@@ -1,0 +1,298 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<!--
+
+Design by Free CSS Templates
+http://www.freecsstemplates.org
+Released for free under a Creative Commons Attribution 2.5 License
+
+Title      : Sampling
+Version    : 1.0
+Released   : 20081117
+Description: A Web 2.0 design with fluid width suitable for blogs and small websites.
+
+-->
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>
+   {{=response.title or request.application}}
+  </title>
+  {{response.files.append(URL(request.application,'static','plugin_layouts/layouts/Sampling/default.css'))}}
+  {{response.files.append(URL('static','plugin_layouts/superfish.js'))}}
+  {{include 'web2py_ajax.html'}}
+  <style>
+ul.web2py-menu-vertical { width: 150px; position: relative; top:1em; left:1em;  z-index:30; border:0; margin:0; padding: 0; list-style: none; text-decoration: none;}
+ul.web2py-menu-vertical li { margin:0; padding:0; border:0; width: 150px; background: black; text-align:left;}
+ul.web2py-menu-vertical li a { margin:0; padding: 1px 3px 1px 3px; border:0; width: 144px; color: white; font-size:12px;}
+div.flash { position: fixed; float: right; padding: 10px; top: 10px; right: 30px; opacity: 0.75; margin: 10px 10px 10px 10px; text-align: center; clear: both; color: #fff; font-size: 11pt; text-align: center; vertical-align: middle; cursor: pointer; background: black; border: 2px solid #fff; -moz-border-radius: 5px; -webkit-border-radius: 5px; z-index: 2; }
+div.error { background-color: red; color: white; padding: 3px; }
+.auth_navbar { text-align:right; z-index:20; position: absolute; top: 2px; right:30px; border:0; padding:0 }
+  </style>
+ </head>
+ <body>
+  <!-- start header -->
+  {{try:}}{{=auth.navbar(action=URL('default','user'))}}{{except:pass}}
+
+  <!-- start header -->
+  <div id="header">
+   <div id="logo">
+    <h1>
+     {{=response.title or request.application}}
+    </h1>
+    <p>
+     <a href="http://www.freecsstemplates.org/">
+      By Free CSS Templates
+     </a>
+    </p>
+   </div>
+   <div id="menu">
+    {{=MENU(response.menu,_class='web2py-menu')}}
+    <script>
+      jQuery(document).ready(function(){jQuery('ul.web2py-menu').superfish({delay:400});});
+    </script>
+   </div>
+  </div>
+  <!-- end header -->
+  <!-- start page -->
+  <div id="page">
+   <!-- start sidebar -->
+   <div id="sidebar">
+    <ul>
+     <li id="search" style="background: none;">
+      <form id="searchform" method="get" action="">
+       <div>
+        <input type="text" name="s" id="s" size="15" />
+        <br />
+        <input type="submit" value="Search" />
+       </div>
+      </form>
+     </li>
+     <li id="categories">
+      <h2>
+       {{=response.subtitle or '=response.subtitle'}}
+      </h2>
+      <ul>
+       <li>
+        <a href="#">
+         Lorem Ipsum
+        </a>
+        (1)
+       </li>
+       <li>
+        <a href="#">
+         Uncategorized
+        </a>
+        (4)
+       </li>
+      </ul>
+     </li>
+     <li>
+      <h2>
+       Lorem Ipsum Dolor
+      </h2>
+      <ul>
+       <li>
+        <a href="#">
+         Nulla luctus eleifend purus
+        </a>
+       </li>
+       <li>
+        <a href="#">
+         Praesent scelerisque
+        </a>
+       </li>
+       <li>
+        <a href="#">
+         Ut nonummy rutrum sem
+        </a>
+       </li>
+       <li>
+        <a href="#">
+         Pellentesque tempus   nulla
+        </a>
+       </li>
+       <li>
+        <a href="#">
+         Fusce ultrices fringilla metus
+        </a>
+       </li>
+       <li>
+        <a href="#">
+         Praesent mattis condimentum
+        </a>
+       </li>
+      </ul>
+     </li>
+     <li>
+      <h2>
+       Lorem Ipsum Dolor
+      </h2>
+      <ul>
+       <li>
+        <a href="#">
+         Nulla luctus eleifend purus
+        </a>
+       </li>
+       <li>
+        <a href="#">
+         Praesent  scelerisque
+        </a>
+       </li>
+       <li>
+        <a href="#">
+         Ut nonummy rutrum sem
+        </a>
+       </li>
+       <li>
+        <a href="#">
+         Pellentesque tempus   nulla
+        </a>
+       </li>
+       <li>
+        <a href="#">
+         Fusce ultrices fringilla metus
+        </a>
+       </li>
+       <li>
+        <a href="#">
+         Praesent mattis condimentum
+        </a>
+       </li>
+      </ul>
+     </li>
+     <li>
+      <h2>
+       Lorem Ipsum Dolor
+      </h2>
+      <ul>
+       <li>
+        <a href="#">
+         Nulla luctus eleifend purus
+        </a>
+       </li>
+       <li>
+        <a href="#">
+         Praesent  scelerisque
+        </a>
+       </li>
+       <li>
+        <a href="#">
+         Ut nonummy rutrum sem
+        </a>
+       </li>
+       <li>
+        <a href="#">
+         Pellentesque tempus   nulla
+        </a>
+       </li>
+       <li>
+        <a href="#">
+         Fusce ultrices fringilla metus
+        </a>
+       </li>
+       <li>
+        <a href="#">
+         Praesent mattis condimentum
+        </a>
+       </li>
+      </ul>
+     </li>
+     <li>
+      <h2>
+       Lorem Ipsum Dolor
+      </h2>
+      <ul>
+       <li>
+        <a href="#">
+         Nulla luctus eleifend purus
+        </a>
+       </li>
+       <li>
+        <a href="#">
+         Praesent  scelerisque
+        </a>
+       </li>
+       <li>
+        <a href="#">
+         Ut nonummy rutrum sem
+        </a>
+       </li>
+       <li>
+        <a href="#">
+         Pellentesque tempus   nulla
+        </a>
+       </li>
+       <li>
+        <a href="#">
+         Fusce ultrices fringilla metus
+        </a>
+       </li>
+       <li>
+        <a href="#">
+         Praesent mattis condimentum
+        </a>
+       </li>
+      </ul>
+     </li>
+    </ul>
+   </div>
+   <!-- end sidebar -->
+   <!-- start content -->
+   <div id="content">
+    <div class="flash">{{=response.flash or ''}}</div>
+    {{include}}
+   </div>
+   <!-- end content -->
+   <br style="clear: both;" />
+  </div>
+  <!-- end page -->
+  <!-- start footer -->
+  <div id="footer">
+   <p class="links">
+    <a href="#" class="rss" title="Subscribe to entries web feed">
+     Entries (
+     <abbr title="Really Simple Syndication">
+      RSS
+     </abbr>
+     )
+    </a>
+    &nbsp;&nbsp;&nbsp;
+    <a href="#" class="rss" title="Subscribe to comments web feed">
+     Entries (
+     <abbr title="Really Simple Syndication">
+      RSS
+     </abbr>
+     )
+    </a>
+    &nbsp;&nbsp;&nbsp;
+    <a href="http://validator.w3.org/check/referer" class="xhtml" title="This page validates as XHTML">
+     Valid
+     <abbr title="eXtensible HyperText Markup Language">
+      XHTML
+     </abbr>
+    </a>
+    &nbsp;&nbsp;&nbsp;
+    <a href="http://jigsaw.w3.org/css-validator/check/referer" class="css" title="This page validates as CSS">
+     Valid
+     <abbr title="Cascading Style Sheets">
+      CSS
+     </abbr>
+    </a>
+   </p>
+   <p class="legal">
+    &copy;2007 Sampling. All Rights Reserved.
+		&nbsp;&nbsp;&bull;&nbsp;&nbsp;
+		Design by
+    <a href="http://www.freecsstemplates.org/">
+     Free CSS Templates
+    </a>
+    &nbsp;&nbsp;&bull;&nbsp;&nbsp;
+		Icons by
+    <a href="http://famfamfam.com/">
+     FAMFAMFAM
+    </a>
+    .
+   </p>
+  </div>
+  <!-- end footer -->
+ </body>
+</html>

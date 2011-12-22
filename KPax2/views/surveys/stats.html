@@ -1,0 +1,17 @@
+{{extend 'layout.html'}}
+
+<h1>Statistics for Survey: {{=survey.title}}</h1>
+{{if len(rows)==0:}}
+<p>No data available!</p>
+{{pass}}
+
+{{for i,row in enumerate(rows):}}
+    <h2 onclick="collapse('{{=row[0]}}');">{{=i+1}}) {{=row[1]}}</h2>
+     <table id="{{=row[0]}}">
+     {{for c,v in row[2]:}}
+       {{if row[3][:8]=='multiple': c=chr(ord('A')+c)}}
+       <tr><td>Answer {{=c}})</td><td><b>{{=v}} person{{if v>1:}}s{{pass}}</b></td><td><div style="background-color: yellow; height: 20px; width: {{=400.0*v/n}}px;"></div></td></tr>
+     {{pass}}
+     </table>
+{{pass}}
+{{pass}}

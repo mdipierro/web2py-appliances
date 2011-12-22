@@ -1,0 +1,13 @@
+{{extend 'layout.html'}}
+<h2>Contacts at {{=company.name}}</h2>
+<table>
+  {{for contact in contacts:}}
+  <tr>
+    <td>{{=A(contact.name,_href=URL('contact_logs',args=contact.id))}}</td>
+    <td>{{=A('edit',_href=URL('contact_edit',args=contact.id))}}</td>
+  </tr>
+  {{pass}}
+  <tr>
+    <td>{{=A('add contact',_href=URL('contact_create',args=company.id))}}</td>
+  </tr>
+</table>

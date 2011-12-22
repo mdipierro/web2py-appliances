@@ -1,0 +1,19 @@
+{{extend 'layout.html'}}
+
+<h1>Change access on {{=request.args[0]}}#{{=request.args[1]}}</h1>
+
+<img src="{{=URL(r=request,c='static',f='access/access.png')}}" align="right"/>
+
+<form method="post">
+<table method="post">
+<input type="hidden" name="forward" value="{{=request.vars.forward}}"/>
+{{for a in accesses:}}
+<tr><td>{{=a.group_name}} ({{=a.membership_type}})</td><td>
+ {{for t in access_types:}}
+   <input type="radio" name="g{{=a.group_id}}" value="{{=t}}" {{if a.access_type==t:}}checked{{pass}}/>{{=t}}
+  {{pass}}
+</td></tr>
+{{pass}}
+</table>
+<input type="submit" value="submit changes"/>
+</form>

@@ -1,0 +1,45 @@
+{{extend 'layout.html'}}
+{{include 'td_product.html'}}
+
+<SCRIPT language="JavaScript">
+<!--
+function process(form_name) {
+i=new Image()
+i.src="/{{=request.application}}/default/empty_chart"; 
+form_name.submit();
+}
+//-->
+</SCRIPT>
+
+<h1 class="post">Checkout shopping chart</h1>
+
+{{if not products:}}
+<h2><center>No products in your shopping chart</center></h2>
+{{else:}}
+<p><center><table width="80%">
+{{for id,product in products.items(): show(product)}}
+</table></center></p><br/><br/>
+
+<center>
+<h2>Balance: ${{="%.2f"%float(session.balance)}}</h2>
+<form name="google_form" action="https://checkout.google.com/cws/v2/Merchant/{{=merchant_id}}/checkoutForm" id="BB_BuyButtonForm" method="post" name="BB_BuyButtonForm">
+{{k=1}}
+{{for id,product in products.items():}}
+    <input name="item_name_{{=k}}" type="hidden" value="{{=product.name}}"/>
+    <input name="item_description_{{=k}}" type="hidden" value="{{=product.short_description}}"/>
+    <input name="item_quantity_{{=k}}" type="hidden" value="{{=session.chart[str(id)]}}"/>
+    <input name="item_price_{{=k}}" type="hidden" value="{{=product.price}}"/>
+    <input name="item_weight_{{=k}}" unit="LB" type="hidden" value="{{=product.weight_in_pounds}}"/>
+    <input name="item_currency_{{=k}}" type="hidden" value="USD"/>
+{{k+=1}}
+{{pass}}
+
+    <input name="_charset_" type="hidden" value="utf-8"/>
+
+    <!-- fill in taxes and shipping options -->
+
+    <input alt="" src="https://checkout.google.com/buttons/buy.gif?merchant_id={{=merchant_id}}&amp;w=117&amp;h=48&amp;style=white&amp;variant=text&amp;loc=en_US" type="image"  onclick="process(google_form);return false;"/>
+</form></center>
+
+{{pass}}
+

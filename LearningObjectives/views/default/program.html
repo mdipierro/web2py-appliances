@@ -1,0 +1,81 @@
+{{extend 'layout.html'}}
+
+<h1>{{=program.name}}</h1>
+
+<h2>Learning Objectives</h2>
+
+[{{=A('new',_href=URL(args=request.args(0)))}}]<br/><br/>
+
+<i>Suggested terms:
+judge
+asses
+evaluate
+conclude
+measure
+decide
+choose
+rate
+select
+estimate
+validate
+consider
+appraise
+value
+criticize
+grade
+rank
+recommend
+revise
+score
+test
+</i>
+
+
+{{=form}}
+<script>
+jQuery('textarea').css('width','600px');
+</script>
+
+<br/>
+<br/>
+<br/>
+
+<h2>Existing objectives</h2>
+
+<br/>
+{{for r in rows:}}
+<h3>Goal</h3>
+{{=MARKMIN(r.body)}}
+<h4>What</h4>
+<ul class="what">
+{{for item in r.f_what or []:}}
+<li>{{=item}}</li>
+{{pass}}
+</ul>
+<h4>How</h4>
+<ul class="what">
+{{for item in r.f_how or []:}}
+<li>{{=item}}</li>
+{{pass}}
+</ul>
+<h4>When</h4>
+<ul class="what">
+{{for item in r.f_when or []:}}
+<li>{{=item}}</li>
+{{pass}}
+</ul>
+<h4>Who</h4>
+<ul class="what">
+{{for item in r.f_who or []:}}
+<li>{{=item}}</li>
+{{pass}}
+</ul>
+<h4>Examples</h4>
+<ul class="examples">
+{{for item in r.examples or []:}}
+<li>{{=item}}</li>
+{{pass}}
+</ul>
+[{{=A('edit',_href=URL(args=(request.args(0),r.id)))}}]
+<hr/>
+{{pass}}

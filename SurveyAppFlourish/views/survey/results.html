@@ -1,0 +1,23 @@
+{{extend 'layout.html'}}
+{{
+def barchart(data,width=400,height=15,scale=None,
+                 label_width=50,values_width=50):
+        if not data: return 'No data'
+        if not scale: scale=max([m for n,c,m in data])
+        if not scale: return None
+        return TABLE(_class='barchart',
+               *[TR(TD(n,_width=label_width,_style="text-align: right"),
+               TABLE(TR(TD(_width=int(m*width/scale),_height=height,
+               _style='background-color:'+c))),TD(m,_width=values_width),
+               _style="vertical-alignment: middle") for n,c,m in data])
+}}
+
+<h1>Stats</h1>
+
+<p>{{=len(sas)}} visitors have completed the survey: 
+{{for k,item in enumerate(sas):}}{{=A(k+1,_href=URL('answer',args=[request.args[0],item.id]))}} {{pass}}
+</p>
+{{for row in rows:}}
+<h2>{{=row[0].title}}</h2>
+{{=barchart(row[1])}}
+{{pass}}

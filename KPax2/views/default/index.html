@@ -1,0 +1,23 @@
+<html>
+  <head>
+    <title>KPAX2 - Another web2py CMS</title>
+    <style type="text/css">
+       body { background: url("{{=URL(r=request,c='static',f='stone.jpg')}}");
+              font-family: Comic Sans MS, helvetica;
+              font-size: 18px; 
+              color: #333; }
+       a { text-decoration: none; color: #333;}
+       img { border:0;}
+    </style>
+  </head>
+  <body>
+    <div style="height:50px"></div>
+    <center>
+    <a href="{{=URL(r=request,c='default',f='user/login')}}">
+    <img src="{{=URL(r=request,c='static',f='kpax.jpg')}}"/>
+    </a><br/>
+    The Human CMS from Another Planet -
+    Powered by <a href="http://www.web2py.com">web2py</a>
+    </center>
+  </body>
+</html>

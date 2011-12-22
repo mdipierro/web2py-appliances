@@ -1,0 +1,140 @@
+{{extend 'zlayout.html'}}
+
+<h2 class="fancy">{{=XML(T('pyForum - Update Forum'))}}</h2>
+
+{{include 'zadmin/admin_options.html'}}
+
+{{if view_info['errors']:}}
+    <p class="error">{{=XML(T('There were some errors while processing your request, please correct the following'))}}:</p>
+    <ul>
+        {{for err in view_info['errors']:}}
+            <li class="error">{{=err}}</li>
+        {{pass}}
+    </ul>
+{{pass}}
+
+<form id="update_forum_form" method="post" action="">
+<fieldset id="update_forum_form_fields">
+    <input type="hidden" id="form_submitted" name="form_submitted" value="1" />
+    <input type="hidden" id="form_id" name="forum_id" value="{{=this_forum.id}}" />
+    <table cellspacing="2" cellpadding="2">
+    <tbody>
+        <tr>
+            <td><span class="warning">[*]</span> {{=XML(T('Forum Name'))}}:</td>
+            <td><input type="text" id="title" name="title" value="{{=request.vars.get('title', this_forum.forum_title)}}" style="width:400px;" /></td>
+        </tr>
+        <tr>
+            <td><span class="warning">[*]</span> {{=XML(T('Forum Description'))}}:</td>
+            <td><textarea id="description" name="description" rows="0" cols="0" style="width:400px;height:150px;">{{=request.vars.get('description', this_forum.forum_desc)}}</textarea></td>
+        </tr>
+        <tr>
+            <td>{{=XML(T('Select Category'))}}:</td>
+            <td>
+                <select id="new_cat_id" name="new_cat_id">
+                    {{for sel_cat in cats:}}
+                        <option value="{{=sel_cat.id}}"
+                                    {{if this_forum.cat_id==sel_cat.id:}}
+                                        selected="selected"{{pass}}>
+                                        {{=sel_cat.cat_name}}</option>
+                    {{pass}}
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td><label for="moderated_forum">{{=XML(T('Forum is Moderated'))}}</label></td>
+            <td><input type="checkbox" id="moderated_forum" name="moderated_forum"
+                {{if request.vars.get('moderated_forum', this_forum.moderation_flag):}}checked="checked"{{pass}} /></td>
+        </tr>
+        <tr>
+            <td><label for="anonymous_view">{{=XML(T('Anonymous users can browse forum'))}}</label></td>
+            <td><input type="checkbox" id="anonymous_view" name="anonymous_view" 
+                {{if request.vars.get('anonymous_view', this_forum.anonymous_viewaccess):}}checked="checked"{{pass}} /></td>
+        </tr>
+        <tr><td colspan="2"><div class="hr"><hr /></div></td></tr>
+        <tr>
+            <td style="vertical-align:middle;">{{=XML(T('Allow Topic Creation'))}}:</td>
+            <td style="vertical-align:top;">
+                <table cellspacing="2" cellpadding="2" cellspacing="2">
+                <tbody>
+                    <tr>
+                        <td><input type="checkbox" id="zadmin_add" name="zadmin_add"
+                            {{if request.vars.get('zadmin_add', 'zAdministrator' in this_forum.add_postings_access_roles.split(',')):}}checked="checked"{{pass}} /></td>
+                        <td><label for="zadmin_add">{{=XML(T('Forum Administrators ONLY'))}} [1]</label></td>
+                    </tr>
+                    <!-- !MODIFIED CODE
+                             The following code is commented out as it is bugged in the original system. 
+                    <tr>
+                        <td><input type="checkbox" id="zmember_add" name="zmember_add"
+                            {{if request.vars.get('zmember_add', 'zMember' in this_forum.add_postings_access_roles.split(',')):}}checked="checked"{{pass}} /></td>
+                        <td><label for="zmember_add">{{=XML(T('Regular Members'))}}</label></td>
+                    </tr>
+                    <tr>
+                        <td><input type="checkbox" id="zmember_vip_add" name="zmember_vip_add"
+                            {{if request.vars.get('zmember_vip_add', 'zMemberVIP' in this_forum.add_postings_access_roles.split(',')):}}checked="checked"{{pass}} /></td>
+                        <td><label for="zmember_vip_add">{{=XML(T('VIP Members'))}}</label></td>
+                    </tr> -->
+                    <tr>
+                        <td><input type="checkbox" id="auth_add" name="auth_add"
+                            {{if request.vars.get('auth_add', (this_forum.add_postings_access_roles.find('zMember') >= 0 or this_forum.add_postings_access_roles.find('Authenticated') >= 0)):}}checked="checked"{{pass}} /></td>
+                        <td><label for="auth_add">{{=XML(T('Any Logged-In User'))}} [2]</label></td>
+                    </tr> 
+                    <tr>
+                        <td><input type="checkbox" id="public_add" name="public_add"
+                            {{if request.vars.get('public_add', len(this_forum.add_postings_access_roles) == 0):}}checked="checked"{{pass}} /></td>
+                        <td><label for="public_add">{{=XML(T('Anyone'))}} [3]</label></td>
+                    </tr>
+                </tbody>
+                </table>
+            </td>
+        </tr>
+        <tr><td colspan="2"><div class="hr"><hr /></div></td></tr>
+        <tr>
+            <td style="vertical-align:middle;">{{=XML(T('Allow Topic Replies'))}}:</td>
+            <td style="vertical-align:top;">
+                <table cellspacing="2" cellpadding="2" cellspacing="2">
+                <tbody>
+                    <tr>
+                        <td><input type="checkbox" id="zadmin_reply" name="zadmin_reply"
+                            {{if request.vars.get('zadmin_reply', 'zAdministrator' in this_forum.reply_postings_access_roles.split(',')):}}checked="checked"{{pass}} /></td>
+                        <td><label for="zadmin_reply">{{=XML(T('Forum Administrators ONLY'))}} [1]</label></td>
+                    </tr>
+                    <tr>
+                        <td><input type="checkbox" id="zmember_reply" name="zmember_reply"
+                            {{if request.vars.get('zmember_reply', 'zMember' in this_forum.reply_postings_access_roles.split(',')):}}checked="checked"{{pass}} /></td>
+                        <td><label for="zmember_reply">{{=XML(T('Regular Members'))}}</label></td>
+                    </tr>
+                    <tr>
+                        <td><input type="checkbox" id="zmember_vip_reply" name="zmember_vip_reply"
+                            {{if request.vars.get('zmember_vip_reply', 'zMemberVIP' in this_forum.reply_postings_access_roles.split(',')):}}checked="checked"{{pass}} /></td>
+                        <td><label for="zmember_vip_reply">{{=XML(T('VIP Members'))}}</label></td>
+                    </tr>
+                    <tr>
+                        <td><input type="checkbox" id="auth_reply" name="auth_reply"
+                            {{if request.vars.get('auth_reply', (this_forum.reply_postings_access_roles.find('zMember') >= 0 or this_forum.reply_postings_access_roles.find('Authenticated') >= 0)):}}checked="checked"{{pass}} /></td>
+                        <td><label for="auth_reply">{{=XML(T('Any Logged-In User'))}} [2]</label></td>
+                    </tr>
+                    <tr>
+                        <td><input type="checkbox" id="public_reply" name="public_reply"
+                            {{if request.vars.get('public_reply', len(this_forum.reply_postings_access_roles) == 0):}}checked="checked"{{pass}} /></td>
+                        <td><label for="public_reply">{{=XML(T('Anyone'))}} [3]</label></td>
+                    </tr>
+                </tbody>
+                </table>
+            </td>
+        </tr>
+        <tr><td colspan="2"><div class="hr"><hr /></div></td></tr>
+        <tr>
+            <td><label for="latest_topics">{{=XML(T('Allow topics in "Latest Topics" section'))}}</label></td>
+            <td><input type="checkbox" id="latest_topics" name="latest_topics"
+                {{if request.vars.get('latest_topics', this_forum.include_latest_topics):}}checked="checked"{{pass}} /></td>
+        </tr>
+    </tbody>
+    </table>
+    <div class="top-separator">
+        <input type="submit" id="submit" name="update_forum" value="{{=XML(T('Update'))}}" />
+        <input type="submit" id="cancel" name="cancel" value="{{=XML(T('Cancel'))}}" />
+    </div>
+    <div class="note small">{{=XML(T('Note'))}}: {{=XML(T('If no roles are selected (except zAdministrator) then the category will become public (can be changerd later)'))}}.</div>
+    <div class="note small">{{=XML(T('Note'))}}: {{=XML(T('Values in [x] denotes precedence'))}}.</div>
+</fieldset>
+</form>

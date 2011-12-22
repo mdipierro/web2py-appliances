@@ -1,0 +1,65 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+                      "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>{{=title}}</title>
+<style type="text/css"><!--
+body { background:#000 repeat-y center top; text-align:center; margin:0px; padding:2px 0px; font:11px Verdana, Helvetica;}
+ul { list-style:none; margin:0px; padding:0px;}
+h1, h2, h3 {    padding:0px;    margin:0px;}
+.clear { clear:both; line-height:0em; }
+#main { margin:0px auto; text-align:left; width:770px; color:#fff;}
+#navigation_content { background:#fff url(/{{=request.application}}/static/navigation_bg.gif) repeat-x; padding:3px 2px 2px 4px; margin:0px;}
+#navigation_content a {color:#000;text-decoration:none;text-align:center;display:block; float:left;width:24px;height:20px!important;height:24px;margin-right:0px;padding-top:5px;}
+#navigation_content a:hover, #navigation_content a:active { background:black; color:#fff; display:block; float:left; width:24px; height:20px!important; height:24px;}
+#gallery { background:#000; border:1px solid #2d2d2d;}
+#gallery h1 { font-size:26px; display:block;    height:auto !important; height:50px; color:#fff; display:block; font-family:Verdana, Helvetica;padding:10px 8px;}
+#image {    text-align:center; background:url(/{{=request.application}}/static/images_background.jpg) repeat-x top; padding-top:15px; min-height:400px;}
+#image img { padding:0px; border:1px solid #fff;}
+#imageholder { background:#000 50% 50% no-repeat;}
+//--></style>
+
+<script type="text/javascript"><!--
+var last_image={{=len(images)}};
+var curr_image=0;
+function show_image(id,v){
+  var id2=id+'_title'
+  curr_image=v;
+  {{for i in range(len(images)):}}
+  if(v=={{=i}}) {
+  document.getElementById(id2).innerHTML='{{images[i].title}}'
+  document.getElementById(id).src='{{=URL('download',args=[images[i].file])}}'
+  }
+  {{pass}}
+}
+function next_image(id) {
+  curr_image=(curr_image+1);
+  if(curr_image==last_image) curr_image=0;
+  show_image(id,curr_image);
+}
+//--></script>
+</head>
+<body>
+<div id="main">
+  <div id="gallery">
+    <h1>{{=title}}</h1>
+    <div id="navigation_content">
+      <ul class="navigation">
+        <li><a onclick="show_image('the_image',0);">&laquo;</a></li>
+        {{for i in range(len(images)):}}
+        <li><a onclick="show_image('the_image',{{=i}});">{{=i+1}}</a></li>
+        {{pass}}
+        <li><a onclick="show_image('the_image',last_image-1);">&raquo;</a></li>
+      </ul>
+    <div class="clear">&nbsp;</div>
+    </div>
+    <div id="image">
+      <h2 id="the_image_title">{{=images[0].title}}</h2><br/>
+      <img src="{{=URL('download',args=[images[0].file])}}"
+        id="the_image" name="image" width="700" height="489"
+        onclick="next_image('the_image');"/>
+    </div>
+  </div>
+</div>
+</body>
+</html>

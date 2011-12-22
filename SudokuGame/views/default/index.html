@@ -1,0 +1,37 @@
+{{extend 'layout.html'}}{{import os}}
+<style>
+TABLE.sudoku TR TD{ padding: 0; border:0 ; }
+INPUT { color: gray; font-weight: bold; }
+</style>
+<script>
+function update(i,j) {
+   var e=jQuery('#x'+i+''+j);
+   if (e.val()=='') e.css('color','gray'); else {
+     var v = parseInt(e.val());
+     if(v>0 && v<10) { e.css('color','blue'); } else { e.css('color','red'); return; }
+   }
+   ajax('{{=URL('callback')}}',['x'+i+''+j],':eval');
+}
+</script>
+
+<center>
+<br/><br/>
+<p>Type in the numbers and, if they are consistent, it will be solved automatically in place. Based on <a href="http://www.cs.mcgill.ca/~aassaf9/python/algorithm_x.html">this algorithm</a></p>
+<table class="sudoku">
+  {{for i in range(9):}}
+  <tr>
+    {{for j in range(9):}}
+    <td><input class="integer" name="x{{=i}}{{=j}}" id="x{{=i}}{{=j}}" onblur="update({{=i}},{{=j}})" onkeyup="update({{=i}},{{=j}})" size="1"/></td>
+    {{pass}}
+    </tr>
+  {{pass}}
+</table>
+<button onclick="ajax('{{=URL('callback',vars=dict(reset=1))}}',[],':eval')">clear</button>
+
+
+<br/><br/>
+<h2>Download this web appliance</h2>
+
+<a href="{{=URL(r=request,c='static',f='web2py.app.sudoku.w2p')}}">Download here</a>
+(requires <a href="http://web2py.com">web2py</a>)
+</center>

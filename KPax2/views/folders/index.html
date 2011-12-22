@@ -1,0 +1,39 @@
+{{extend 'layout.html'}}
+
+<h1>Folders</h1>
+
+<img src="{{=URL(r=request,c='static',f='folder/folder.png')}}" align="right"/>
+
+<table><tr><td class="gsearch">{{include 'gsearch.html'}}</td><td>
+
+<h2>You have access to the following folders</h2>
+[<a href="{{=URL('create_folder')}}">create folder</a>]
+<br/>
+{{if len(myfolders):}}
+<table>
+{{for a in myfolders:}}
+<tr class="myitems" id="{{=a.folder.name}}"><td>[F{{=a.folder.id}}]</td><td><a onclick="$('#box{{=a.folder.id}}').slideToggle();">{{=a.folder.name}}</a> owned by <a href="mailto:{{=a.auth_user.email}}">{{=a.auth_user.first_name}} {{=a.auth_user.last_name}}</a>
+<div id="box{{=a.folder.id}}" class="box">
+{{=XML(a.folder.description)}}
+<span style="visibility:hidden">{{=''.join(['[G%s]'%i for i in a.accessible_to])}}</span>
+<br/>
+[<a href="{{=URL('show_page',args=[a.folder.id])}}">open</a>]
+{{if a.folder.is_open:}}
+[<a href="{{=URL('public',args=[a.folder.id])}}">web page view</a>]
+{{pass}}
+{{if a.folder.owner==auth.user_id:}}
+[<a href="{{=URL(r=request,c='access',f='change',args=['folder',a.folder.id],vars=dict(forward=URL(r=request)))}}">change permissions</a>]
+[<a href="{{=URL('edit_folder',args=[a.folder.id])}}">edit info</a>]
+[<a href="{{=URL('edit_page',args=[a.folder.id])}}">edit pages</a>]
+{{pass}}
+</div>
+<script><!--
+$('#box{{=a.folder.id}}').hide();
+//--></script>
+</td></tr>
+{{pass}}
+</table>
+{{else:}}
+no folders yet
+{{pass}}
+</td></tr></table>

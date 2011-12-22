@@ -1,0 +1,19 @@
+/****** SELECT BOX HACKS *********/
+.selectbox{
+	margin:0 0 -2px 0 !important;
+}
+.selectboxoptions_radio li, .selectboxoptions_check li{
+	margin-top:0px !important;
+}
+
+.selectboxoptions_check li,
+.selectboxoptions_radio li,
+.selectboxoptions_radio li.selected,
+.selectboxoptions_radio li.selected_disable,
+.selectboxoptions_check li.selected,
+.selectboxoptions_check li.selected_disable{
+	background-position: 5px 8px !important;
+}
+.selectboxfoot div{
+	padding:1px 22px 1px 0px !important;
+}

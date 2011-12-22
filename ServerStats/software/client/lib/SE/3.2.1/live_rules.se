@@ -1,0 +1,945 @@
+
+/*
+
+      Copyright (c) 1995-1998, by Sun Microsystems, Inc.
+        All Rights Reserved
+
+Written by Adrian Cockcroft, based on Appendix A of "Sun Performance
+and Tuning", ISBN 0-13-095249-4
+
+Version 1.8	31 May 99	Added disk errors to disk rule
+Version 1.7	19 Mar 99	Make GLOBAL_disk a dynamic array
+Version 1.6	17 Feb 99	Fixes to partition exclusion code
+Version 1.5	25 Jul 98	Updated mutex rule data feed
+Version 1.4	26 Dec 97	Fixes for disk_count in 2.6 disk rule
+Version 1.3	 7 Nov 97	Fixed handspread for ram rule
+Version 1.2	23 Oct 97	Fixes for 2.6 partitions
+Version 1.1	 8 Oct 96	Use explanations from pure rules
+Version 1.00	 9 Aug 96	Extra info for new net_rule
+Version 0.20	23 Aug 95	Added data rates to lr_rpcclient
+Version 0.19	22 Aug 95	Added hme ethernet device
+Version 0.18	 8 Aug 95	Fixed init of kmem
+Version 0.17	29 May 95	Added extra data to kmem rule
+Version 0.16	16 May 95	Added print_lr_disk
+Version 0.15	14 May 95	Bugfix dnlc and inode rules
+Version 0.14	10 May 95	Fixed kmem to work on 2.3
+Version 0.13	 7 May 95	Added new live rules, and thresh code
+Version 0.12	24 Apr 95	Modified to remove live thresholds
+Version 0.11	14 Apr 95	Added vmglobal_total function
+Version 0.10	18 Mar 95	Added debug defines, fixed bugs
+Version 0.9	16 Mar 95	Made local into GLOBAL storage - Adrian
+Version 0.8	24 Feb 95	Fixes by Rich to recognise smc ethernets
+Version 0.7	25 Jan 95	Made source classes global, added mutex
+Version 0.6	18 Dec 94	Added swapspace and ram rules
+Version 0.5     13 Dec 94       Added rpcc rule, fixed some bugs
+Version 0.4     15 Nov 94       Created, matching pure_rules version
+
+Live Rules use the rules found in pure_rules.se but contain the code
+to obtain the measurements and feed them into the rules using current
+data measured on the live system. Each live rule is a class, with
+output variables, threshold variables, private variables and code. No inputs
+should be required apart from changes to any special live-only thresholds.
+
+Thresholds for the underlying pure rules are read from environment
+variables when the pure rule is reset. Resetting the live rule causes
+the pure rule to be reset. Use putenv if you must tweak them...
+
+Each rule has a state and an action, the state is the evaluated condition,
+the action is a short text string that may indicate what should be done.
+A longer string called an explanation may span multiple lines.
+
+Each live rule class type is lr_xxxx_t with active prefix lr_xxxx$
+for the code section. Each matches a pr_xxxx_t pure rule.
+
+The live_rules read directly from the vmstat_class and iostat_class etc,
+to make the raw data available to programs that read a rule, and want to
+show the same underlying numbers, the classes and temporary copies are
+defined globally. Rich doesn't like globals, so I put GLOBAL in the
+name of each variable to make it obvious that they are special.
+Each GLOBAL active class has a GLOBAL_update_time so that multiple rules
+that use it know that they don't have to reevaluate the data more often
+than the specified UPDATE_RATE
+
+Include file dependencies - these should be included by the application:
+#include <stdio.se>
+#include <stdlib.se>
+#include <unistd.se>
+#include <string.se>
+#include <kstat.se>
+#include <sysdepend.se>
+#include <netif.se>
+#include <dirent.se>
+#include <inst_to_path.se>
+#include <p_iostat_class.se>
+#include <p_netstat_class.se>
+#include <p_vmstat_class.se>
+#include <pure_rules.se>
+*/
+
+/* common string to use */
+string uninit = "Rule initializing...";
+
+/* global iostat class and recorded data available for use */
+p_iostat p_iostat$GLOBAL_disk;
+ks_sderr kstat$sderr;
+ulong	 GLOBAL_disk_update_time;	/* when last evaluated */
+#define  DISK_UPDATE_RATE	2	/* 2 seconds between samples */
+/* GLOBAL_disk[0].disk_count indicates how many entries are valid */
+p_iostat GLOBAL_disk[];	/* on 2.6 partition data is excluded */
+ks_sderr GLOBAL_sderr[];/* MAX_DISK is bigger than needed */
+int	 GLOBAL_sderr_state[];  /* rule status */
+int	 GLOBAL_sderr_errcnt[]; /* total error count */
+int      GLOBAL_disk_size = MAX_DISK;
+int	 GLOBAL_sderr_size = MAX_DISK;
+int	 GLOBAL_disk_count;
+
+/* global net class and recorded data available for use */
+p_netstat p_netstat$GLOBAL_net;
+ulong    GLOBAL_net_update_time;        /* when last evaluated */
+#define  NET_UPDATE_RATE	2	/* 2 seconds between samples */
+/* GLOBAL_net[0].net_count indicates how many entries are valid */
+p_netstat GLOBAL_net[MAX_IF];
+
+/* global client rpc class available for use */
+ks_rpc_client kstat$GLOBAL_ks_rpc_client;
+ulong     GLOBAL_ks_rpc_client_update_time;
+#define  KS_RPC_CLIENT_UPDATE_RATE 1	/* 1 second between samples */
+ks_rpc_client GLOBAL_last_rpcc;
+ks_rpc_client GLOBAL_this_rpcc;
+
+/* global per-cpu vmstat class and recorded data */
+p_vmstat p_vmstat$GLOBAL_pvm;
+ulong    GLOBAL_pvm_update_time;        /* when last evaluated */
+#define  PVM_UPDATE_RATE	2	/* 2 seconds between samples */
+int	 GLOBAL_pvm_ncpus;		/* number of valid entries */
+p_vmstat GLOBAL_pvm[MAX_CPU];
+
+/* function to total up global per_cpu data into vmstat form */
+p_vmstat vmglobal_total() {
+  int i;
+  double total;
+  p_vmstat pvm;
+
+  pvm = GLOBAL_pvm[0];
+  for(i=1; i < GLOBAL_pvm_ncpus; i++) {
+    pvm.pages_in += GLOBAL_pvm[i].pages_in;
+    pvm.pages_out += GLOBAL_pvm[i].pages_out;
+    pvm.interrupts += GLOBAL_pvm[i].interrupts;
+    pvm.system_calls += GLOBAL_pvm[i].system_calls;
+    pvm.context_switches += GLOBAL_pvm[i].context_switches;
+    pvm.user_time += GLOBAL_pvm[i].user_time;
+    pvm.system_time += GLOBAL_pvm[i].system_time;
+    pvm.wait_time += GLOBAL_pvm[i].wait_time;
+    pvm.idle_time += GLOBAL_pvm[i].idle_time;
+    pvm.scan += GLOBAL_pvm[i].scan;
+    pvm.smtx += GLOBAL_pvm[i].smtx;
+  }
+  if (GLOBAL_pvm_ncpus > 1) {
+    /* average over cpu count */
+    pvm.user_time        /= GLOBAL_pvm_ncpus;
+    pvm.system_time      /= GLOBAL_pvm_ncpus;
+    pvm.wait_time        /= GLOBAL_pvm_ncpus;
+    pvm.idle_time        /= GLOBAL_pvm_ncpus;
+#if MINOR_VERSION < 70
+    /* reduce wait time - only one CPU can ever be waiting - others are idle */
+    /* system counts all idle CPUs as waiting if any I/O is outstanding */
+    pvm.wait_time        /= GLOBAL_pvm_ncpus;
+#endif
+  }
+  total = pvm.user_time + pvm.system_time + pvm.wait_time + pvm.idle_time;
+  if (total < 100.0) {
+    pvm.idle_time += (100.0 - total);
+  }
+
+  /* Make sure that total is never greater than 100%.  Better less
+   * than 100% than greater than 100%.  */
+  total = pvm.user_time + pvm.system_time + pvm.wait_time + pvm.idle_time;
+  if (total > 100.0) {
+    pvm.idle_time -= (total - 100.0);
+  }
+  return pvm;
+}
+
+/* Disk I/O live rule - special extra disk type thresholds */
+rule_thresh_dbl slowfd_thr = {"LR_DISK_SLOW_FD", 10.0, "x", 4, 1,
+	"derate slow floppys" };
+rule_thresh_dbl slowcd_thr = {"LR_DISK_SLOW_CD", 10.0, "x", 4, 1,
+	"derate slow CDs" };
+rule_thresh_str fdname = {"LR_DISK_FLOPPY", "fd0", "", 6, "default floppy device" };
+rule_thresh_str cdname = {"LR_DISK_CDROM", "c0t6d0", "", 6, "default CD device" };
+rule_thresh_str diskerr_thr = {"LR_DISK_ERROR", "new", "", 4, "report on <any> since boot, or only <new> errors" };
+
+print_lr_disk(ulong f) {
+   print_thresh_dbl(f, slowfd_thr);
+   print_thresh_dbl(f, slowcd_thr);
+   print_thresh_str(f, fdname);
+   print_thresh_str(f, cdname);
+   print_thresh_str(f, diskerr_thr);
+}
+
+class lr_disk_t {
+  /* output variables */
+  int state;
+  string action;
+  string explanation;
+  int disk_count;	/* inicates how many entries are valid */
+  int states[MAX_DISK]; /* per-disk state */
+  string names[MAX_DISK]; /* dynamic arrays don't work here */
+  /* threshold variables */
+  string floppy;	/* don't include floppy and CD in normal rules */
+  string cdrom;
+  string diskerr_mode;
+  double slowfd; /* assume floppy and CD are slower */
+  double slowcd;
+
+  lr_disk$() {
+    pr_disk_t disk_rule;
+    ulong lasttime = 0;             /* previous timestamp */
+    ulong timestamp = 0;
+    int i;
+    int update;
+    int d;
+    int e;
+    int n;
+    string dname;
+    char dummy[32];
+
+#ifdef LIVE_DISK_DEBUG
+    debug_on();
+#endif
+    if (timestamp == 0) {       /* reset defaults */
+      p_iostat$GLOBAL_disk.number$ = 0;
+      GLOBAL_disk = new p_iostat[GLOBAL_disk_size];
+      GLOBAL_disk_count = 0;
+      for(i=0; ; i++) {
+        if (GLOBAL_disk_count == GLOBAL_disk_size) {
+          GLOBAL_disk_size += 4;
+          GLOBAL_disk = renew GLOBAL_disk[GLOBAL_disk_size];
+        }
+        p_iostat$GLOBAL_disk.number$ = i;
+        GLOBAL_disk[GLOBAL_disk_count] = p_iostat$GLOBAL_disk;
+        if (GLOBAL_disk[GLOBAL_disk_count].number$ == -1) {
+	  break;	/* we have run out of io kstats */
+        }
+        // ignore slices
+        if (strchr(GLOBAL_disk[GLOBAL_disk_count].info.long_name, 's') == nil) {
+          GLOBAL_disk_count++;
+        }
+      }
+      disk_count = GLOBAL_disk_count;
+      disk_rule.ndisks = GLOBAL_disk_count;
+      disk_rule.timestamp = 0;	/* reset pure rule */
+      refresh$(disk_rule);
+      state = ST_WHITE;
+      for(i=0; i < MAX_DISK; i++){
+        states[i] = ST_WHITE;
+      }
+      action = uninit;
+      explanation = uninit;
+      slowfd = get_thresh_dbl(slowfd_thr);
+      slowcd = get_thresh_dbl(slowcd_thr);
+      floppy = get_thresh_str(fdname);
+      cdrom = get_thresh_str(cdname);
+
+      diskerr_mode = get_thresh_str(diskerr_thr);
+      GLOBAL_sderr = new ks_sderr[GLOBAL_sderr_size];
+      GLOBAL_sderr_state = new int[GLOBAL_sderr_size];
+      GLOBAL_sderr_errcnt = new int[GLOBAL_sderr_size];
+
+      timestamp = time(0);
+      lasttime = timestamp;
+      GLOBAL_disk_update_time = timestamp;
+#ifdef LIVE_DISK_DEBUG
+      debug_off();
+#endif
+      return;
+    }
+    timestamp = time(0);
+    if (timestamp == lasttime) {
+      return;	/* wait at least a second between rule invocations */
+    }
+
+    if (timestamp - GLOBAL_disk_update_time >= DISK_UPDATE_RATE) {
+      update = 1;
+    } else {
+      update = 0;
+    }
+    /* use the disk rule  - if there are no disks then one appears then */
+    /* this code never sees it until the live_rule is reinitialized */
+    /* its unlikely to happen so I kept the code simpler - Adrian */
+    for(i=0; ; i++) {
+      /* some other rule may have already updated the GLOBAL recently */
+      /* so don't reread the data, but do use the existing data */
+      if (update == 1) {
+        if (i == GLOBAL_disk_size) {
+          GLOBAL_disk_size += 4;
+          GLOBAL_disk = renew GLOBAL_disk[GLOBAL_disk_size];
+        }
+        p_iostat$GLOBAL_disk.number$ = GLOBAL_disk[i].number$;
+        GLOBAL_disk[i] = p_iostat$GLOBAL_disk;
+        GLOBAL_disk_update_time = timestamp;
+        if (GLOBAL_disk[i].number$ == -1) {
+          GLOBAL_disk_count = i;
+          break;
+        } else {
+          // skip it if it's a slice
+          if (strchr(GLOBAL_disk[i].info.long_name,'s') != nil) {
+	    continue;	/* go find another I/O record */
+          }
+        }
+      }
+
+      /* check that there is good data */
+      if (GLOBAL_disk[i].number$ == -1) {
+        GLOBAL_disk_count = i;
+        break;
+      }
+      names[i] = GLOBAL_disk[i].info.long_name;
+      disk_rule.busy[i] = GLOBAL_disk[i].run_percent;
+
+/* note previous error and throughput, if no activity since error then
+stay black, count new errors black, media/soft errors red */
+
+      if (names[i] == cdrom) {
+        disk_rule.svc_t[i] = GLOBAL_disk[i].service / slowcd;
+      } else {
+        if (names[i] == floppy) {
+          disk_rule.svc_t[i] = GLOBAL_disk[i].service / slowfd;
+        } else {
+          disk_rule.svc_t[i] = GLOBAL_disk[i].service;
+        }
+      }
+    }
+    disk_rule.timestamp = timestamp;
+    refresh$(disk_rule);
+    state = disk_rule.state;
+    action = disk_rule.action;
+    explanation = disk_rule.explanation;
+    disk_count = GLOBAL_disk_count;
+    for(i=0; i < disk_count; i++){
+      states[i] = disk_rule.states[i];
+    }
+#ifdef LIVE_PRINTOUT
+    printf("\nDisk       %-5s %s\n", state_string(state), action);
+    printf("disk      r/s  w/s   Kr/s   Kw/s wait actv  svc_t  %%w  %%b State\n");
+    for(i=0; i < GLOBAL_disk[0].disk_count; i++) {
+      printf("%-8.8s %4.1f %4.1f %6.1f %6.1f %4.1f %4.1f %6.1f %3.0f %3.0f %-5s\n",
+        names[i],
+        GLOBAL_disk[i].reads, GLOBAL_disk[i].writes,
+        GLOBAL_disk[i].kreads, GLOBAL_disk[i].kwrites,
+        GLOBAL_disk[i].avg_wait, GLOBAL_disk[i].avg_run,
+        GLOBAL_disk[i].service,
+        GLOBAL_disk[i].wait_percent, GLOBAL_disk[i].run_percent,
+	state_string(states[i]));
+    }
+#endif
+
+    /* now check for disk errors */
+    /* if we find one then figure out which disk it is later */
+    for(i=0; ; i++) {	/* grab new data */
+      if (i == GLOBAL_sderr_size) {
+        GLOBAL_sderr_size += 4;       /* grow the arrays a bit  */
+        GLOBAL_sderr = renew GLOBAL_sderr[GLOBAL_sderr_size];
+	GLOBAL_sderr_state = renew GLOBAL_sderr_state[GLOBAL_sderr_size];
+	GLOBAL_sderr_errcnt = renew GLOBAL_sderr_errcnt[GLOBAL_sderr_size];
+      }
+      kstat$sderr.number$ = i;
+      GLOBAL_sderr[i] = kstat$sderr;
+      if (GLOBAL_sderr[i].number$ == -1) {
+        break;
+      }
+      e = GLOBAL_sderr[i].Soft_Errors + GLOBAL_sderr[i].Hard_Errors
+	+ GLOBAL_sderr[i].Transport_Errors;
+      if (e > (diskerr_mode == "new" ? GLOBAL_sderr_errcnt[i]: 0)) {
+	/* this disk needs a closer look */
+	GLOBAL_sderr_errcnt[i] = e;
+	/* work out which disk it really is */
+	d = strcspn(GLOBAL_sderr[i].name$, ",");
+	dname = strncpy(dummy, GLOBAL_sderr[i].name$, d); /* chop ,err */
+#ifdef FIND_INST
+	d = find_inst(dname); /* fast but buggy */
+#else
+	for(n=0; n < GLOBAL_disk_count; n++) {
+	  if (dname == GLOBAL_disk[n].info.short_name) {
+	    d = n;
+	    break;
+	  }
+	}
+#endif
+	if (d != -1) {
+		dname = GLOBAL_disk[d].info.long_name;
+	}
+	/* process rules in order of increasing error level */
+	if (GLOBAL_sderr[i].No_Device > 0) {
+	  explanation = sprintf("%s\n\t%s\t%s\t%3d %s", explanation,
+		dname, GLOBAL_sderr[i].Product,
+		GLOBAL_sderr[i].No_Device, "green Warning - No Device - cprboot spinup?");
+	  GLOBAL_sderr_state[i] = ST_GREEN;
+	}
+        if (GLOBAL_sderr[i].Recoverable > 0) {
+          explanation = sprintf("%s\n\t%s\t%s\t%3d %s", explanation,
+                dname, GLOBAL_sderr[i].Product,
+		GLOBAL_sderr[i].Recoverable, "amber - Recoverable Error Retry");
+          GLOBAL_sderr_state[i] = ST_AMBER;
+        }
+        if (GLOBAL_sderr[i].Predictive_Failure_Analysis > 0) {
+          explanation = sprintf("%s\n\t%s\t%s\t%3d %s", explanation,
+                dname, GLOBAL_sderr[i].Product,
+		GLOBAL_sderr[i].Predictive_Failure_Analysis, "red   - Predictive_Failure_Analysis - Replace Disk");
+          GLOBAL_sderr_state[i] = ST_RED;
+        }
+	// it's not uncommon for the CD to not be ready... richp
+        if (GLOBAL_sderr[i].Device_Not_Ready > 0 && dname != cdrom) {
+          explanation = sprintf("%s\n\t%s\t%s\t%3d %s", explanation,
+                dname, GLOBAL_sderr[i].Product,
+		GLOBAL_sderr[i].Device_Not_Ready, "black - Device Not Ready - disk offline?");
+          GLOBAL_sderr_state[i] = ST_BLACK;
+        }
+        if (GLOBAL_sderr[i].Media_Error > 0) {
+          explanation = sprintf("%s\n\t%s\t%s\t%3d %s", explanation,
+                dname, GLOBAL_sderr[i].Product,
+		GLOBAL_sderr[i].Media_Error, "black - Media Error - replace disk");
+          GLOBAL_sderr_state[i] = ST_BLACK;
+        }
+        if (GLOBAL_sderr[i].Illegal_Request > 0) {
+          explanation = sprintf("%s\n\t%s\t%s\t%3d %s", explanation,
+                dname, GLOBAL_sderr[i].Product,
+		GLOBAL_sderr[i].Illegal_Request, "black - Illegal Request Error");
+          GLOBAL_sderr_state[i] = ST_BLACK;
+        }
+	/* update disk state */
+	if (d != -1) {
+	  if (states[d] < GLOBAL_sderr_state[i]) {
+	    states[d] = GLOBAL_sderr_state[i];
+	    if (state < states[d]) {
+	      state = states[d];
+	    }
+	    switch(GLOBAL_sderr_state[i]) {
+	      case ST_AMBER:
+		action = "Disk error warning - check disk";
+		break;
+	      case ST_RED:
+		action = "Disk error problem - replace disk";
+		break;
+	      case ST_BLACK:
+		action = "Disk failed - check cables or replace disk";
+	    }
+	  }
+	}
+      }
+    }
+
+    lasttime = timestamp;
+#ifdef LIVE_DISK_DEBUG
+    debug_off();
+#endif
+  }
+};
+
+/* Network live rule - picks out ethernets only for now */
+/* reports anything else as green */
+
+class lr_net_t {
+  /* output variables */
+  int state;
+  string action;
+  string explanation;
+  int net_count;
+  int states[MAX_IF]; /* per-net state */
+  string names[MAX_IF];
+  int speeds[MAX_IF]; /* network speed in bytes/sec */
+  /* make snapshot of pure rule available */
+  pr_enet_t net_rule;
+
+  lr_net$() {
+    ulong lasttime = 0;             /* previous timestamp */
+    ulong timestamp = 0;
+    int i;
+    int update;
+    char ifname[12];
+    int enet_count;
+    int net[MAX_IF];	/* index between ethernets and all nets */
+
+    if (timestamp == 0) {       /* reset defaults */
+      GLOBAL_net[0] = p_netstat$GLOBAL_net;
+      net_count = GLOBAL_net[0].net_count;
+      for(i=1; i < GLOBAL_net[0].net_count; i++){
+        p_netstat$GLOBAL_net.number$ = i;
+        GLOBAL_net[i] = p_netstat$GLOBAL_net;
+      }
+      net_rule.enet_count = net_count;
+      net_rule.timestamp = 0;	/* force pure rule to reset */
+      refresh$(net_rule);
+      state = ST_GREEN;	/* non-ethernets should default to ST_GREEN */
+      for(i=0; i < MAX_IF; i++){
+        states[i] = ST_GREEN;
+      }
+      action = uninit;
+      explanation = action;
+      timestamp = time(0);
+      lasttime = timestamp;
+      GLOBAL_net_update_time = timestamp;
+      return;
+    }
+    timestamp = time(0);
+    if (timestamp == lasttime) {
+      return;   /* wait at least a second between rule invocations */
+    }
+
+    if (timestamp - GLOBAL_net_update_time >= NET_UPDATE_RATE) {
+      update = 1;
+    } else {
+      update = 0;
+    }
+    enet_count = 0;
+    for(i=0; i < GLOBAL_net[0].net_count; i++) {
+      if (update == 1) {
+        p_netstat$GLOBAL_net.number$ = i;
+        GLOBAL_net[i] = p_netstat$GLOBAL_net;
+        GLOBAL_net_update_time = timestamp;
+      }
+      names[i] = GLOBAL_net[i].name$;
+      ifname = GLOBAL_net[i].name$;
+      speeds[i] = GLOBAL_net[i].ifspeed;
+      if (GLOBAL_net[i].iftype == NT_CSMACD) {
+        net_rule.opackets[enet_count] = GLOBAL_net[i].opackets;
+        net_rule.collpercent[enet_count] = GLOBAL_net[i].collpercent;
+        net_rule.errors[i] = GLOBAL_net[i].ierrors + GLOBAL_net[i].oerrors;
+        net_rule.defer[i] = GLOBAL_net[i].defer;
+        net_rule.nocanput[i] = GLOBAL_net[i].nocanput;
+        net[enet_count++] = i;
+      } else {
+	/* XXX: add code to check FDDI, ATM, token ring here */
+        states[i] = ST_GREEN;	/* not an ethernet so assume its OK */
+      }
+    }
+    net_rule.enet_count = enet_count;
+    net_rule.timestamp = timestamp;
+    refresh$(net_rule);
+    state = net_rule.state;
+    action = net_rule.action;
+    explanation = net_rule.explanation;
+    net_count = GLOBAL_net[0].net_count;
+    for(i=0; i < enet_count; i++){
+      states[net[i]] = net_rule.states[i];
+    }
+    lasttime = timestamp;
+  }
+};
+
+
+/* NFS client RPC live rule */
+
+class lr_rpcclient_t {
+  /* output variables */
+  int state;
+  string action;
+  string explanation;
+  double calls;		/* per second rates for info */
+  double timeouts;
+  double badxids;
+
+  lr_rpcclient$()
+  {
+    ulong lasttime = 0;             /* previous timestamp */
+    ulong timestamp = 0;
+    pr_rpcclient_t rpcc_rule;
+    double ttmp;
+    double dtmp;
+
+    if (timestamp == 0) {
+      rpcc_rule.timestamp = 0;
+      refresh$(rpcc_rule);
+      GLOBAL_last_rpcc = kstat$GLOBAL_ks_rpc_client;
+      action = uninit;
+      explanation = action;
+      state = ST_WHITE;
+      calls = 0.0;
+      timeouts = 0.0;
+      badxids = 0.0;
+      timestamp = time(0);
+      lasttime = timestamp;
+      GLOBAL_ks_rpc_client_update_time = lasttime;
+      return;
+    }
+    timestamp = time(0);
+    if (timestamp == lasttime) {
+      return;   /* wait at least a second between rule invocations */
+    }
+    /* use the rule */
+    if (timestamp - GLOBAL_ks_rpc_client_update_time >=
+		KS_RPC_CLIENT_UPDATE_RATE) {
+      GLOBAL_this_rpcc = kstat$GLOBAL_ks_rpc_client;
+      GLOBAL_ks_rpc_client_update_time = lasttime;
+    }
+    ttmp = timestamp - lasttime;       /* double temporaries */
+    dtmp = GLOBAL_this_rpcc.calls - GLOBAL_last_rpcc.calls;
+    calls = dtmp / ttmp;
+    rpcc_rule.calls = calls;
+    dtmp = GLOBAL_this_rpcc.timeouts - GLOBAL_last_rpcc.timeouts;
+    timeouts = dtmp / ttmp;
+    rpcc_rule.timeouts = timeouts;
+    dtmp = GLOBAL_this_rpcc.badxids - GLOBAL_last_rpcc.badxids;
+    badxids = dtmp / ttmp;
+    rpcc_rule.badxids = badxids;
+    rpcc_rule.timestamp = timestamp;
+    refresh$(rpcc_rule);
+    state = rpcc_rule.state;
+    action = rpcc_rule.action;
+    explanation = rpcc_rule.explanation;
+    lasttime = timestamp;
+    GLOBAL_last_rpcc = GLOBAL_this_rpcc;
+  }
+};
+
+
+/* shared function to update the global pvm data */
+pvm_update(ulong timestamp) {
+  int i;
+
+  if (timestamp == 0 || timestamp - GLOBAL_pvm_update_time >= PVM_UPDATE_RATE) {
+    GLOBAL_pvm_ncpus = sysconf(_SC_NPROCESSORS_ONLN);
+    for(i = 0; i < GLOBAL_pvm_ncpus; i++) {
+      p_vmstat$GLOBAL_pvm.number$ = i;
+      GLOBAL_pvm[i] = p_vmstat$GLOBAL_pvm;
+    }
+    GLOBAL_pvm_update_time = timestamp;
+  }
+}
+
+/* Virtual Memory - Swap Space - live rule */
+class lr_swapspace_t {
+  /* output variables */
+  int state;
+  string action;
+  string explanation;
+
+  lr_swapspace$()
+  {
+    ulong lasttime = 0;             /* previous timestamp */
+    ulong timestamp = 0;
+    pr_swapspace_t swap_rule;
+
+    if (timestamp == 0) {
+      timestamp = time(0);
+      pvm_update(timestamp);
+      swap_rule.swap_avail = GLOBAL_pvm[0].swap_avail;
+      swap_rule.timestamp = timestamp;
+      refresh$(swap_rule);
+      action = uninit;
+      explanation = uninit;
+      state = ST_WHITE;
+      lasttime = timestamp;
+      return;
+    }
+    timestamp = time(0);
+    if (timestamp == lasttime) {
+      return;   /* wait at least a second between rule invocations */
+    }
+    /* use the rule */
+    pvm_update(timestamp);
+    swap_rule.swap_avail = GLOBAL_pvm[0].swap_avail;
+    swap_rule.timestamp = timestamp;
+    refresh$(swap_rule);
+    state = swap_rule.state;
+    action = swap_rule.action;
+    explanation = swap_rule.explanation;
+    lasttime = timestamp;
+  }
+};
+
+
+/* Real Memory - RAM page residency - live rule using improved pure_rule */
+class lr_ram_t {
+  /* output variables */
+  int state;
+  string action;
+  string explanation;
+  int restime;
+  ulong handspreadpages;	/* estimated on startup, can be set if known */
+
+  lr_ram$()
+  {
+    ulong lasttime = 0;             /* previous timestamp */
+    ulong timestamp = 0;
+    pr_ram_t ram_rule;
+    ulong pages;
+
+    if (timestamp == 0) {
+      ram_rule.timestamp = 0;
+      /* default max handspread is 64MB worth of pages */
+      handspreadpages = 64 * 1048576 / sysconf(_SC_PAGESIZE);
+      pages = sysconf(_SC_PHYS_PAGES);
+      if (handspreadpages > pages / 4) {
+        handspreadpages = pages / 4;
+      }
+      ram_rule.handspread = handspreadpages;
+      refresh$(ram_rule);
+      action = uninit;
+      explanation = action;
+      state = ST_WHITE;
+      timestamp = time(0);
+      lasttime = timestamp;
+      pvm_update(timestamp);
+      return;
+    }
+    timestamp = time(0);
+    if (timestamp == lasttime) {
+      return;   /* wait at least a second between rule invocations */
+    }
+    /* use the rule */
+    pvm_update(timestamp);
+    ram_rule.handspread = handspreadpages; /* allow it to be changed */
+    ram_rule.scan = GLOBAL_pvm[0].scan;
+    ram_rule.timestamp = timestamp;
+    refresh$(ram_rule);
+    state = ram_rule.state;
+    action = ram_rule.action;
+    explanation = ram_rule.explanation;
+    restime = ram_rule.restime;
+    lasttime = timestamp;
+  }
+};
+
+/* Kernel memory live rule */
+class lr_kmem_t {
+  /* output variables */
+  int state;
+  string action;
+  string explanation;
+  ulong kmem_errors;
+
+  lr_kmem$()
+  {
+    ulong lasttime = 0;             /* previous timestamp */
+    ulong timestamp = 0;
+    ks_kmem_misc kmem;
+    pr_kmem_t kmem_rule;
+    int pagesize = sysconf(_SC_PAGESIZE) / 1024;
+
+    if (timestamp == 0) {
+      kmem_rule.timestamp = 0;
+      kmem_rule.freemem = 0;
+      refresh$(kmem);
+      kmem_errors = kmem.huge_alloc_fail + kmem.perm_alloc_fail;
+      kmem_rule.kmem_errs = kmem_errors;
+      refresh$(kmem_rule);
+      action = uninit;
+      explanation = action;
+      state = ST_WHITE;
+      timestamp = time(0);
+      lasttime = timestamp;
+      pvm_update(timestamp);
+      return;
+    }
+    timestamp = time(0);
+    if (timestamp == lasttime) {
+      return;   /* wait at least a second between rule invocations */
+    }
+    /* use the rule */
+    pvm_update(timestamp);
+    refresh$(kmem);
+    kmem_errors = kmem.huge_alloc_fail + kmem.perm_alloc_fail;
+    kmem_rule.kmem_errs = kmem_errors;
+    kmem_rule.freemem = GLOBAL_pvm[0].freemem / pagesize;
+    kmem_rule.timestamp = timestamp;
+    refresh$(kmem_rule);
+    state = kmem_rule.state;
+    action = kmem_rule.action;
+    explanation = kmem_rule.explanation;
+    lasttime = timestamp;
+  }
+};
+
+
+/* CPU power - live rule */
+class lr_cpu_t {
+  /* output variables */
+  int state;
+  string action;
+  string explanation;
+
+  lr_cpu$()
+  {
+    ulong lasttime = 0;             /* previous timestamp */
+    ulong timestamp = 0;
+    pr_cpu_t cpu_rule;
+
+    if (timestamp == 0) {
+      timestamp = time(0);
+      pvm_update(timestamp);
+      cpu_rule.ncpus = GLOBAL_pvm_ncpus;
+      cpu_rule.timestamp = 0;
+      refresh$(cpu_rule);
+      action = uninit;
+      explanation = action;
+      state = ST_WHITE;
+      lasttime = timestamp;
+      return;
+    }
+    timestamp = time(0);
+    if (timestamp == lasttime) {
+      return;   /* wait at least a second between rule invocations */
+    }
+    /* use the rule */
+    pvm_update(timestamp);
+    cpu_rule.runque = GLOBAL_pvm[0].runque;
+    cpu_rule.timestamp = timestamp;
+    refresh$(cpu_rule);
+    state = cpu_rule.state;
+    action = cpu_rule.action;
+    explanation = cpu_rule.explanation;
+    lasttime = timestamp;
+  }
+};
+
+/* mutex contention - live rule */
+class lr_mutex_t {
+  /* output variables */
+  int state;
+  int states[MAX_CPU];
+  string action;
+  string explanation;
+  int smtx;  /* back compatible sum of p_vmstat.smtx for all cpus */
+  int ncpus;     /* i.e. sysconf(_SC_NPROCESSORS_ONLN) */
+
+  lr_mutex$()
+  {
+    ulong lasttime = 0;             /* previous timestamp */
+    ulong timestamp = 0;
+    pr_mutex_t mutex_rule;
+    int i;
+
+    if (timestamp == 0) {
+      timestamp = time(0);
+      pvm_update(timestamp);
+      ncpus = GLOBAL_pvm_ncpus;
+      mutex_rule.ncpus = ncpus;
+      mutex_rule.timestamp = 0;
+      refresh$(mutex_rule);
+      smtx = 0;
+      action = uninit;
+      explanation = action;
+      state = ST_WHITE;
+      lasttime = timestamp;
+      return;
+    }
+    timestamp = time(0);
+    if (timestamp == lasttime) {
+      return;   /* wait at least a second between rule invocations */
+    }
+    pvm_update(timestamp);
+    /* use the rule */
+    ncpus = GLOBAL_pvm_ncpus;
+    smtx = 0;
+    for(i = 0; i < ncpus; i++) {
+      smtx += GLOBAL_pvm[i].smtx;
+      mutex_rule.smtx[i] = GLOBAL_pvm[i].smtx;
+      mutex_rule.usr[i] = GLOBAL_pvm[i].user_time;
+      mutex_rule.sys[i] = GLOBAL_pvm[i].system_time;
+    }
+    mutex_rule.ncpus = ncpus;
+    mutex_rule.timestamp = timestamp;
+    refresh$(mutex_rule);
+    state = mutex_rule.state;
+    for(i = 0; i < ncpus; i++) {
+      states[i] = mutex_rule.states[i];
+    }
+    action = mutex_rule.action;
+    explanation = mutex_rule.explanation;
+    lasttime = timestamp;
+  }
+};
+
+/*  Directory Name Lookup Cache hit rate */
+class lr_dnlc_t {
+  /* output variables */
+  int state;
+  string action;
+  string explanation;
+  double refrate;               /* current DNLC reference rate */
+  double hitrate;               /* current DNLC hit rate */
+
+  lr_dnlc$()
+  {
+    ulong lasttime = 0;             /* previous timestamp */
+    ulong timestamp = 0;
+    pr_dnlc_t dnlc_rule;
+    ks_ncstats ncstats;
+    int i;
+
+    if (timestamp == 0) {
+      timestamp = time(0);
+      dnlc_rule.timestamp = 0;
+      refresh$(dnlc_rule);
+      action = uninit;
+      explanation = action;
+      state = ST_WHITE;
+      lasttime = timestamp;
+      return;
+    }
+    timestamp = time(0);
+    if (timestamp == lasttime) {
+      return;   /* wait at least a second between rule invocations */
+    }
+    /* use the rule */
+    refresh$(ncstats);
+    dnlc_rule.hits = ncstats.hits;
+    dnlc_rule.misses = ncstats.misses;
+    dnlc_rule.timestamp = timestamp;
+    refresh$(dnlc_rule);
+    state = dnlc_rule.state;
+    action = dnlc_rule.action;
+    explanation = dnlc_rule.explanation;
+    refrate = dnlc_rule.refrate;
+    hitrate = dnlc_rule.hitrate;
+    lasttime = timestamp;
+  }
+};
+
+/*  Inode Cache hit rate */
+class lr_inode_t {
+  /* output variables */
+  int state;
+  string action;
+  string explanation;
+  double refrate;               /* current inode cache reference rate */
+  double hitrate;               /* current inode cache hit rate */
+  double iprate;		/* current inode w/page steal rate */
+
+  lr_inode$()
+  {
+    ulong lasttime = 0;             /* previous timestamp */
+    ulong timestamp = 0;
+    pr_inode_t inode_rule;
+    ks_inode_cache inostats;
+    int i;
+
+    if (timestamp == 0) {
+      timestamp = time(0);
+      inode_rule.timestamp = 0;
+      refresh$(inode_rule);
+      action = uninit;
+      explanation = action;
+      state = ST_WHITE;
+      lasttime = timestamp;
+      return;
+    }
+    timestamp = time(0);
+    if (timestamp == lasttime) {
+      return;   /* wait at least a second between rule invocations */
+    }
+    /* use the rule */
+    refresh$(inostats);
+    inode_rule.hits = inostats.hits;
+    inode_rule.misses = inostats.misses;
+    inode_rule.timestamp = timestamp;
+    refresh$(inode_rule);
+    state = inode_rule.state;
+    action = inode_rule.action;
+    explanation = inode_rule.explanation;
+    refrate = inode_rule.refrate;
+    hitrate = inode_rule.hitrate;
+    lasttime = timestamp;
+  }
+};

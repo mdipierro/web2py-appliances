@@ -1,0 +1,11 @@
+{{extend 'layout.html'}}
+[ {{=A('Home', _href=URL('index'))}} ]
+[ {{=A('Admin', _href=URL('admin'))}} ]
+[ {{=A('List All Clients', _href=URL('allclients'))}} ]
+
+<h2>Add Client</h2>
+{{=formclient}}
+
+<h1>Search Clients</h1>
+{{=searchform}}<br />{{=target_div}}
+<br  />

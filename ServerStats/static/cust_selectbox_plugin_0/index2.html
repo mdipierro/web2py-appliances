@@ -1,0 +1,167 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+	<head>
+
+		<title>SelectBox Plug-in</title>
+		<meta http-equiv="pragma" content="no-cache">
+		<meta http-equiv="cache-control" content="no-cache">
+		<meta http-equiv="expires" content="0">
+		<meta http-equiv="keywords" content="keyword1,keyword2,keyword3">
+		<meta http-equiv="description" content="This is my page">
+
+		<script type="text/javascript" src='http://jqueryjs.googlecode.com/files/jquery-1.3.2.min.js'></script>
+		<!-- custom select plugin js -->
+		<script type="text/javascript" src='http://jquerycustomselectbox.googlecode.com/svn/trunk/WebRoot/cust_selectbox_plugin/cust_select_plugin.js'></script>
+		<link rel="stylesheet" type="text/css" href="style.css">
+		<link rel="stylesheet" type="text/css" href="../generalstyle.css">
+		<!--[if lt IE 8]>
+			<link rel="stylesheet" type="text/css" href="ie_style.css" >
+		<![endif]-->
+	</head>
+
+<script>
+	$(document).ready( function() {
+		$("select").custSelectBox();
+		
+	});
+</script>
+	<body>
+	<div id="page_wrapper">
+	<h2>jQuery Custom Select Box
+	<div>By: Darren Mason</div>
+	<div><a href="http://plugins.jquery.com/project/customselectbox">Download Here</a></div>
+	<div><a href="../">Other Plugins</a></div>
+
+	</h2>
+	<label class="lbl_header">OPTIONS</label>
+	<div class="code">
+	<code>
+	<pre class="html">
+@param isscrolling:	false,		//scrolls long lists
+@param scrollminitems:	15,		//items before scrolling
+@param scrollheight:	150,		//height of scrolling window
+@param preopenselect:	true,		//opens prechecked select boxes
+@param hoverstyle:	"hover",	//css hover style name
+@param openspeed:	"normal",	//open speed "slow","normal","fast" or numbers 1000
+@param alldisabled:	false,		//disables all the selectbox
+@param selectwidth:	"auto",		//set width of selectbox
+@param wrappername:	".select_wrap"	//class name of the wrapper tag
+	</pre>
+	</code>
+	</div>
+
+	
+	<label class="lbl_header">HTML EXAMPLE</label>
+	<pre class="html">
+&#60;div class="select_wrap"&#62;
+	&#60;select name="sample_select" id="select_wrap1"&#62;
+		&#60;option&#62;Sample Selection&#60;/option&#62;
+		&#60;option value="1"&#62;Option One&#60;/option&#62;
+
+		&#60;option value="2"&#62;Option Two&#60;/option&#62;
+		&#60;option value="3"&#62;Option Three&#60;/option&#62;
+		&#60;option value="4"&#62;Option Four&#60;/option&#62;
+	&#60;/select&#62;
+
+&#60;/div&#62;	
+	</pre>
+	
+	<label class="lbl_header">BASIC USAGE</label>
+	<div class="code">
+	<code>
+<pre>
+<span class="html">Applies to all boxes</span>
+$(".select_field").custSelectBox();
+<span class="html">
+&#60;div class="select_wrap"  class="select_field"&#62;
+
+	&#60;select name="sample_select"&#62;
+		&#60;option&#62;Sample Selection&#60;/option&#62;
+		&#60;option value="1"&#62;Option One&#60;/option&#62;
+		&#60;option value="2" selected="selected"&#62;Option Two&#60;/option&#62;
+
+		&#60;option value="3"&#62;Option Three&#60;/option&#62;
+		&#60;option value="4"&#62;Option Four&#60;/option&#62;
+	&#60;/select&#62;
+&#60;/div&#62;
+</span>	
+</pre>
+
+</code>
+</div>
+	<div class="select_wrap">
+	<select name="sample_select">
+		<option>Sample Selection Long Version</option>
+		<option value="1">Option One</option>
+		<option value="2" selected="selected">Option Two</option>
+		<option value="3">Option Three</option>
+
+		<option value="4">Option Four</option>
+	</select>
+	</div>
+<label class="lbl_header">MULTI SELECT VERSION</label>
+<div class="code">
+	<code>
+<pre>
+<span class="html">
+&#60;div class="select_wrap"  multiple="multiple"&#62;
+	&#60;select name="sample_select" class="select_field"&#62;
+
+		&#60;option&#62;Sample Selection&#60;/option&#62;
+		&#60;option value="1"&#62;Option One&#60;/option&#62;
+		&#60;option value="2" selected="selected"&#62;Option Two&#60;/option&#62;
+		&#60;option value="3"&#62;Option Three&#60;/option&#62;
+
+		&#60;option value="4"&#62;Option Four&#60;/option&#62;
+	&#60;/select&#62;
+&#60;/div&#62;
+</span>	
+</pre>
+</code>
+</div>
+	<div class="select_wrap">
+	<select name="sample_select"  class="select_field" multiple="multiple">
+
+		<option>Sample Selection</option>
+		<option value="1">Option One</option>
+		<option value="2" selected="selected">Option Two</option>
+		<option value="3">Option Three</option>
+		<option value="4">Option Four</option>
+	</select>
+
+	</div>
+<label class="lbl_header">DISABLED VERSION</label>
+<div class="code">
+	<code>
+<pre>
+<span class="html">
+&#60;div class="select_wrap" disabled="disabled"&#62;
+	&#60;select name="sample_select"  class="select_field"&#62;
+		&#60;option&#62;Sample Selection&#60;/option&#62;
+
+		&#60;option value="1"&#62;Option One&#60;/option&#62;
+		&#60;option value="2" selected="selected"&#62;Option Two&#60;/option&#62;
+		&#60;option value="3"&#62;Option Three&#60;/option&#62;
+		&#60;option value="4"&#62;Option Four&#60;/option&#62;
+
+	&#60;/select&#62;
+&#60;/div&#62;	
+</span>
+</pre>
+</code>
+</div>
+	<div class="select_wrap">
+	<select name="sample_select"  class="select_field" disabled="disabled">
+		<option>Sample Selection</option>
+		<option value="1">Option One</option>
+
+		<option value="2" selected="selected">Option Two</option>
+		<option value="3">Option Three</option>
+		<option value="4">Option Four</option>
+	</select>
+	</div>	
+	
+	</div>
+	</body>
+</html>
+

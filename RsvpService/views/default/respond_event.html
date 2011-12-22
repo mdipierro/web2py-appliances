@@ -1,0 +1,19 @@
+{{extend 'layout.html'}}
+
+<h1>{{=event.name}}</h1>
+<h2>From {{=event.start}} until {{=event.stop}}</h2>
+
+{{=MARKMIN(event.description)}}
+
+{{=form}}
+
+{{if rows:}}
+<h2>So far ...</h2>
+<ul>
+{{for row in rows:}}
+<li>{{=row.attendee.first_name}} {{row.attendee.last_name}} said "{{=row.attendance}}"
+{{if row.comment:}}and "{{=row.comment}}"{{pass}}
+</li>
+{{pass}}
+<ul>
+{{pass}}

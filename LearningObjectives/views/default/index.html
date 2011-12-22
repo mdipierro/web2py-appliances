@@ -1,0 +1,7 @@
+{{extend 'layout.html'}}
+
+<ul>
+  {{for p in programs:}}
+  <li>{{=A(p.name,_href=URL(request.application,'default','program',args=p.id))}}</li>
+  {{pass}}
+</ul>

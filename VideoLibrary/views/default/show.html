@@ -1,0 +1,45 @@
+{{extend 'layout.html'}}
+
+
+{{if not video.converted:}}
+
+		<!-- refresh the page after 10 seconds, this could be improve with ajax callback/polling -->
+		<META HTTP-EQUIV="refresh" CONTENT="10">
+
+{{pass}}
+
+
+<h1>Viewing a V!deo</h1>
+<h2>{{=video.title}}</h2>
+<p>
+{{=video.description}}<br/>
+Posted on: {{=video.date}}
+</p>
+
+
+{{if video.converted:}}
+
+		{{if video.conversion_error:}}
+
+				<p>There has been an error in processing your video...</p>
+
+		{{else:}}
+
+				{{include 'flowplayer.html'}}
+
+				<p>
+						<a class="flowplayer" href="{{=URL(r=request, c='appadmin',f='download',args=['db',video.converted_video])}}">
+								<img src="{{=URL(r=request,c='appadmin',f='download',args=['db',video.converted_image])}}" />
+						</a>
+				</p>
+
+		{{pass}}
+
+{{else:}}
+
+		<p>Please wait while your video is processed...</p>
+
+{{pass}}
+
+
+<br/>{{=A('Back to the V!deo Library',_href=URL('index'))}}

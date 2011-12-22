@@ -1,0 +1,18 @@
+{{extend 'layout.html'}}
+
+<h2>Tuoi messaggi</h2>
+
+<table width="100%">
+{{for item in items:}}
+<tr>
+<td width="50px">{{=item.xwhen}}</td>
+<td width="50px">{{=tr[item.category].capitalize()}}</td>
+<td>
+<a href="{{=URL('read',args=item.id)}}">{{=item.xwhat}} (#{{=item.id}})</a>
+[<a href="{{=URL('update',args=item.id)}}">modifica</a>]</td>
+<td>
+<img src="{{=URL('download',args=item.image)}}" height="75px"/>
+</td>
+</tr>
+{{pass}}
+</table>

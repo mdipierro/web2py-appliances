@@ -1,0 +1,2 @@
+def index():
+    return dict()

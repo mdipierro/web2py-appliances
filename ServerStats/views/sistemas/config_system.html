@@ -1,0 +1,36 @@
+{{extend 'layout.html'}}
+
+<h1>SYSTEMD Config</h1>
+
+<br><br>
+Systemd services:
+
+<br>
+<table border='0' width='100%'>
+<tr>
+<td><p><font size='2'>Service name: </font></p></td>
+<td><p><font size='2'>Service State: </font></p></td>
+<td><p><font size='2'>Action: </font></p></td>
+</tr>
+<tr>
+<td width='50%' bgcolor='#A6CAF0' class=titulo2azuloscuro>
+SystemD
+</td>
+<td width='30%' bgcolor='#A6CAF0' class=titulo2azuloscuro>
+<div id="target"> <blink>probing...</blink> </div>
+<script>ajax('check_services_systemd/orca',[],'target');</script>         
+</td>
+<td width='50%' bgcolor='#A6CAF0' class=titulo2azuloscuro>
+<a href="#nil" onclick="ajax('check_services_systemd/start',[],'target');">[Start]</a>
+<a href="#nil" onclick="ajax('check_services_systemd/stop',[],'target');">[Stop]</a>
+
+</td>
+</tr>
+</table>
+
+<br><br>
+To generate Orca Groups:
+<!--<a href="#nil" onclick="ajax('server_health_options',[],'target2');">Config Estado servidores</a>
+<div id="target2"> </div>
+-->
+<a href="server_health_options">[click]</a>

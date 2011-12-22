@@ -1,0 +1,81 @@
+#!/bin/sh
+#
+# Startup script for the procallator data measurement tool
+#
+# chkconfig: 2345 99 01
+#
+# description: Procallator is a data measurement tool that measures
+#              many system statistics.
+#
+# $HeadURL: file:///var/www/svn/repositories-public/orcaware-public/orca/trunk/data_gatherers/procallator/S99procallator.sh.in $
+# $LastChangedRevision: 478 $
+# $LastChangedDate: 2005-08-02 20:21:43 -0700 (Tue, 02 Aug 2005) $
+# $LastChangedBy: blair@orcaware.com $
+
+prefix=/opt/systemd
+exec_prefix=${prefix}
+bindir=${exec_prefix}/bin
+procallator=$bindir/procallator
+
+RETVAL=0
+
+# Source function library.
+. /etc/init.d/functions
+
+start()
+{
+  echo -n $"Starting procallator: "
+  if test -x $procallator; then
+    $procallator &
+    RETVAL=$?
+    PID=$!
+    if test $RETVAL -eq 0; then
+      success $"procallator startup"
+      touch /var/lock/subsys/procallator
+      echo $PID > /var/run/procallator.pid
+    else
+      failure $"procallator startup"
+    fi
+    echo
+  else
+    failure "$0: $procallator does not exist or is not executable."
+  fi
+}
+
+stop()
+{
+  echo -n $"Stopping procallator: "
+  killproc $procallator
+  RETVAL=$?
+  echo
+  if test $RETVAL -eq 0; then
+    rm -f /var/lock/subsys/procallator /var/run/procallator.pid
+  fi
+}
+
+# See how we were called.
+case "$1" in
+  start)
+    start
+    ;;
+
+  stop)
+    stop
+    ;;
+
+  status)
+    status procallator
+    ;;
+
+  restart)
+    stop
+    start
+    ;;
+
+  *)
+    echo "usage: $0 {start|stop|restart|status}"
+    exit 1
+    ;;
+esac
+
+exit $RETVAL

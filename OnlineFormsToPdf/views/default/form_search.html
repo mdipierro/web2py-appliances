@@ -1,0 +1,10 @@
+{{extend 'layout.html'}}
+
+<h1>search form</h1>
+{{=A(T('create new form'),_href=URL('form_create'))}}
+<br/>
+
+{{=form}}
+
+{{headers=dict((str(k),k.label) for k in db.t_form)}}
+{{=rows and SQLTABLE(rows,headers=headers) or TAG.blockquote(T('No Data'))}}

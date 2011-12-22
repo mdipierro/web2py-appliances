@@ -1,0 +1,13 @@
+{{extend 'layout.html'}}
+<h2>Companies</h2>
+<table>
+  {{for company in companies:}}
+  <tr>
+    <td>{{=A(company.name,_href=URL('contacts',args=company.id))}}</td>
+    <td>{{=A('edit',_href=URL('company_edit',args=company.id))}}</td>
+  </tr>
+  {{pass}}
+  <tr>
+    <td>{{=A('add company',_href=URL('company_create'))}}</td>
+  </tr>
+</table>

@@ -1,0 +1,18 @@
+{{extend 'layout.html'}}
+<h2>Comments for {{=A(news.title,_href=news.link)}}</h2>
+
+{{if auth.user:}}
+  <span id="votes">{{=news.votes}}</span>
+  <button id="plus" onclick="ajax('{{=URL('vote',args=(news.id,'plus'))}}',[],':eval')">plus</button>
+  <button id="minus" onclick="ajax('{{=URL('vote',args=(news.id,'minus'))}}',[],':eval')">minus</button>
+  {{=form}}
+{{pass}}
+<table>
+  {{for comment in comments:}}
+  <tr>
+    <td>{{=comment.posted_on}}</td>
+    <td>{{=comment.posted_by.first_name}} says </td>
+    <td>{{=MARKMIN(comment.body)}}</td>
+  </tr>
+  {{pass}}
+</table>

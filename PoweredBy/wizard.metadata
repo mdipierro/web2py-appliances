@@ -1,0 +1,147 @@
+(dp0
+S'table_site'
+p1
+(lp2
+S'name required notnull'
+p3
+aS'url required notnull'
+p4
+aS'description wiki'
+p5
+asS'tables'
+p6
+(lp7
+S'auth_user'
+p8
+aS'site'
+p9
+asS'name'
+p10
+S'poweredby'
+p11
+sS'page_site_read'
+p12
+S'# read site'
+p13
+sS'page_site_select'
+p14
+S'# select site'
+p15
+sS'page_index'
+p16
+S'# Welcome to my first app'
+p17
+sS'page_site_update'
+p18
+S'# update site'
+p19
+sS'page_error'
+p20
+S'# Error: the document does not exist'
+p21
+sS'params'
+p22
+(lp23
+(S'title'
+p24
+S'web2py'
+p25
+tp26
+a(S'subtitle'
+p27
+S'sites powered by web2py'
+p28
+tp29
+a(S'author'
+p30
+S'wizard'
+p31
+tp32
+a(S'author_email'
+p33
+S'mdipierro@cs.depaul.edu'
+p34
+tp35
+a(S'keywords'
+p36
+S'web2py, powered'
+p37
+tp38
+a(S'description'
+p39
+S'Sites powered by web2py'
+p40
+tp41
+a(S'database_uri'
+p42
+S'sqlite://storage.sqlite'
+p43
+tp44
+a(S'security_key'
+p45
+S'12b982eb-1188-4a42-aa3d-5178f56b6d17'
+p46
+tp47
+a(S'email_server'
+p48
+S'localhost'
+p49
+tp50
+a(S'email_sender'
+p51
+S'you@example.com'
+p52
+tp53
+a(S'email_login'
+p54
+S''
+p55
+tp56
+a(S'login_method'
+p57
+S'janrain'
+p58
+tp59
+a(S'login_config'
+p60
+S'web2py:613112282abcb65840d3ffe0a4e4c19bc89ebc78'
+p61
+tp62
+a(S'layout_theme'
+p63
+S'solutionblue'
+p64
+tp65
+asS'page_site_create'
+p66
+S'# create site'
+p67
+sS'table_auth_user'
+p68
+(lp69
+S'first_name'
+p70
+aS'last_name'
+p71
+aS'username'
+p72
+aS'email'
+p73
+aS'password'
+p74
+asS'page_site_search'
+p75
+S'# search site'
+p76
+sS'pages'
+p77
+(lp78
+S'index'
+p79
+aS'site_create'
+p80
+aS'site_read'
+p81
+aS'site_update'
+p82
+as.

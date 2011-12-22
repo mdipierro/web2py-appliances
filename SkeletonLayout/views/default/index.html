@@ -1,0 +1,58 @@
+{{left_sidebar_enabled=right_sidebar_enabled=False}}
+{{extend 'layout.html'}}
+
+{{if 'message' in globals():}}
+        <div class="one-third column">
+            <h3>About Skeleton?</h3>    
+            <p>Skeleton is a small collection of well-organized CSS & JS files that can help you rapidly develop sites that look beautiful at any size, be it a 17" laptop screen or an iPhone. It's based on a responsive grid, but also provides very basic CSS for typography, buttons, tabs, forms and media queries. Go ahead, resize this super basic page to see the grid in action.</p>
+        </div>
+        <div class="one-third column">
+            <h3>Three Core Principles</h3>
+            <!-- Standard <ul> with class of "tabs" -->
+<ul class="tabs">
+  <!-- Give href an ID value of corresponding "tabs-content" <li>'s -->
+  <li><a class="active" href="#simple">Simple</a></li>
+  <li><a href="#lightweight">Lightweight</a></li>
+  <li><a href="#mobileFriendly">Mobile</a></li>
+</ul>
+
+<!-- Standard <ul> with class of "tabs-content" -->
+<ul class="tabs-content">
+  <!-- Give ID that matches HREF of above anchors -->
+  <li class="active" id="simpleTab">The tabs are clean and simple unordered-list markup and basic CSS.</li>
+  <li id="lightweightTab">The tabs are cross-browser, but don't need a ton of hacky CSS or markup.</li>
+  <li id="mobileFriendlyTab">The tabs work like a charm even on mobile devices.</li>
+</ul>
+
+<!-- NOTE: jQuery that fires the change is in app.js -->
+
+
+            <p>Skeleton is built on three core principles:</p>
+            <ul class="square">
+                <li><strong>A Responsive Grid Down To Mobile</strong>: Elegant scaling from a browser to tablets to mobile.</li>
+                <li><strong>Fast to Start</strong>: It's a tool for rapid development with best practices</li>
+                <li><strong>Style Agnostic</strong>: It provides the most basic, beautiful styles, but is meant to be overwritten.</li>
+            </ul>
+        </div>
+        <div class="one-third column">
+            <h3>Docs &amp; Support</h3>
+            <!-- Just add .button to an anchor -->
+<a href="#" class="button">Click Me</a>
+
+<!-- Also works on plain button elements -->
+<button>Click Me</button>
+
+<!-- To take up full-width of a container? -->
+<a href="#" class="full-width button">Click Me</a>
+
+
+            <p>The easiest way to really get started with Skeleton is to check out the full docs and info at <a href="http://www.getskeleton.com">www.getskeleton.com.</a>. Skeleton is also open-source and has a <a href="https://github.com/dhgamache/skeleton">project on git</a>, so check that out if you want to report bugs or create a pull request. If you have any questions, thoughts, concerns or feedback, please don't hesitate to email me at <a href="mailto:hi@getskeleton.com">hi@getskeleton.com</a>.</p>
+        </div>
+
+
+{{else:}}
+{{=BEAUTIFY(response._vars)}}
+{{pass}}
+
+{{block left_sidebar}}New Left Sidebar Content{{end}}
+{{block right_sidebar}}New Right Sidebar Content{{end}}

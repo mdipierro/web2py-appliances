@@ -1,0 +1,94 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<!--
+Design by Free CSS Templates
+http://www.freecsstemplates.org
+Released for free under a Creative Commons Attribution 2.5 License
+-->
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>
+   {{=response.title or request.application}}
+  </title>
+  {{response.files.append(URL(request.application,'static','Spheroids/default.css'))}}
+{{include 'web2py_ajax.html'}}
+  <style>
+   .flash {
+    z-index: 2;
+    position: absolute;
+    top: 0px;
+    right: 20%;
+    width: 60%;
+    height: 50px;
+    opacity: 0.75;
+    margin: 0 auto;
+    text-align: center;
+    clear: both;
+    border: 1px #000000 solid;
+    color: black;
+    font-size: 12pt;
+    padding: 100px 10px 10px 10px;
+    cursor: pointer;
+    background: white;
+
+}
+div.error {
+    background-color: red;
+    color: white;
+    padding: 3px;
+}
+  </style>
+ </head>
+ <body>
+  <div id="header">
+   <div id="topmenu">
+    <ul>
+     <li>
+      <a href="http://web2py.com" id="topmenu1" accesskey="1" title="Homepage">
+       <span>
+        Home
+       </span>
+      </a>
+     </li>
+     <li>
+      <a href="http://web2py.com/book" id="topmenu2" accesskey="2" title="View Sitemap">
+       <span>
+        Sitemap
+       </span>
+      </a>
+     </li>
+     <li>
+      <a href="mailto:mdipierro@cs.depaul.edu" id="topmenu3" accesskey="3" title="Contact Us">
+       <span>
+        Contact
+       </span>
+      </a>
+     </li>
+    </ul>
+   </div>
+   <div id="logo">
+    <h1>
+     {{=response.title or request.application}}
+    </h1>
+    <h2>
+     {{=response.subtitle or '=response.subtitle'}}
+    </h2>
+   </div>
+  </div>
+  <div id="menu">
+   {{=MENU(response.menu)}}
+  </div>
+  <div id="content">
+   <div class="flash">{{=response.flash or ''}}</div>
+   {{include}}
+  </div>
+  <div id="footer">
+   <p id="legal">
+    Design by
+    <a href="http://www.freecsstemplates.org/">
+     Free CSS Templates
+    </a>
+    .
+   </p>
+  </div>
+ </body>
+</html>

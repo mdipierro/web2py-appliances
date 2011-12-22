@@ -1,0 +1,81 @@
+{{response.files.append(URL(r=request,c='static',f='jquery.dataTables.min.js'))}}
+{{response.files.append(URL(r=request,c='static',f='demo_table.css'))}}
+{{response.files.append(URL(r=request,c='static',f='style.css'))}}
+{{response.files.append(URL(r=request,c='static',f='tooltip/script.js'))}}
+{{response.files.append(URL(r=request,c='static',f='tooltip/style.css'))}}
+{{extend 'layout.html'}}
+
+<script>
+$(document).ready(function() { 
+   jQuery('.smarttable').dataTable(); 
+});
+
+</script>
+<h1>Servers and platforms Management <span class="hotspot" onmouseover="tooltip.show('After store a server you must start the process in the client. Check the user manual.');" onmouseout="tooltip.hide();"><img src="{{=URL('../static/tooltip.gif')}}" border="0"></span>
+</h1>
+
+
+<table style="text-align: left; width: 100%;" >
+ <tr>
+        <td style="text-align: left; top; width: 50%;">
+            <a href="#nil" onclick="jQuery('#form1').slideToggle();"><img border="0" align="botton" hspace="3" vspace="3" src="../static/icon.gif" alt=""></a>New Server
+           <a href="javascript: void(0)" onclick="window.open('test_server_view', 
+  'Listado de conexiones', 
+  'width=800, height=330, left=300,top=100,scrollbars=YES'); 
+   return false;"><img border="0" align="botton" hspace="3" vspace="3" src="../static/ssh_connect.png" alt=""></a>Test connectivity
+        </td>
+        <td style="text-align: left; top; width: 50%;">
+           <a href="#nil" onclick="jQuery('#form2').slideToggle();" ><img border="0" align="botton" hspace="3" vspace="3" src="../static/icon.gif" alt=""></a>New Platform  
+        </td>
+    </tr>
+
+    <tr style="vertical-align: top;">
+        <td style="text-align: left; top; width: 50%;">
+         
+                <div id="form1" style="display: {{=display_server}}">
+                    <br>
+                    <h2>New Server</h2> 
+                    {{=form1}}
+                </div>
+               
+          
+        </td>
+        <td style="text-align: left; top; width: 50%;">
+                <div id="form2" style="display: {{=display_platform}}">
+                   <br>
+                    <h2>New Platform</h2> 
+                    {{=form2}}
+                </div>
+         </td>
+    </tr>
+
+</table>
+
+
+<br><br>
+Platforms list: <a href="javascript: void(0)" onclick="window.open('list_platform', 
+  'Listado de Proveedores', 
+  'width=800, height=330, left=300,top=100'); 
+   return false;">[click]</a>
+<br><br>
+<table class="smarttable">
+<thead>
+  <tr>
+    <th>Name</th><th>IP</th><th>Platform</th><th>Action</th>
+  </tr>
+</thead>
+
+<tbody>
+{{for server in servers:}}
+<tr>
+<td> {{=server.name}}</a></td>
+<td> {{=server.ip}}</td>
+<td> {{=cache.ram('c%s'%server.id_platform, lambda:server.id_platform.name,100)}}</td>
+<td> {{=button('view','view_server',server.id)}}
+{{=button('edit','edit_server',server.id)}}
+</td>
+</tr>
+{{pass}}
+</tbody>
+
+</table>

@@ -1,0 +1,17 @@
+{{extend 'layout.html'}}
+<html>
+<head>
+</head>
+<body>
+
+<h1> Movies movie reviews </h1>
+
+{{for movie in movies:}}
+{{=movie.name}}</br>
+{{=plugin_rating('movie',movie.id)}}
+<hr/>
+{{pass}}
+
+</br>
+</body>
+</html>
