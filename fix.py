@@ -1,3 +1,7 @@
+"""
+I use this script to 'upgrade' and check some old app...
+"""
+
 import glob, os, sys, urllib, simplejson
 
 def cleanup():    
