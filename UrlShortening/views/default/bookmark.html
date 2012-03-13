@@ -1,0 +1,13 @@
+{{extend 'layout.html'}}
+
+<h3>Bookmark for {{=url}}</h3>
+
+{{def show(rating,k):}}<strong>{{=rating.get(k,[0])[0]}}%</strong>{{return}}
+<div>
+Trustworthiness: {{show(rating,'1')}}
+Reliability: {{show(rating,'2')}}
+Privacy: {{show(rating,'3')}}
+Child safety: {{show(rating,'4')}}
+</div>
+<img src="{{=URL('default','download',args=link.screenshot)}}" align="right"/>
+{{=form}}

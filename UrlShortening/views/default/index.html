@@ -1,0 +1,13 @@
+{{right_sidebar_enabled=True}}
+{{extend 'layout.html'}}
+
+open http://127.0.0.1:8000/myapp/
+
+Welcome to our URL bookmarking, shortening, and rating service
+
+{{block right_sidebar}}
+Drag link to favorites:
+<a style="padding:5px;color:white;background-color:black;" 
+   title="Bookmark" 
+   href="javascript:window.location='{{=URL('bookmark',scheme=True)}}?url='+window.location">Bookmark!</a>
+{{end}}
