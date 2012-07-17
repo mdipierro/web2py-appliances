@@ -1,0 +1,13 @@
+{{extend 'layout.html'}}
+<div class="row">
+    <div class="three columns alpha">
+        <img src="{{=URL('default', 'download', args=auth.user.thumbnail)}}" width=100>
+        <br />
+        <strong>{{="%(first_name)s %(last_name)s (%(nickname)s)" % auth.user}}</strong>
+        <br />
+    </div> 
+    <div class="twelve columns omega" style="border-left:1px solid #444;padding:15px;">
+        {{=form}}
+    </div>
+</div>
+<hr/>

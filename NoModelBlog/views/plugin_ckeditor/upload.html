@@ -1,0 +1,7 @@
+{{=text}}
+
+{{if url:}}
+    <script type="text/javascript">
+        window.parent.CKEDITOR.tools.callFunction({{=cknum}}, '{{=url}}');
+    </script>
+{{pass}}

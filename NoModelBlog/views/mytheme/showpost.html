@@ -1,0 +1,20 @@
+{{extend 'layout.html'}}
+<div class="row">
+    <div class="three columns alpha">
+        <img src="{{=URL('default', 'download', args=post.author.thumbnail)}}" width=100>
+        <br />
+        <strong>{{="%(first_name)s %(last_name)s (%(nickname)s)" % post.author}}</strong>
+        <br />
+        <small>{{=prettydate(post.created_on)}}</small>
+    </div> 
+    <div class="eleven columns" style="border-left:1px solid #444;padding:15px;">
+    <h2><a href="{{=URL('show', args=[post.id, post.slug])}}">{{=post.title}}</a></h2>
+    {{=XML(post.body_text)}}
+    </div>
+    <div class="one columns omega">
+      {{if auth.user_id == post.author:}}
+          <a href="{{=URL('edit', args=[post.id, post.slug])}}" class="button">Edit</a>
+      {{pass}}
+    </div>
+</div>
+<hr/>
