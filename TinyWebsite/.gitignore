@@ -1,0 +1,21 @@
+.*
+# Except this file
+!.gitignore
+*.pyc
+*.pyo
+*.log
+*~
+#*
+*.1
+*.bak
+*.bak2
+*.w2p
+Thumbs.db
+routes.py
+logging.conf
+./*.zip
+./databases/*
+./errors/*
+./sessions/*
+./uploads/*
+./tests/*

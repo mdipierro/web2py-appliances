@@ -1,0 +1,23 @@
+<address>
+	<p><h3>{{=T('Address')}}</h3></p>
+	{{if WEBSITE_PARAMETERS.contact_address:}}
+		<p>
+		{{for line in WEBSITE_PARAMETERS.contact_address.split('\n'):}}
+			{{=line}} <br />
+		{{pass}}
+		</p>
+	{{pass}}
+	{{if WEBSITE_PARAMETERS.contact_telephone:}}
+		<div class="blueText">{{=T('Tel : ')}}{{=WEBSITE_PARAMETERS.contact_telephone}}</div>
+	{{pass}}
+	{{if WEBSITE_PARAMETERS.contact_fax:}}
+		<div class="blueText">{{=T('Fax : ')}}{{=WEBSITE_PARAMETERS.contact_fax}}</div>
+	{{pass}}
+</address>
+
+<!-- google maps plan -->
+{{if WEBSITE_PARAMETERS.contact_google_maps_plan_url:}}
+	<p>
+		<a href="{{=XML(WEBSITE_PARAMETERS.contact_google_maps_plan_url)}}" target="_blank">{{=T('Show the plan')}}</a>
+	</p>
+{{pass}}

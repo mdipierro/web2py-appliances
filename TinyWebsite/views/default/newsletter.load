@@ -1,0 +1,4 @@
+<div><h3>Newsletter</h3></div>
+<p>{{=T('Please insert your email adress to receive our latest news')}}</p>
+{{=form}}
+<script>jQuery('input[type="text"]').css('width','100%');</script>
