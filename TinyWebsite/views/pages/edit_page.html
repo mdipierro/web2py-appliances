@@ -1,0 +1,81 @@
+{{extend 'layout.html'}}
+{{ if len(request.args) > 0: }}
+	<h1>{{=T('Edit page')}}</h1>
+{{ else: }}
+	<h1>{{=T('Add a new page')}}</h1>
+{{ pass }}
+<div>
+	<ul class="nav nav-pills">
+		<li id="simple_view" class="active">
+			<a href="#">{{=T('Simplified view')}}</a>
+		</li>
+		<li id="advanced_view" >
+			<a href="#">{{=T('Advanced view')}}</a>
+		</li>
+	</ul>
+</div>
+{{=form}}
+{{ if len(request.args) > 0: }}
+	<script type="text/javascript" src="{{=URL('static', 'nicEdit/nicEditComplete.js')}}"></script>
+		<script type="text/javascript">
+			bkLib.onDomLoaded(function() { 
+				new nicEditors.allTextAreas({
+					iconsPath :"{{=URL('static', 'nicEdit/nicEditorIcons.gif')}}",
+					buttonList : ['bold','italic','underline','strikeThrough','left', 'center',
+						'right', 'justify', 'ol', 'ul', 'fontSize', 'fontFormat', 'indent', 'outdent', 'link', 'upload'],
+					uploadURI : "{{=URL('images', 'nicedit_image_upload', args=request.args(0))}}",
+				})
+			});
+		</script>
+	</script>
+	<script>jQuery('textarea').css('width','600px').css('height','50px');</script>
+{{pass}}
+<script>
+	jQuery(document).ready(function(){
+		jQuery('#page_rank__row').hide();
+		jQuery('#page_url__row').hide();
+		jQuery('#page_is_index__row').hide();
+		jQuery('#page_is_enabled__row').hide();
+		jQuery('#page_left_sidebar_enabled__row').hide();
+		jQuery('#page_right_sidebar_enabled__row').hide();
+		jQuery('#page_left_footer_component__row').hide();
+		jQuery('#page_middle_footer_component__row').hide();
+		jQuery('#page_right_footer_component__row').hide();
+		if (!jQuery('#page_left_sidebar_enabled').attr('checked'))
+			jQuery('#page_left_sidebar_component__row').hide();
+		if (!jQuery('#page_right_sidebar_enabled').attr('checked'))
+			jQuery('#page_right_sidebar_component__row').hide();
+		jQuery('#page_left_sidebar_enabled').change(function(){
+			if(jQuery('#page_left_sidebar_enabled').attr('checked'))
+				jQuery('#page_left_sidebar_component__row').show();
+			else jQuery('#page_left_sidebar_component__row').hide();});
+		jQuery('#page_right_sidebar_enabled').change(function(){
+			if(jQuery('#page_right_sidebar_enabled').attr('checked'))
+				jQuery('#page_right_sidebar_component__row').show();
+			else jQuery('#page_right_sidebar_component__row').hide();});
+		jQuery('#simple_view').click(function(){
+			jQuery('#simple_view').attr('class','active');
+			jQuery('#advanced_view').attr('class','inactive');
+			jQuery('#page_rank__row').hide();
+			jQuery('#page_url__row').hide();
+			jQuery('#page_is_index__row').hide();
+			jQuery('#page_is_enabled__row').hide();
+			jQuery('#page_left_sidebar_enabled__row').hide();
+			jQuery('#page_right_sidebar_enabled__row').hide();
+			jQuery('#page_left_footer_component__row').hide();
+			jQuery('#page_middle_footer_component__row').hide();
+			jQuery('#page_right_footer_component__row').hide();});
+		jQuery('#advanced_view').click(function(){
+			jQuery('#advanced_view').attr('class','active');
+			jQuery('#simple_view').attr('class','inactive');
+			jQuery('#page_rank__row').show();
+			jQuery('#page_url__row').show();
+			jQuery('#page_is_index__row').show();
+			jQuery('#page_is_enabled__row').show();
+			jQuery('#page_left_sidebar_enabled__row').show();
+			jQuery('#page_right_sidebar_enabled__row').show();
+			jQuery('#page_left_footer_component__row').show();
+			jQuery('#page_middle_footer_component__row').show();
+			jQuery('#page_right_footer_component__row').show();});
+	});
+</script>

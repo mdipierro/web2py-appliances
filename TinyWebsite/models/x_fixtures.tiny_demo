@@ -1,0 +1,204 @@
+# coding: utf8
+
+#website parameters fixture
+if db(db.website_parameters.id > 0).count() == 0:
+    db.website_parameters.insert(
+    website_name="My Tiny Website",
+    website_title="My tiny website",
+    website_subtitle="Fork me, I'm famous",
+    website_name_long="my awesome website",
+    website_url='http://www.my-awesome-website.com',
+    contact_name='John doe',
+    contact_trade_register_number='243 849 247 22 98',
+    contact_address="""
+    Route de l'aéroport 15
+    1215 Geneva
+    Switzerland
+    """,
+    contact_google_maps_plan_url=r"""
+    http://maps.google.fr/maps?q=Geneva+International+Airport,+Meyrin,+Suisse&hl=fr&ll=46.237328,6.10857&spn=0.038054,0.104628&sll=46.230084,6.126595&sspn=0.038059,0.104628&oq=geneva+ai&t=h&hq=Geneva+International+Airport,+Meyrin,+Suisse&z=14&iwloc=A                                                                                         
+    """,
+    contact_telephone='123 456 789',                                                                                        
+    contact_fax='987 654 321',
+    contact_mobile='',                                                                        
+    contact_form_email='user@test.com',
+    contact_form_cc='',
+    contact_form_bcc='',
+    max_old_news_to_show=2,
+    booking_form_email='user@test.com',
+    booking_form_cc='',
+    booking_form_bcc='',
+    mailserver_url='smtp.test.com',
+    mailserver_port=587,
+    mailserver_sender_mail='user@test.com',
+    mailserver_sender_login='user',
+    mailserver_sender_pass='pass',
+    google_analytics_id='UA-XXXXXXX-1',
+    with_banner=False,
+    navbar_inverse=True,
+    banner_image_desktop='banner.jpg',
+    banner_image_tablet='banner.jpg',
+    banner_image_phone='banner.jpg',
+    banner_image_background_gradient_from='#519CAF',
+    banner_image_background_gradient_to='#7DCBD8'
+    )
+
+#Create a default user
+if db(db.auth_user.email == "user@test.com").count() == 0:
+    db.auth_user.insert(
+        first_name='user',
+        last_name='name',
+		username='user',
+        email='user@test.com',
+        password=db.auth_user.password.validate('pass')[0]
+)
+
+#assign the default user to the manager group
+manager_group = db(db.auth_group.role == "manager").select().first()
+if manager_group:
+	default_user = db(db.auth_user.email == "user@test.com").select().first()
+	if default_user:
+		if db(db.auth_membership.user_id == default_user.id)(db.auth_membership.group_id == manager_group.id).count() == 0:
+			db.auth_membership.insert(
+					user_id=default_user.id,
+					group_id=manager_group.id
+				)
+
+#create a default index page if not exists
+tmpContent = """
+<p>
+	This is the first page of your website
+</p>
+<p>
+	You can connect using the following credentials to create / update / delete pages content. <br />
+	Username : <strong>user</strong><br />
+	Password : <strong>pass</strong><br />
+</p>
+<p>
+	Once connected, try to add images in the photo gallery (<em>need to have python PIL installed</em>)
+</p
+<p>
+	You can edit the website parameters in models/db_menu.py
+</p>
+"""
+if db(db.page.is_index == True).count() == 0:
+    news_component = db(db.page_component.name == 'news.load').select().first()
+    gallery_component = db(db.page_component.name == 'photo_gallery.load').select().first()
+    address_component = db(db.page_component.name == 'address.load').select().first()
+    newsletter_component = db(db.page_component.name == 'newsletter.load').select().first()
+    db.page.insert(
+        title='Index',
+        subtitle='The index page',
+        url='index',
+        content=tmpContent,
+        is_index=True,
+        left_sidebar_enabled=True,
+        right_sidebar_enabled=True,
+        left_sidebar_component=gallery_component,
+        right_sidebar_component=news_component,
+        left_footer_component=address_component,
+        right_footer_component=newsletter_component
+    )
+
+#create a default "root page"
+if db(db.page.title == 'What about this website?').count() == 0:
+    db.page.insert(
+        title='What about this website?',
+        subtitle='',
+        content='',
+        is_index=False,
+        left_sidebar_enabled=False,
+        right_sidebar_enabled=False
+    )
+root_page = db(db.page.title == 'What about this website?').select().first()
+
+#create the first children page
+if db(db.page.title == 'This website is cool!').count() == 0:
+    db.page.insert(
+    	parent=root_page,
+        title='This website is cool!',
+        subtitle='... as me',
+        content='Try to change this content...',
+        rank=1,
+        is_index=False,
+        left_sidebar_enabled=True,
+        right_sidebar_enabled=True
+    )
+
+#create the second children page
+if db(db.page.title == '... and easy to update').count() == 0:
+    db.page.insert(
+    	parent=root_page,
+        title='... and easy to update',
+        subtitle='You will fall in love with it',
+        content='Try to change this content...',
+        rank=2,
+        is_index=False,
+        left_sidebar_enabled=True,
+        right_sidebar_enabled=True
+    )
+
+#create a news
+if db(db.news).count() == 0:
+	db.news.insert(
+		title='First news published!',
+		date=request.now,
+		text='This is your first news',
+		published_on=request.now
+		)
+
+#add default images
+if db(db.image.name == "demo1").count() == 0:
+	db.image.insert(
+	    name='demo1',
+	    alt='demo1',
+	    comment='my first image',
+	    file='demo1.jpg',
+	    thumb='demo1.jpg',
+	    show_in_gallery=True
+	)
+if db(db.image.name == "demo2").count() == 0:
+	db.image.insert(
+	    name='demo2',
+	    alt='demo2',
+	    comment='my first image',
+	    file='demo2.jpg',
+	    thumb='demo2.jpg',
+	    show_in_gallery=True
+	)
+if db(db.image.name == "demo3").count() == 0:
+	db.image.insert(
+	    name='demo3',
+	    alt='demo3',
+	    comment='my first image',
+	    file='demo3.jpg',
+	    thumb='demo3.jpg',
+	    show_in_gallery=True
+	)
+if db(db.image.name == "demo4").count() == 0:
+	db.image.insert(
+	    name='demo4',
+	    alt='demo4',
+	    comment='my first image',
+	    file='demo4.jpg',
+	    thumb='demo4.jpg',
+	    show_in_gallery=True
+	)
+if db(db.image.name == "demo5").count() == 0:
+	db.image.insert(
+	    name='demo5',
+	    alt='demo5',
+	    comment='my first image',
+	    file='demo5.jpg',
+	    thumb='demo5.jpg',
+	    show_in_gallery=True
+	)
+if db(db.image.name == "demo6").count() == 0:
+	db.image.insert(
+	    name='demo6',
+	    alt='demo6',
+	    comment='my first image',
+	    file='demo6.jpg',
+	    thumb='demo6.jpg',
+	    show_in_gallery=True
+	)

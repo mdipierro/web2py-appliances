@@ -1,0 +1,38 @@
+{{extend 'layout.html'}}
+{{ if len(request.args) > 0: }}
+	<h1>{{=T('Edit image gallery')}}</h1>
+{{ else: }}
+	<h1>{{=T('Add image in the Gallery')}}</h1>
+{{ pass }}
+<!-- TODO ...
+<div>
+	<ul class="nav nav-pills">
+		<li id="simple_view" class="active">
+			<a href="#">{{=T('Simplified view')}}</a>
+		</li>
+		<li id="advanced_view" >
+			<a href="#">{{=T('Advanced view')}}</a>
+		</li>
+	</ul>
+</div>
+-->
+{{=form}}
+<div>
+	<img src="{{=URL('static','images/photo_gallery/thumbs/%s' %(thumb))}}">
+</div>
+<script>
+	jQuery(document).ready(function(){
+		jQuery('#image_show_in_gallery__row').hide();
+		jQuery('#image_show_in_banner__row').hide();
+		jQuery('#simple_view').click(function(){
+			jQuery('#simple_view').attr('class','active');
+			jQuery('#advanced_view').attr('class','inactive');
+			jQuery('#image_show_in_gallery__row').hide();
+			jQuery('#image_show_in_banner__row').hide();});
+		jQuery('#advanced_view').click(function(){
+			jQuery('#advanced_view').attr('class','active');
+			jQuery('#simple_view').attr('class','inactive');
+			jQuery('#image_show_in_gallery__row').show();
+			jQuery('#image_show_in_banner__row').show();});
+	});
+</script>

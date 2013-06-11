@@ -1,0 +1,54 @@
+{{if WEBSITE_PARAMETERS.with_specific_banner:}}
+   {{include 'specificbanner.html'}}
+{{else:}}
+  <a href={{=URL('default','index')}}>
+    <div id="banner_image" class="gradient">
+      <!--[if gte IE 9]>
+        <style type="text/css">
+          .gradient {
+             filter: none;
+          }
+        </style>
+      <![endif]-->
+      
+        {{if WEBSITE_PARAMETERS.banner_image_always:}}
+           <img src="{{=URL('static', 'images/banner/%s' %WEBSITE_PARAMETERS.banner_image_always)}}">
+        {{pass}}
+        {{if WEBSITE_PARAMETERS.banner_image_desktop:}}
+          <img src="{{=URL('static', 'images/banner/%s' %WEBSITE_PARAMETERS.banner_image_desktop)}}" alt="banner" class="banner_image hidden-tablet hidden-phone">
+        {{pass}}
+        {{if WEBSITE_PARAMETERS.banner_image_tablet:}}
+          <img src="{{=URL('static', 'images/banner/%s' %WEBSITE_PARAMETERS.banner_image_tablet)}}" alt="banner" class="banner_image hidden-desktop hidden-phone">
+        {{pass}}
+        {{if WEBSITE_PARAMETERS.banner_image_phone:}}
+          <img src="{{=URL('static', 'images/banner/%s' %WEBSITE_PARAMETERS.banner_image_phone)}}" alt="banner" class="banner_image hidden-desktop hidden-tablet">
+        {{pass}}
+
+        <div id="banner_description">
+          {{if WEBSITE_PARAMETERS.website_name_long:}}
+            {{=T('Welcome on %s',WEBSITE_PARAMETERS.website_name_long)}}
+          {{else:}}
+            {{=T('Welcome on this website')}}
+          {{pass}}
+        </div>
+    </div>
+  </a>
+{{pass}}
+
+
+<script>
+/* Webkit (Chrome 11+) */
+  $('#banner_image').css('background-image', '-webkit-linear-gradient(top, {{=WEBSITE_PARAMETERS.banner_image_background_gradient_from}} 0%, {{=WEBSITE_PARAMETERS.banner_image_background_gradient_to}} 100%)')
+/* Webkit (Safari/Chrome 10) */ 
+  $('#banner_image').css('background-image', '-webkit-gradient(linear, left top, left bottom, color-stop(0, {{=WEBSITE_PARAMETERS.banner_image_background_gradient_from}}), color-stop(1, {{=WEBSITE_PARAMETERS.banner_image_background_gradient_to}}))')
+/* Mozilla Firefox */ 
+  $('#banner_image').css('background-image', '-moz-linear-gradient(top, {{=WEBSITE_PARAMETERS.banner_image_background_gradient_from}} 0%, {{=WEBSITE_PARAMETERS.banner_image_background_gradient_to}} 100%)')
+/* IE10 Consumer Preview */
+  $('#banner_image').css('background-image', '-ms-linear-gradient(top, {{=WEBSITE_PARAMETERS.banner_image_background_gradient_from}} 0%, {{=WEBSITE_PARAMETERS.banner_image_background_gradient_to}} 100%)')
+/* Opera */ 
+  $('#banner_image').css('background-image', '-o-linear-gradient(top, {{=WEBSITE_PARAMETERS.banner_image_background_gradient_from}} 0%, {{=WEBSITE_PARAMETERS.banner_image_background_gradient_to}} 100%)')
+/* W3C Markup, IE10 Release Preview */
+  $('#banner_image').css('background-image', 'linear-gradient(to bottom, {{=WEBSITE_PARAMETERS.banner_image_background_gradient_from}} 0%, {{=WEBSITE_PARAMETERS.banner_image_background_gradient_to}} 100%)')
+/* IE6-8*/
+  $('#banner_image').css('filter', 'progid:DXImageTransform.Microsoft.gradient(startColorstr="{{=WEBSITE_PARAMETERS.banner_image_background_gradient_from}}", endColorstr="{{=WEBSITE_PARAMETERS.banner_image_background_gradient_to}}")') 
+</script>

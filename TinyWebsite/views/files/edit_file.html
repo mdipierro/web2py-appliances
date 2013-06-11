@@ -1,0 +1,8 @@
+{{extend 'layout.html'}}
+{{ if len(request.args) > 0: }}
+	<h1>{{=T('Edit file')}}</h1>
+{{ else: }}
+	<h1>{{=T('Add a file')}}</h1>
+{{ pass }}
+
+{{=form}}
