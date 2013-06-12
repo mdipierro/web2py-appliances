@@ -1,0 +1,20 @@
+{{extend 'layout.html'}}
+{{ if len(request.args) > 0: }}
+	<h1>{{=T('Edit news')}}</h1>
+{{ else: }}
+	<h1>{{=T('Add a news')}}</h1>
+{{ pass }}
+
+<script type="text/javascript" src="{{=URL('static', 'nicEdit/nicEditComplete.js')}}"></script>
+<script type="text/javascript">
+	bkLib.onDomLoaded(function() { 
+		new nicEditors.allTextAreas({
+			iconsPath :"{{=URL('static', 'nicEdit/nicEditorIcons.gif')}}",
+			buttonList : ['bold','italic','underline'],
+		})
+	});
+</script>
+
+</script>
+{{=form}}
+<script>jQuery('textarea').css('width','600px').css('height','50px');</script>

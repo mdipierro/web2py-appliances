@@ -1,0 +1,166 @@
+	/* Fonts */
+
+@font-face {
+    font-family: 'BlackJackRegular';
+    src: url('../fonts/blackjar-webfont.eot');
+    src: url('../fonts/blackjar-webfont.eot?#iefix') format('embedded-opentype'),
+         url('../fonts/blackjar-webfont.woff') format('woff'),
+         url('../fonts/blackjar-webfont.ttf') format('truetype'),
+         url('../fonts/blackjar-webfont.svg#BlackJackRegular') format('svg');
+    font-weight: normal;
+    font-style: normal;
+
+}
+
+@font-face {
+    font-family: 'DayRomanRegular';
+    src: url('../fonts/dayrom__-webfont.eot');
+    src: url('../fonts/dayrom__-webfont.eot?#iefix') format('embedded-opentype'),
+         url('../fonts/dayrom__-webfont.woff') format('woff'),
+         url('../fonts/dayrom__-webfont.ttf') format('truetype'),
+         url('../fonts/dayrom__-webfont.svg#DayRomanRegular') format('svg');
+    font-weight: normal;
+    font-style: normal;
+
+}
+
+/* Banner */
+#banner_image{
+	margin-top: 15px;
+	height: 225px;
+	border-radius: 5px;
+	background-image: -webkit-gradient(
+		linear,
+		left bottom,
+		left top,
+	);
+	position: relative;
+	box-shadow: 0px 4px 4px #1c1a19;
+	margin-bottom: 25px;
+	overflow: hidden;
+	min-height: 1%;
+}
+
+#banner_description{
+	font-family: BlackJackRegular, serif;
+	position: absolute;
+	bottom: 0;
+	-webkit-border-top-right-radius: 5px;
+	-webkit-border-bottom-right-radius: 5px;
+	-webkit-border-bottom-left-radius: 5px;
+	-moz-border-radius-topright: 5px;
+	-moz-border-radius-bottomright: 5px;
+	-moz-border-radius-bottomleft: 5px;
+	border-bottom-left-radius: 5px;
+	border-bottom-right-radius: 5px;
+	width: 100%;
+	padding-top: 15px;
+	padding-left: 4px;
+	background-color: rgb(24,24,24); /* Pour les anciens navigateurs
+	*/
+	background-color: rgba(24,24,24,0.8);
+	color: white;
+	font-size: 2em;
+	overflow-y:visible;
+}
+	
+/* Large desktop */
+@media (min-width: 980px) {
+	#banner_description{
+		height: 13%;
+	}
+}
+ 
+/* Portrait tablet to landscape and desktop */
+@media (min-width: 768px) and (max-width: 979px) {
+	#banner_description{
+		height: 15%;
+	}
+}
+ 
+/* Landscape phone to portrait tablet */
+@media (max-width: 767px) {
+	#banner_description{
+		height: 20%;
+	}	
+}
+ 
+/* Landscape phones and down */
+@media (max-width: 480px) {
+	#banner_description{
+		height: 30%;
+	}
+}
+
+.banner_image {
+		float: right;
+        overflow&: hidden;
+        -webkit-border-top-right-radius: 5px;
+		-webkit-border-bottom-right-radius: 5px;
+		-moz-border-radius-topright: 5px;
+		-moz-border-radius-bottomright: 5px;
+		border-top-right-radius: 5px;
+		border-bottom-right-radius: 5px;
+}
+
+article, aside, .image-box{
+	background-color: rgb(255,255,255);
+	box-shadow: 0px 2px 5px #1c1a19;
+	border-radius: 5px;
+	padding: 15px;
+	margin-bottom : 10px;
+}
+
+.blueText {
+		color: rgb(107,195,207);
+}
+
+#footer-content, #contact, #newsletter, #miscellaneous{
+	display: inline-block;
+	vertical-align: top;
+}
+
+#footer-content{
+	width: 25%;
+	background-color: rgb(255,255,255);
+	position: relative;
+	padding: 0px;
+	box-shadow: 0px 0px 1px #1c1a19;
+	border-radius: 5px;
+}
+#contact{
+	width: 25%;
+	background-color: rgb(255,255,255);
+	position: relative;
+	padding: 5px;
+	box-shadow: 0px 0px 1px #1c1a19;
+	border-radius: 5px;
+}
+#newsletter{
+	width: 25%;
+	background-color: rgb(255,255,255);
+	position: relative;
+	padding: 5px;
+	box-shadow: 0px 0px 1px #1c1a19;
+	border-radius: 5px;
+}
+#miscellaneous{
+	width: 25%;
+	background-color: rgb(255,255,255);
+	position: relative;
+	padding: 5px;
+	box-shadow: 0px 0px 1px #1c1a19;
+	border-radius: 5px;
+}
+#mygallery{
+	text-align: right;
+	box-shadow: 0px 2px 5px #1c1a19;
+	border-radius: 5px;
+	padding: 15px;
+}
+#mygallery img{
+	border: 5px solid rgb(102,102,102);
+}
+.greyText {
+		color: rgb(200,200,200);
+}

@@ -1,0 +1,33 @@
+{{if newsS or auth.has_membership('manager'):}}
+	<aside>
+		<h3>
+			{{ =T('Latest news') }}
+			{{=A(IMG(_src=URL('static/images','feed-icon.png'), _alt=T('Follow our news with RSS feed'), _title=T('Follow our news with RSS feed')),_href=URL('rss_news.rss'))}}
+			{{if auth.has_membership('manager'):}}
+				{{=manager_toolbar()}}
+			{{ pass }}
+		</h3>
+		{{for news in newsS:}}
+			{{if news.date < request.now.date():}}
+				<div class="greyText">
+			{{else:}}
+				<div>	
+			{{pass}}
+				<hr>
+				<p>
+					{{if auth.has_membership('manager'):}}
+						{{=manager_toolbar(news.id)}}
+					{{ pass }}
+					<h4>{{=news.title}}</h4>
+					<p>
+						{{=XML(news.text)}}
+						<em>
+							{{=T('Published on ')}}
+							{{=news.published_on.strftime("%d/%m/%Y %H:%M") }}
+						</em>
+					</p>
+				</p>
+			</div>
+		{{pass}}
+	</adise>
+{{pass}}
