@@ -9,7 +9,6 @@
 *.1
 *.bak
 *.bak2
-*.w2p
 Thumbs.db
 routes.py
 logging.conf
