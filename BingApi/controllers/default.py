@@ -6,7 +6,7 @@
 ## - call exposes all registered services (none by default)
 #########################################################################  
 
-exec('from applications.%s.modules.bingapi_w import Bing' % request.application)
+from bingapi_w import Bing
 BING_APPID='25187A3B438492061BC2B82AB10E1D7394F0EB82'
 
 response.title="Bing Interface"
