@@ -1,0 +1,12 @@
+{{extend 'layout.html'}}
+<h1>{{=T('Contact')}}</h1>
+<br />
+{{block left_sidebar}}
+	{{if WEBSITE_PARAMETERS.contact_address:}}
+		<div class="contact">
+			{{=LOAD('default', 'address.load', ajax=False)}}
+		</div>
+	{{pass}}
+{{end}}
+{{=form}}
+<script>jQuery('textarea').css('width','400px').css('height','200px');</script>

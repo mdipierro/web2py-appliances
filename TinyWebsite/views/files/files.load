@@ -1,0 +1,31 @@
+{{if files or auth.has_membership('manager'):}}
+	<aside>
+		<h3>
+			{{=T('Files to download')}}
+			{{if auth.has_membership('manager'):}}
+				{{=manager_toolbar(container_id=request.vars.container_id)}}
+			{{ pass }}
+		</h3>
+		{{for file in files:}}
+			<div class="test">
+				<hr>
+				<p>
+					{{if auth.has_membership('manager'):}}
+						{{=manager_toolbar(file.id)}}
+					{{ pass }}
+					<a href={{=URL('default', 'download', args=file.file)}}>
+						<div>
+							<h4>
+								{{=file.title}}
+								{{if file.size:}}
+									({{=sizeof_file(file.size)}})
+								{{pass}}
+							</h4>
+							<h5>{{=file.comment}}</h5>
+						</div>
+					</a>
+				</p>
+			</div>
+		{{pass}}
+	</adise>
+{{pass}}

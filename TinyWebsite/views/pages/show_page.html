@@ -1,0 +1,65 @@
+{{extend 'layout.html'}}
+
+{{block title}}
+    <title>
+    	{{if response.title:}}
+    		{{=" ".join(t for t in [response.title, page.title if not page.is_index else None, page.subtitle] if t)}}
+    	{{else:}}
+    		{{=request.application}}
+    	{{pass}}
+    </title>
+{{end}}
+
+{{block left_sidebar}}
+	<div class="hidden-phone">
+		{{if left_sidebar_component:}}
+			{{=LOAD(left_sidebar_component.controller, left_sidebar_component.name, ajax=left_sidebar_component.ajax,
+			ajax_trap=left_sidebar_component.ajax_trap, vars={'container_id':page.id})}}
+		{{pass}}
+	</div>
+{{end}}
+
+{{block right_sidebar}}
+	{{if right_sidebar_component:}}
+		{{=LOAD(right_sidebar_component.controller, right_sidebar_component.name, ajax=right_sidebar_component.ajax,
+		ajax_trap=right_sidebar_component.ajax_trap, vars={'container_id':page.id})}}
+	{{pass}}
+{{end}}
+
+{{if page and page.content:}}
+<article>
+	{{if auth.has_membership('manager'):}}
+		{{=manager_toolbar()}}
+		{{=manager_toolbar(page.id)}}
+	{{ pass }}
+	<h3>{{=page.subtitle}}</h3>
+	<div>{{=XML(page.content, sanitize=False)}}</div>
+	{{if pretty_date:}}
+		<div class="muted"><small>{{=T("Updated %s",pretty_date)}}</small></div>
+	{{pass}}
+</article>
+{{pass}}
+
+{{block footer}}
+	<!-- Contact -->
+	<div class="row-fluid">
+		<div class="span4 column">
+			{{if left_footer_component:}}
+				{{=LOAD(left_footer_component.controller, left_footer_component.name, ajax=left_footer_component.ajax,
+				ajax_trap=left_footer_component.ajax_trap, vars={'container_id':page.id})}}
+			{{pass}}
+		</div>
+		<div class="span4 column">
+			{{if middle_footer_component:}}
+				{{=LOAD(middle_footer_component.controller, middle_footer_component.name, ajax=middle_footer_component.ajax,
+				ajax_trap=middle_footer_component.ajax_trap, vars={'container_id':page.id})}}
+			{{pass}}
+		</div>
+		<div class="span4 column">
+			{{if right_footer_component:}}
+				{{=LOAD(right_footer_component.controller, right_footer_component.name, ajax=right_footer_component.ajax,
+				ajax_trap=right_footer_component.ajax_trap, vars={'container_id':page.id})}}
+			{{pass}}
+		</div>
+	</div>
+{{end}}
