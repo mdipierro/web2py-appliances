@@ -1,0 +1,41 @@
+{{extend 'layout.html'}}
+
+{{for row in rows:}}
+<div class="well">
+  <table>
+    <tr>
+      <td width="200px">
+	<img src="{{=URL('download',args=row.image)}}" width="200px"/>
+      </td>
+      <td>
+	<h2>{{=row.name}}, ${{=row.unit_price}}</h2>
+	<form action="{{=URL('cart/add')}}" data-target="#cart">
+	  <div class="input-append">
+	    {{=SELECT(*[OPTION(r.detail,_value=r.id) for r in row.inventory],**dict(_name='id'))}}
+	    <input type="submit" value="Add to cart"/>
+	  </div>
+	</form>
+	{{=MARKMIN(row.description_short)}}
+	{{if row.description_long:}}
+	<div class="hidden toggable">
+	  {{=MARKMIN(row.description_long)}}
+	</div>
+	{{pass}}
+      </td>
+    </tr>
+  </table>
+</div>
+{{pass}}
+
+{{vars=request.vars}}
+{{vars.update({'page':page-1})}}
+{{if page>0:}}<a class="btn" href="{{=URL(args=request.args,vars=vars)}}">Previous</a>{{pass}}
+{{vars.update({'page':page+1})}}
+{{if len(rows)==20:}}<a class="btn" href="{{=URL(args=request.args,vars=vars)}}">Next</a>{{pass}}
+
+<script>
+jQuery(function(){
+  jQuery('[data-target]').each(function(){var t=jQuery(this); t.submit(function(){ jQuery.post(t.attr('action'),t.serialize(),function(data){jQuery(t.attr('data-target')).html(data);}); return false; }); });
+  jQuery('.toggable').each(function(){var t=jQuery(this); jQuery('<button class="btn btn-info">More</button>').insertBefore(t).click(function(){t.slideToggle();});});
+});
+</script>
