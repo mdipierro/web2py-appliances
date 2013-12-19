@@ -1,0 +1,215 @@
+timestamp: 2013-10-17T09:47:42.952662
+CREATE TABLE auth_user(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    first_name CHAR(128),
+    last_name CHAR(128),
+    email CHAR(512),
+    password CHAR(512),
+    registration_key CHAR(512),
+    reset_password_key CHAR(512),
+    registration_id CHAR(512)
+);
+success!
+timestamp: 2013-10-17T09:47:42.961548
+CREATE TABLE auth_group(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    role CHAR(512),
+    description TEXT
+);
+success!
+timestamp: 2013-10-17T09:47:42.969161
+CREATE TABLE auth_membership(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER REFERENCES auth_user (id) ON DELETE CASCADE,
+    group_id INTEGER REFERENCES auth_group (id) ON DELETE CASCADE
+);
+success!
+timestamp: 2013-10-17T09:47:42.977843
+CREATE TABLE auth_permission(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    group_id INTEGER REFERENCES auth_group (id) ON DELETE CASCADE,
+    name CHAR(512),
+    table_name CHAR(512),
+    record_id INTEGER
+);
+success!
+timestamp: 2013-10-17T09:47:42.986916
+CREATE TABLE auth_event(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    time_stamp TIMESTAMP,
+    client_ip CHAR(512),
+    user_id INTEGER REFERENCES auth_user (id) ON DELETE CASCADE,
+    origin CHAR(512),
+    description TEXT
+);
+success!
+timestamp: 2013-10-17T09:47:42.995193
+CREATE TABLE auth_cas(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER REFERENCES auth_user (id) ON DELETE CASCADE,
+    created_on TIMESTAMP,
+    service CHAR(512),
+    ticket CHAR(512),
+    renew CHAR(1)
+);
+success!
+timestamp: 2013-10-17T09:47:43.009610
+CREATE TABLE task(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title CHAR(512),
+    description TEXT,
+    assigned_to INTEGER REFERENCES auth_user (id) ON DELETE CASCADE,
+    status CHAR(512),
+    deadline DATE,
+    is_active CHAR(1),
+    created_on TIMESTAMP,
+    created_by INTEGER REFERENCES auth_user (id) ON DELETE CASCADE,
+    modified_on TIMESTAMP,
+    modified_by INTEGER REFERENCES auth_user (id) ON DELETE CASCADE
+);
+success!
+timestamp: 2013-10-17T09:47:43.025907
+CREATE TABLE task_archive(
+    current_record INTEGER REFERENCES task (id) ON DELETE CASCADE,
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title CHAR(512),
+    description TEXT,
+    assigned_to INTEGER REFERENCES auth_user (id) ON DELETE CASCADE,
+    status CHAR(512),
+    deadline DATE,
+    is_active CHAR(1),
+    created_on TIMESTAMP,
+    created_by INTEGER REFERENCES auth_user (id) ON DELETE CASCADE,
+    modified_on TIMESTAMP,
+    modified_by INTEGER REFERENCES auth_user (id) ON DELETE CASCADE
+);
+success!
+timestamp: 2013-10-17T09:52:40.797338
+CREATE TABLE post(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    task INTEGER REFERENCES task (id) ON DELETE CASCADE,
+    body TEXT,
+    is_active CHAR(1),
+    created_on TIMESTAMP,
+    created_by INTEGER REFERENCES auth_user (id) ON DELETE CASCADE,
+    modified_on TIMESTAMP,
+    modified_by INTEGER REFERENCES auth_user (id) ON DELETE CASCADE
+);
+success!
+timestamp: 2013-10-17T09:52:40.948554
+CREATE TABLE post_archive(
+    current_record INTEGER REFERENCES post (id) ON DELETE CASCADE,
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    task INTEGER REFERENCES task (id) ON DELETE CASCADE,
+    body TEXT,
+    is_active CHAR(1),
+    created_on TIMESTAMP,
+    created_by INTEGER REFERENCES auth_user (id) ON DELETE CASCADE,
+    modified_on TIMESTAMP,
+    modified_by INTEGER REFERENCES auth_user (id) ON DELETE CASCADE
+);
+success!
+timestamp: 2013-10-17T10:21:07.578570
+CREATE TABLE email(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    to_addrs TEXT,
+    subject CHAR(512),
+    body TEXT,
+    sender CHAR(512),
+    status CHAR(512),
+    queued_datetime TIMESTAMP,
+    sent_on TIMESTAMP
+);
+success!
+timestamp: 2013-10-17T10:28:10.613330
+CREATE TABLE scheduler_task(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    application_name CHAR(512),
+    task_name CHAR(512),
+    group_name CHAR(512),
+    status CHAR(512),
+    function_name CHAR(512),
+    uuid CHAR(255) UNIQUE,
+    args TEXT,
+    vars TEXT,
+    enabled CHAR(1),
+    start_time TIMESTAMP,
+    next_run_time TIMESTAMP,
+    stop_time TIMESTAMP,
+    repeats INTEGER,
+    retry_failed INTEGER,
+    period INTEGER,
+    timeout INTEGER,
+    sync_output INTEGER,
+    times_run INTEGER,
+    times_failed INTEGER,
+    last_run_time TIMESTAMP,
+    assigned_worker_name CHAR(512)
+);
+success!
+timestamp: 2013-10-17T10:28:10.625462
+CREATE TABLE scheduler_run(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    task_id INTEGER REFERENCES scheduler_task (id) ON DELETE CASCADE,
+    status CHAR(512),
+    start_time TIMESTAMP,
+    stop_time TIMESTAMP,
+    run_output TEXT,
+    run_result TEXT,
+    traceback TEXT,
+    worker_name CHAR(512)
+);
+success!
+timestamp: 2013-10-17T10:28:10.639379
+CREATE TABLE scheduler_worker(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    worker_name CHAR(255) UNIQUE,
+    first_heartbeat TIMESTAMP,
+    last_heartbeat TIMESTAMP,
+    status CHAR(512),
+    is_ticker CHAR(1),
+    group_names TEXT
+);
+success!
+timestamp: 2013-10-23T13:37:57.561098
+ALTER TABLE post ADD tablename CHAR(512);
+timestamp: 2013-10-23T13:37:57.568617
+ALTER TABLE post ADD record_id INTEGER;
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+timestamp: 2013-10-23T13:56:59.035877
+CREATE TABLE plugin_comments_post(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tablename CHAR(512),
+    record_id INTEGER,
+    body TEXT,
+    is_active CHAR(1),
+    created_on TIMESTAMP,
+    created_by INTEGER REFERENCES auth_user (id) ON DELETE CASCADE,
+    modified_on TIMESTAMP,
+    modified_by INTEGER REFERENCES auth_user (id) ON DELETE CASCADE
+);
+success!

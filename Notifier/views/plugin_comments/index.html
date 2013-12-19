@@ -1,0 +1,27 @@
+{{for post in posts:}}
+<div class="alert">
+  <button type="button" class="close" data-dismiss="alert" data-id="{{=post.id}}">&times;</button>
+  <strong>
+    {{=prettydate(post.created_on)}} {{=fullname(post.created_by)}} says
+  </strong></br>
+  {{=post.body}}
+</div>
+{{pass}}
+
+{{if form:}}
+<h3>Add a comment</h3>
+{{=form.custom.begin}}
+{{=form.custom.widget.body}}
+{{=form.custom.submit}}
+{{=form.custom.end}}
+{{else:}}
+{{=A(T('Login to comment'),_href=URL('default','login',_next=request.url))}}
+{{pass}}
+
+<script>
+  jQuery('[data-dismiss]').on('click',function(){
+    var t=jQuery(this);
+    var id=t.attr('data-id');
+    jQuery.post('{{=URL('delete_post')}}',{id:id});
+  });
+</script>

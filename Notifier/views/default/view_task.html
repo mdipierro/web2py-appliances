@@ -1,0 +1,15 @@
+{{extend 'layout.html'}}
+
+<div class="well">
+  <h2>{{=task.title}}</h2>
+
+  <div style="text-align:right">
+    {{=A('Edit Task',_href = URL('edit_task',args=task.id),_class="btn btn-primary")}}
+  </div>
+
+  <strong>Created {{=prettydate(task.created_on)}} by {{=fullname(task.created_by)}}, assigned to {{=fullname(task.assigned_to)}} {{=show_status(task.status)}}</strong>
+  
+  {{=MARKMIN(task.description)}}
+</div>
+
+{{=LOAD('plugin_comments','index',args=('task',task.id),ajax=True,user_signature=True)}}

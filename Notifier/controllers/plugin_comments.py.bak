@@ -1,0 +1,21 @@
+# coding: utf8
+# try something like
+def index():
+    tablename = request.args(0)
+    record_id = request.args(1,cast=int)
+    db.post.tablename.default = tablename
+    db.post.record_id.default=record_id
+    form = SQLFORM(db.post).process()
+    #if form.accepted:
+    #     callback(form)
+    posts = db(db.post.tablename==tablename)(db.post.record_id==record_id).select(orderby=db.post.created_on)
+    return dict(form=form, posts=posts)
+
+def delete_post():
+    if request.env.request_method=='POST' and auth.user:
+        post_id = request.vars.id
+        post = db.post(post_id)
+        if post and post.created_by == auth.user.id:
+            post.delete_record()
+            return 'true'
+    return 'false'
