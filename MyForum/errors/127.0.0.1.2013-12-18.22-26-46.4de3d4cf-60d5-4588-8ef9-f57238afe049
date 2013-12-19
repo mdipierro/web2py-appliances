@@ -1,0 +1,21 @@
+(dp1
+S'output'
+p2
+S"<type 'exceptions.SyntaxError'> define_table argument is not a Field or Table: None"
+p3
+sS'layer'
+p4
+S'/Users/massimodipierro/Dropbox/web2py/applications/myforum/models/db1.py'
+p5
+sS'code'
+p6
+S"NE = IS_NOT_EMPTY()\ndef Required(*a,**b): return b.update({'requires':NE}) or Field(*a,**b)\ndef Readonly(*a,**b): return b.update({'writable':False}) or Field(*a,**b)\ndef Hidden(*a,**b): return b.update({'readable':False}) or Readonly(*a,**b)\ndef Unique(*a,**b): return b.update({'unique':True}) or Field(*a,**b)\ndef Reference(name,**b): return Hidden(name,'reference '+name,**b)\ndef ListStrings(name, set): return Field(name,'list:string',requires=IS_IN_SET(set,multiple=True))\ntags = Field('tags','list:string',compute=lambda row: row.name.split())\n\ndb.define_table(\n    'forum',\n    Required('name'),\n    Field('body','text'),\n    Readonly('views','integer',default=0),\n    Readonly('last_updated','datetime',default=request.now),\n    auth.user)\n\ndb.define_table(\n    'post',\n    Reference('forum'),\n    Reference('post'),\n    Required('body','text'),\n    Hidden('reported_by','reference auth_user'),\n    Hidden('approved_by','reference auth_user'),\n    Hidden('banned_by','reference auth_user'),\n    auth.signature)\n"
+p7
+sS'snapshot'
+p8
+(dp9
+sS'traceback'
+p10
+S'Traceback (most recent call last):\n  File "/Users/massimodipierro/Dropbox/web2py/gluon/restricted.py", line 217, in restricted\n    exec ccode in environment\n  File "/Users/massimodipierro/Dropbox/web2py/applications/myforum/models/db1.py", line 16, in <module>\n    auth.user)\n  File "/Users/massimodipierro/Dropbox/web2py/gluon/dal.py", line 8236, in define_table\n    table = self.lazy_define_table(tablename,*fields,**args)\n  File "/Users/massimodipierro/Dropbox/web2py/gluon/dal.py", line 8253, in lazy_define_table\n    table = table_class(self, tablename, *fields, **args)\n  File "/Users/massimodipierro/Dropbox/web2py/gluon/dal.py", line 8728, in __init__\n    \'define_table argument is not a Field or Table: %s\' % field)\nSyntaxError: define_table argument is not a Field or Table: None\n'
+p11
+s.

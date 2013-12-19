@@ -1,0 +1,21 @@
+(dp1
+S'output'
+p2
+S"<type 'exceptions.TypeError'> forum() takes exactly 1 argument (0 given)"
+p3
+sS'layer'
+p4
+S'/Users/massimodipierro/Dropbox/web2py/applications/myforum/controllers/default.py'
+p5
+sS'code'
+p6
+S"# -*- coding: utf-8 -*-\n# this file is released under public domain and you can use without limitations\n\n#########################################################################\n## This is a sample controller\n## - index is the default action of any application\n## - user is required for authentication and authorization\n## - download is for downloading files uploaded in the db (does streaming)\n## - call exposes all registered services (none by default)\n#########################################################################\n\nsession.forums = session.forums or []\n\ndef index():\n    if_author = lambda row: (row.created_by==auth.user_id or auth.has_membeship('moderators'))\n    db.forum.name.represent = lambda name,row: A(name,_href=URL('forum',args=(row.id,IS_SLUG.urlify(name))))\n    grid = SQLFORM.grid(db.forum,orderby=~db.forum.views,editable=if_author,deletable=if_author,\n                        details=False,create=False,csv=False)\n    return locals()\n\n@auth.requires_login()\ndef create_forum():\n    db.forum.views.readable = db.forum.last_updated.readable = False\n    form = SQLFORM(db.forum).process(next='forum/[id]')\n    return locals()\n\ndef forum():\n    if request.post_vars.parent_id=='0': request.post_vars.parent_id=None\n    forum = db.forum(request.args(0,cast=int)) or redirect(URL('index'))\n    if not forum.id in session.forums:\n        session.forums.append(forum.id)\n        forum.update_record(views=forum.views+1)\n    db.post.forum.default=forum.id    \n    form = SQLFORM(db.post) if auth.user else None\n    if form and request.post_vars.body:        \n        form.process()\n        print form.vars, form.errors\n        if form.accepted:\n            forum.update_record(last_updated = request.now)\n    posts = db(db.post.forum==forum.id).select(orderby=db.post.created_on).as_trees()\n    return locals()\n\n@auth.requires_login()\ndef do():\n    id, method = request.args(0,cast=int), request.args(1)\n    if method == 'report':\n        db(db.post.id==id)(db.post.approved_by==None)(db.post.reported_by==None).update(\n            reported_by=auth.user.id)\n        return 'reported'\n    if method == 'approve' and (DEBUG or auth.has_membership('moderators')):\n        db(db.post.id==id).update(reported_by=None, approved_by=auth.user.id, banned_by=None)\n        return 'approved'\n    if method == 'banned' and (DEBUG or auth.has_membership('moderators')):\n        db(db.post.id==id).update(banned_by=auth.user.id, approved_by=None)\n        return 'banned'\n    return ''\n\ndef user():\n    return dict(form=auth())\n\n@cache.action()\ndef download():\n    return response.download(request, db)\n\n@service.json\ndef forums():\n    return db(db.forum).select(orderby=db.forum.created_on).as_json()\n\n@service.json\ndef forum(id):\n    return db(db.post.forum==id).select(orderby=db.post.created_on).as_json()\n\n@auth.requires_login()\ndef call():\n    return service()\n\n\nresponse._vars=response._caller(forum)\n"
+p7
+sS'snapshot'
+p8
+(dp9
+sS'traceback'
+p10
+S'Traceback (most recent call last):\n  File "/Users/massimodipierro/Dropbox/web2py/gluon/restricted.py", line 217, in restricted\n    exec ccode in environment\n  File "/Users/massimodipierro/Dropbox/web2py/applications/myforum/controllers/default.py", line 78, in <module>\n  File "/Users/massimodipierro/Dropbox/web2py/gluon/globals.py", line 372, in <lambda>\n    self._caller = lambda f: f()\nTypeError: forum() takes exactly 1 argument (0 given)\n'
+p11
+s.

@@ -1,0 +1,201 @@
+timestamp: 2013-12-18T23:30:02.223168
+CREATE TABLE "auth_user"(
+    "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+    "first_name" CHAR(128),
+    "last_name" CHAR(128),
+    "email" CHAR(512),
+    "password" CHAR(512),
+    "registration_key" CHAR(512),
+    "reset_password_key" CHAR(512),
+    "registration_id" CHAR(512)
+);
+success!
+timestamp: 2013-12-18T23:30:02.235427
+CREATE TABLE "auth_group"(
+    "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+    "role" CHAR(512),
+    "description" TEXT
+);
+success!
+timestamp: 2013-12-18T23:30:02.243492
+CREATE TABLE "auth_membership"(
+    "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+    "user_id" INTEGER REFERENCES "auth_user" ("id") ON DELETE CASCADE,
+    "group_id" INTEGER REFERENCES "auth_group" ("id") ON DELETE CASCADE
+);
+success!
+timestamp: 2013-12-18T23:30:02.251348
+CREATE TABLE "auth_permission"(
+    "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+    "group_id" INTEGER REFERENCES "auth_group" ("id") ON DELETE CASCADE,
+    "name" CHAR(512),
+    "table_name" CHAR(512),
+    "record_id" INTEGER
+);
+success!
+timestamp: 2013-12-18T23:30:02.259613
+CREATE TABLE "auth_event"(
+    "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+    "time_stamp" TIMESTAMP,
+    "client_ip" CHAR(512),
+    "user_id" INTEGER REFERENCES "auth_user" ("id") ON DELETE CASCADE,
+    "origin" CHAR(512),
+    "description" TEXT
+);
+success!
+timestamp: 2013-12-18T23:30:02.268038
+CREATE TABLE "auth_cas"(
+    "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+    "user_id" INTEGER REFERENCES "auth_user" ("id") ON DELETE CASCADE,
+    "created_on" TIMESTAMP,
+    "service" CHAR(512),
+    "ticket" CHAR(512),
+    "renew" CHAR(1)
+);
+success!
+timestamp: 2013-12-18T23:30:02.283907
+CREATE TABLE "forum"(
+    "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+    "name" CHAR(512),
+    "body" TEXT,
+    "html" TEXT,
+    "views" INTEGER,
+    "last_updated" TIMESTAMP,
+    "is_active" CHAR(1),
+    "created_on" TIMESTAMP,
+    "created_by" INTEGER REFERENCES "auth_user" ("id") ON DELETE CASCADE,
+    "modified_on" TIMESTAMP,
+    "modified_by" INTEGER REFERENCES "auth_user" ("id") ON DELETE CASCADE
+);
+success!
+timestamp: 2013-12-18T23:30:02.299536
+CREATE TABLE "post"(
+    "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+    "forum" INTEGER REFERENCES "forum" ("id") ON DELETE CASCADE,
+    "parent_id" INTEGER REFERENCES "post" ("id") ON DELETE CASCADE,
+    "body" TEXT,
+    "html" TEXT,
+    "reported_by" INTEGER REFERENCES "auth_user" ("id") ON DELETE CASCADE,
+    "approved_by" INTEGER REFERENCES "auth_user" ("id") ON DELETE CASCADE,
+    "banned_by" INTEGER REFERENCES "auth_user" ("id") ON DELETE CASCADE,
+    "is_active" CHAR(1),
+    "created_on" TIMESTAMP,
+    "created_by" INTEGER REFERENCES "auth_user" ("id") ON DELETE CASCADE,
+    "modified_on" TIMESTAMP,
+    "modified_by" INTEGER REFERENCES "auth_user" ("id") ON DELETE CASCADE
+);
+success!
+timestamp: 2013-12-19T08:33:17.384689
+ALTER TABLE "post" ADD deleted CHAR(1);
+timestamp: 2013-12-19T08:33:17.387420
+ALTER TABLE "post" ADD banned CHAR(1);
+timestamp: 2013-12-19T08:33:17.390320
+ALTER TABLE "post" ADD reported CHAR(1);
+timestamp: 2013-12-19T08:33:17.393660
+ALTER TABLE "post" ADD approved CHAR(1);
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!

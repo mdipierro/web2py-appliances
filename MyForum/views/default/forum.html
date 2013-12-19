@@ -1,0 +1,86 @@
+{{extend 'layout.html'}}
+<style>
+.deleted {background-color: #666666}
+.reported {background-color: yellow}
+.approved {background-color: #00FF00}
+.banned {background-color: red}
+</style>
+
+{{not_mod = not auth.has_membership('moderators')}}
+
+{{def display(items):}}
+{{for item in items:}}
+<div id="post-{{=item.id}}">
+  <div style="padding-top: 5px; border-bottom: 1px solid black; font-weight: bold" 
+       class="{{='deleted' if item.deleted else 'reported' if item.reported else 'approved' if item.approved else 'banned' if item.banned else ''}}">
+    {{="%(first_name)s %(last_name)s" % item.created_by}}, {{=prettydate(item.created_on)}}
+    <div class="pull-right">
+    {{if auth.user:}}
+    [<a data-reply-to="{{=item.id}}" href="#myModal">reply</a>]
+    [{{=A('report',callback=URL('do',args=(item.id,'report')),target='<self>')}}]
+    {{if DEBUG or auth.has_membership('moderators'):}}
+    [{{=A('approve',callback=URL('do',args=(item.id,'approve')),target='<self>')}}]
+    [{{=A('ban',callback=URL('do',args=(item.id,'banned')),target='<self>')}}]
+    {{pass}}
+    {{if auth.user_id==item.created_by:}}
+    [{{=A('delete',callback=URL('do',args=(item.id,'delete')),target='<self>')}}]
+    {{pass}}
+    {{pass}}
+    </div>
+  </div>
+  <div style="padding: 5px 0">
+    {{if not_mod and item.deleted:}}**DELETED BY AUTHOR**{{elif not_mod and item.banned:}}**BANNED BY MODERATOR**{{else:}}{{=XML(item.html)}}{{pass}}    
+  </div>
+  <div style="padding-left: 20px">
+    {{display(item.children)}}
+  </div>
+</div>
+{{pass}}
+{{return}}
+
+<h2>{{=forum.name}}</h2>
+
+<div style="padding: 10px 0">
+  {{=MARKMIN(forum.body)}}
+  {{if auth.user:}}
+    [<a data-reply-to="0" href="#myModal">reply</a>]
+  {{else:}}
+    [<a href="{{=URL('user/login',vars=dict(_next=request.env.path_info))}}">login to reply</a>]
+  {{pass}}
+</div>
+
+{{display(posts)}}
+
+{{if form:}}
+<div class="modal hide fade" id="myModal">
+  {{=form.custom.begin}}
+  <div class="modal-header">
+    <a class="close" data-dismiss="modal">×</a>
+    <h3>Reply</h3>
+  </div>
+
+  <div class="modal-body" id="target">
+    {{=form.custom.widget.body}}
+    <input type="hidden" name="parent_id" id="post_parent_id" value="0"/>
+    <a href="http://www.web2py.com/init/static/markmin.html" class="btn btn-info" target="_blank">Help with markup syntax<a>
+  </div>
+
+  <div class="modal-footer">
+    <a class="btn" data-dismiss="modal">Cancel</a>
+    <input class="btn btn-primary" type="submit" value="Post Reply" />
+  </div>
+  {{=form.custom.end}}
+</div>
+
+
+<script>
+jQuery('[data-reply-to]').each(function(){
+  var link = jQuery(this);
+  link.click(function(){
+     jQuery('#post_body').val('');
+     jQuery('#post_parent_id').val(link.attr('data-reply-to'));
+     jQuery('#myModal').modal('show');
+  });
+});
+</script>
+{{pass}}
