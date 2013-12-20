@@ -24,7 +24,5 @@ response.google_analytics_id = None
 #########################################################################
 
 response.menu = [
-    ('Forums',None,URL('index')),
-    ('New Forum',None,URL('create_forum')),
-    ]
-
+    ('Forums',False,URL('default','index'))
+]
