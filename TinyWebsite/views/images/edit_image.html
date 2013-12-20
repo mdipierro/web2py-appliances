@@ -21,18 +21,18 @@
 	<img src="{{=URL('static','images/photo_gallery/thumbs/%s' %(thumb))}}">
 </div>
 <script>
-	jQuery(document).ready(function(){
-		jQuery('#image_show_in_gallery__row').hide();
-		jQuery('#image_show_in_banner__row').hide();
-		jQuery('#simple_view').click(function(){
-			jQuery('#simple_view').attr('class','active');
-			jQuery('#advanced_view').attr('class','inactive');
-			jQuery('#image_show_in_gallery__row').hide();
-			jQuery('#image_show_in_banner__row').hide();});
-		jQuery('#advanced_view').click(function(){
-			jQuery('#advanced_view').attr('class','active');
-			jQuery('#simple_view').attr('class','inactive');
-			jQuery('#image_show_in_gallery__row').show();
-			jQuery('#image_show_in_banner__row').show();});
+	$(document).ready(function(){
+		$('#image_show_in_gallery__row').hide();
+		$('#image_show_in_banner__row').hide();
+		$('#simple_view').click(function(){
+			$('#simple_view').attr('class','active');
+			$('#advanced_view').attr('class','inactive');
+			$('#image_show_in_gallery__row').hide();
+			$('#image_show_in_banner__row').hide();});
+		$('#advanced_view').click(function(){
+			$('#advanced_view').attr('class','active');
+			$('#simple_view').attr('class','inactive');
+			$('#image_show_in_gallery__row').show();
+			$('#image_show_in_banner__row').show();});
 	});
 </script>

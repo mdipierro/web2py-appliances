@@ -30,7 +30,9 @@ code {font-family:Courier}
 textarea {width:100%}
 video {width:400px}
 audio {width:200px}
-input[type=text],input[type=password],select{width:300px; margin-right:5px}
+[type="text"], [type="password"], select {
+  margin-right: 5px; width: 300px;
+}
 .hidden {display:none;visibility:visible}
 .right {float:right; text-align:right}
 .left {float:left; text-align:left}
@@ -92,7 +94,7 @@ div.flash {
     position:fixed;
     padding:10px;
     top:48px;
-    right:50px;
+    right:250px;
     min-width:280px;
     opacity:0.95;
     margin:0px 0px 10px 10px;
@@ -191,6 +193,7 @@ div.error {
 .web2py_grid {width:100%}
 .web2py_grid table {width:100%}
 .web2py_grid tbody td {padding:2px 5px 2px 5px; vertical-align: middle;}
+.web2py_grid .web2py_form td {vertical-align: top;}
 
 .web2py_grid thead th,.web2py_grid tfoot td {
     background-color:#EAEAEA;

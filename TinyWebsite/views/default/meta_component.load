@@ -1,0 +1,6 @@
+{{for component in components:}}
+	<div>
+		{{=LOAD(component.controller, component.name, ajax=component.ajax,
+		ajax_trap=component.ajax_trap, vars={'container_id':page.id})}}
+	</div>
+{{pass}}

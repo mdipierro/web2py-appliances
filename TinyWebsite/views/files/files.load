@@ -7,19 +7,27 @@
 			{{ pass }}
 		</h3>
 		{{for file in files:}}
-			<div class="test">
+			{{if file.protected:}}
+				<div class="protected">
+			{{else:}}
+				<div>
+			{{pass}}
 				<hr>
 				<p>
-					{{if auth.has_membership('manager'):}}
-						{{=manager_toolbar(file.id)}}
-					{{ pass }}
 					<a href={{=URL('default', 'download', args=file.file)}}>
 						<div>
 							<h4>
-								{{=file.title}}
+								{{if file.protected:}}
+									{{=T('*** %s (protected) ***',file.title)}}
+								{{else:}}
+									{{=file.title}}
+								{{pass}}
 								{{if file.size:}}
 									({{=sizeof_file(file.size)}})
 								{{pass}}
+								{{if auth.has_membership('manager'):}}
+									{{=manager_toolbar(file.id)}}
+								{{ pass }}
 							</h4>
 							<h5>{{=file.comment}}</h5>
 						</div>
@@ -27,5 +35,5 @@
 				</p>
 			</div>
 		{{pass}}
-	</adise>
+	</aside>
 {{pass}}

@@ -1,7 +1,7 @@
 {{if WEBSITE_PARAMETERS.with_specific_banner:}}
    {{include 'specificbanner.html'}}
 {{else:}}
-  <a href={{=URL('default','index')}}>
+  <a href={{=URL('pages','show_page')}}>
     <div id="banner_image" class="gradient">
       <!--[if gte IE 9]>
         <style type="text/css">
@@ -25,11 +25,11 @@
         {{pass}}
 
         <div id="banner_description">
-          {{if WEBSITE_PARAMETERS.website_name_long:}}
-            {{=T('Welcome on %s',WEBSITE_PARAMETERS.website_name_long)}}
-          {{else:}}
-            {{=T('Welcome on this website')}}
-          {{pass}}
+              {{if WEBSITE_PARAMETERS.website_name_long:}}
+                {{=WEBSITE_PARAMETERS.website_name_long}}
+              {{else:}}
+                {{=T('Welcome on this website')}}
+              {{pass}}
         </div>
     </div>
   </a>

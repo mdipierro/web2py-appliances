@@ -1,11 +1,11 @@
 {{if newsS or auth.has_membership('manager'):}}
 	<aside>
 		<h3>
-			{{ =T('Latest news') }}
+			{{=T('Latest news')}}
 			{{=A(IMG(_src=URL('static/images','feed-icon.png'), _alt=T('Follow our news with RSS feed'), _title=T('Follow our news with RSS feed')),_href=URL('rss_news.rss'))}}
-			{{if auth.has_membership('manager'):}}
+			{{if auth.has_membership('manager') or auth.has_membership('news_manager'):}}
 				{{=manager_toolbar()}}
-			{{ pass }}
+			{{pass}}
 		</h3>
 		{{for news in newsS:}}
 			{{if news.date < request.now.date():}}
@@ -15,19 +15,37 @@
 			{{pass}}
 				<hr>
 				<p>
-					{{if auth.has_membership('manager'):}}
-						{{=manager_toolbar(news.id)}}
-					{{ pass }}
-					<h4>{{=news.title}}</h4>
-					<p>
-						{{=XML(news.text)}}
-						<em>
-							{{=T('Published on ')}}
-							{{=news.published_on.strftime("%d/%m/%Y %H:%M") }}
-						</em>
+					<h4>
+						{{=news.title}}
+						{{if auth.has_membership('manager') or auth.has_membership('news_manager'):}}
+							{{=manager_toolbar(news.id)}}
+						{{pass}}
+					</h4>
+					<p>	
+						<section id="news_content">{{=XML(news.text)}}</section>
+						{{if news.max_content_height:}}
+							<script src="{{=URL('static','js/readmore.min.js')}}"></script>
+							<script type="text/javascript">
+								$('#news_content').readmore({
+								 	speed: 100,
+									moreLink: '<a href="#">{{=T("Read more")}}</a>',
+									lessLink: '<a href="#">{{=T("Read less")}}</a>',
+								 	maxHeight: {{=news.max_content_height}}
+								});
+							</script>
+						{{pass}}
+						<br />
+						{{if news.published_on:}}
+							<em>
+								<small class="muted pull-right">
+									{{=T('Published on ')}}
+									{{=news.published_on.strftime("%d/%m/%Y %H:%M") }}
+								</small>
+							</em>
+						{{pass}}
 					</p>
 				</p>
 			</div>
 		{{pass}}
-	</adise>
+	</aside>
 {{pass}}

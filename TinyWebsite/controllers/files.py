@@ -1,14 +1,9 @@
+from controllers_tools import sizeof_file
+
 def files():
     """
     Allows to access the "files" component
     """
-    def sizeof_file(num):
-        for x in [T('bytes'),T('KB'),T('MB'),T('GB')]:
-            if num < 1024.0 and num > -1024.0:
-                return "%3.1f%s" % (num, x)
-            num /= 1024.0
-        return "%3.1f%s" % (num, T('TB'))
-
     manager_toolbar = ManagerToolbar('file')
     page = db.page(request.vars.container_id)
     if page:
@@ -17,18 +12,29 @@ def files():
         q=(db.file)
     if db(q).isempty(): #if there are no files related to the page, we select all available files
         q=(db.file)
-    files = db(q).select(orderby=~db.file.id)
+    files = db(q).select(orderby=~db.file.protected|~db.file.id)
+
+    if not (auth.has_membership('manager') or auth.has_membership('protected_files_access')):
+        #restrict protected files for allowed users only
+        files = [f for f in files if not f.protected]
     return dict(files=files,
                 sizeof_file=sizeof_file,
-                
                 manager_toolbar=manager_toolbar)
 
 def files_list():
     manager_toolbar = ManagerToolbar('file')
-    files = db(db.file).select(orderby=~db.file.id)
+    files = db(db.file).select(orderby=~db.file.protected|~db.file.id)
+    
+    if not (auth.has_membership('manager') or auth.has_membership('protected_files_access')):
+        #restrict protected files for allowed users only
+        files = [f for f in files if not f.protected]
+    else:
+        #Group all protected files on the same "virtual" page
+        for index, f in enumerate(files):
+            if f.protected:
+                files[index].page = -1
     return dict(files=files,
-                left_sidebar_enabled=True,
-                right_sidebar_enabled=True,
+                sizeof_file=sizeof_file,
                 manager_toolbar=manager_toolbar)
 
 @auth.requires_membership('manager')

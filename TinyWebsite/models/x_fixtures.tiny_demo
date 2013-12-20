@@ -8,22 +8,6 @@ if db(db.website_parameters.id > 0).count() == 0:
     website_subtitle="Fork me, I'm famous",
     website_name_long="my awesome website",
     website_url='http://www.my-awesome-website.com',
-    contact_name='John doe',
-    contact_trade_register_number='243 849 247 22 98',
-    contact_address="""
-    Route de l'aéroport 15
-    1215 Geneva
-    Switzerland
-    """,
-    contact_google_maps_plan_url=r"""
-    http://maps.google.fr/maps?q=Geneva+International+Airport,+Meyrin,+Suisse&hl=fr&ll=46.237328,6.10857&spn=0.038054,0.104628&sll=46.230084,6.126595&sspn=0.038059,0.104628&oq=geneva+ai&t=h&hq=Geneva+International+Airport,+Meyrin,+Suisse&z=14&iwloc=A                                                                                         
-    """,
-    contact_telephone='123 456 789',                                                                                        
-    contact_fax='987 654 321',
-    contact_mobile='',                                                                        
-    contact_form_email='user@test.com',
-    contact_form_cc='',
-    contact_form_bcc='',
     max_old_news_to_show=2,
     booking_form_email='user@test.com',
     booking_form_cc='',
@@ -41,6 +25,27 @@ if db(db.website_parameters.id > 0).count() == 0:
     banner_image_phone='banner.jpg',
     banner_image_background_gradient_from='#519CAF',
     banner_image_background_gradient_to='#7DCBD8'
+    )
+
+#Create a default contact
+if db(db.contact.id > 0).count() == 0:
+    db.contact.insert(
+    name='John doe',
+    trade_register_number='243 849 247 22 98',
+    address="""
+    Route de l'aéroport 15
+    1215 Geneva
+    Switzerland
+    """,
+    google_maps_plan_url=r"""
+    http://maps.google.fr/maps?q=Geneva+International+Airport,+Meyrin,+Suisse&hl=fr&ll=46.237328,6.10857&spn=0.038054,0.104628&sll=46.230084,6.126595&sspn=0.038059,0.104628&oq=geneva+ai&t=h&hq=Geneva+International+Airport,+Meyrin,+Suisse&z=14&iwloc=A                                                                                         
+    """,
+    telephone='123 456 789',                                                                                        
+    fax='987 654 321',
+    mobile='',                                                                        
+    contact_form_email='user@test.com',
+    contact_form_cc='',
+    contact_form_bcc=''
     )
 
 #Create a default user
@@ -78,7 +83,7 @@ tmpContent = """
 	Once connected, try to add images in the photo gallery (<em>need to have python PIL installed</em>)
 </p
 <p>
-	You can edit the website parameters in models/db_menu.py
+	You can edit the website parameters in website_parameters table
 </p>
 """
 if db(db.page.is_index == True).count() == 0:

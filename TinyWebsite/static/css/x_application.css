@@ -1,4 +1,7 @@
-	/* Fonts */
+/*Keep this file unchanged (tracked via git)
+You can override these rules in x_application_custom.css*/
+
+/* Fonts */
 
 @font-face {
     font-family: 'BlackJackRegular';
@@ -103,8 +106,8 @@
 		border-bottom-right-radius: 5px;
 }
 
-article, aside, .image-box{
-	background-color: rgb(255,255,255);
+article, aside, .image-box, .file-box{
+	/*background-color: rgb(255,255,255);*/
 	box-shadow: 0px 2px 5px #1c1a19;
 	border-radius: 5px;
 	padding: 15px;
@@ -122,7 +125,7 @@ article, aside, .image-box{
 
 #footer-content{
 	width: 25%;
-	background-color: rgb(255,255,255);
+	/*background-color: rgb(255,255,255);*/
 	position: relative;
 	padding: 0px;
 	box-shadow: 0px 0px 1px #1c1a19;
@@ -130,7 +133,7 @@ article, aside, .image-box{
 }
 #contact{
 	width: 25%;
-	background-color: rgb(255,255,255);
+	/*background-color: rgb(255,255,255);*/
 	position: relative;
 	padding: 5px;
 	box-shadow: 0px 0px 1px #1c1a19;
@@ -138,7 +141,7 @@ article, aside, .image-box{
 }
 #newsletter{
 	width: 25%;
-	background-color: rgb(255,255,255);
+	/*background-color: rgb(255,255,255);*/
 	position: relative;
 	padding: 5px;
 	box-shadow: 0px 0px 1px #1c1a19;
@@ -146,7 +149,7 @@ article, aside, .image-box{
 }
 #miscellaneous{
 	width: 25%;
-	background-color: rgb(255,255,255);
+	/*background-color: rgb(255,255,255);*/
 	position: relative;
 	padding: 5px;
 	box-shadow: 0px 0px 1px #1c1a19;
@@ -158,9 +161,14 @@ article, aside, .image-box{
 	border-radius: 5px;
 	padding: 15px;
 }
+
 #mygallery img{
 	border: 5px solid rgb(102,102,102);
 }
 .greyText {
 		color: rgb(200,200,200);
+}
+
+div .protected{
+	background-color: rgb(255,255,160);
 }

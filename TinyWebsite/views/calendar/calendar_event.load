@@ -7,7 +7,6 @@
 }}
 
 {{include 'web2py_ajax.html'}}
-
 <script type='text/javascript'>
   $(document).ready(function() {
 
@@ -42,7 +41,7 @@
                    "{{=shortday}}"
                 {{pass}}
             ],
-			header: {
+            header: {
                 left: 'prev,next,title',
                  center: '',
                  right: ''
@@ -56,7 +55,23 @@
             events: [
             {{for i,row in enumerate(rows):}}{{if i!=0:}},{{pass}}
                 {
-                    tip: "{{=T('booked during %s',T(row.duration.name.lower()))}}",
+                    
+                    {{try:}}
+                        {{if events_available_positions[row.id] != None:}}
+                            {{if events_available_positions[row.id] > 0:}}
+                                tip: "{{=row.title}} : {{=T('%d position(s) available', events_available_positions[row.id])}}\n\n{{=strip_accents(row.description).replace("\r\n", " ")}}",
+                            {{else:}}
+                                tip: "{{=row.title}} : {{=T('No positions available')}}\n\n{{=strip_accents(row.description).replace("\r\n", " ")}}",
+                                backgroundColor: "#FF0000",
+                            {{pass}}
+                        {{else:}}
+                            tip: "{{=row.title}} : {{=T('Positions available')}}\n\n{{=strip_accents(row.description).replace("\r\n", " ")}}",
+                            backgroundColor: "#008000",
+                        {{pass}}
+                    {{except KeyError:}}
+                        tip: "{{=row.title}} : {{=T('No informations available for this event')}}",
+                        backgroundColor: "#FFFF00",
+                    {{pass}}
                     title: '',
                     allDay: false,
                     {{if row.start_datetime:}}
@@ -68,7 +83,12 @@
                 }
             {{pass}}
             ],
-
+            eventClick: function(event) {
+                if (event.tip) {
+                    alert(event.tip);
+                    return false;
+                }
+            },
             eventRender: function(event, element) {
                 element.attr('title', event.tip);
             }
@@ -78,9 +98,9 @@
     });
 </script>
 <div id='calendar'></div>
-{{if page:}}
+{{if len(rows):}}
     <div id="showform">
-        {{=A(T('I would like to book %s',page.title.lower()), _href=URL('calendar', 'add_booking_request', extension=False, args=page.id), _class="btn btn-primary")}}
+        {{=A(T('I am interested%s','' if page.is_index else T(' in : %s', page.title)), _href=URL('default', 'contact_form', extension=False), _class="btn btn-primary")}}
     </div>
     <hr>
 {{pass}}

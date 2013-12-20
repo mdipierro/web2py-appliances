@@ -8,7 +8,7 @@ class HierarchicalSelect(object):
         self.order = order_field
         self.type = None
         self.rows=None
-        self.hierarchyseparator = XML("&nbsp;&nbsp;&nbsp;&nbsp;")
+        self.hierarchyseparator = XML("&nbsp;"*4)
 
     def _childs_list(self, field, depth):
         path = self.hierarchyseparator*depth
@@ -21,13 +21,13 @@ class HierarchicalSelect(object):
         self.fieldname = field.name
         self.type = field.type
         self.rows = self.db(self.tablename).select(orderby=self.order)
-        self.options.append((None, T('<Empty>'))) #add root node
+        self.options.append(("", T('<Empty>'))) #add root node
 
         [self._childs_list(field,0) for field in self.rows.find(lambda row: row.parent < 1)] 
-
         opt=[OPTION(name, _value=key) for key,name in self.options]
         sel = SELECT(opt,_id="%s_%s" % (self.tablename, self.fieldname),
                         _class=self.type, 
                         _name=self.fieldname,
-                        value=value)
+                        value=value,
+                        requires=self.tablename.parent.requires)
         return sel
