@@ -1,52 +1,55 @@
 {{extend 'layout.html'}}
-
 <h3>
-	{{ =T('Photo gallery') }}
+	{{=T('Photo gallery')}}
 	{{if auth.has_membership('manager'):}}
 		{{=manager_toolbar()}}
-	{{ pass }}
+	{{pass}}
 </h3>
-
-{{prev_page=-1}}
-{{for image in images:}}
-		{{if image.page != prev_page:}}
-			{{if prev_page <> -1:}}
-				</div>
-			{{pass}}
-			<div class="span10 image-box">
-			{{if image.page:}}
-				<h3>{{=image.page.title}}</h3>
-			{{else:}}
-				<h3>{{=T('Miscellaneous')}}</h3>
-			{{pass}}	
-		{{pass}}
-			<div class="span3">
-				<div class="modal hide" id="{{='image_'+str(image.id)}}">
-					<div class="modal-header"> <a class="close" data-dismiss="modal">×</a>
-						<h2>{{=image.name}}</h2>
-						<p>
-							<h5>{{=image.comment}}</h5>
-						</p>
+{{for page in pages:}}
+	<div class="container">
+	    <div class="row">
+			<div class="span8 offset2 image-box">
+				{{if page:}}
+					<h3>{{=page.title}}</h3>
+				{{else:}}
+					<h3>{{=T('Miscellaneous')}}</h3>
+				{{pass}}
+				<div id="myCarousel{{=page.id if page else 0}}" class="carousel slide">
+					<!--<ol class="carousel-indicators">
+						{{for index,image in enumerate(images):}}
+							<li data-target="#myCarousel{{=page.id if page else 0}}" data-slide-to="{{=index}}"{{if index==0:}} class="active"{{pass}}></li>
+						{{pass}}
+					</ol>-->
+					<!-- Carousel items -->
+					<div class="carousel-inner">
+						{{for index,image in enumerate([i for i in images if i.page==page]):}}
+							{{if index==0:}}
+								<div class="item active">
+							{{else:}}	
+								<div class="item">
+							{{pass}}
+								{{if auth.has_membership('manager'):}}
+									{{=manager_toolbar(image.id)}}
+								{{pass}}
+									<img src="{{=URL('static','images/photo_gallery/%s' %(image.file))}}">
+									{{if image.name or image.comment:}}
+										<div class="carousel-caption">
+											{{if image.name:}}
+												<h4>{{=image.name}}</h4>
+											{{pass}}
+											{{if image.comment:}}
+												<p>{{=image.comment}}</p>
+											{{pass}}
+										</div>
+									{{pass}}
+								</div>
+						{{pass}}
 					</div>
-						<div class="modal-body">
-							<img src="{{=URL('static','images/photo_gallery/%s' %(image.file))}}">
-					</div>
-					<div class="modal-footer"> <a class="btn btn-info" data-dismiss="modal">Fermer</a> </div>
-				</div>
-				<div >
-					<p>
-						{{if auth.has_membership('manager'):}}
-							{{=manager_toolbar(image.id)}}
-						{{ pass }}
-						<h4>{{=image.name}}</h4>
-						<a data-toggle="modal" href="#{{='image_'+str(image.id)}}">
-							<img src="{{=URL('static','images/photo_gallery/thumbs/%s' %(image.thumb))}}">
-						</a>
-					</p>
+					<!-- Carousel nav -->
+					<a class="left carousel-control" href="#myCarousel{{=page.id if page else 0}}" data-slide="prev">&lsaquo;</a>
+					<a class="right carousel-control" href="#myCarousel{{=page.id if page else 0}}" data-slide="next">&rsaquo;</a>
 				</div>
 			</div>
-	{{prev_page = image.page}}
-{{pass}}
-{{if images:}}
+		</div>
 	</div>
 {{pass}}

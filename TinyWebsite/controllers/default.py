@@ -2,10 +2,13 @@
 
 # from gluon.debug import dbg
 
-def index():
-    """
+@auth.requires_membership('manager')
+def settings():
+    website_parameters = db(db.website_parameters).select().first()
+    form = crud.update(db.website_parameters,website_parameters)
+    return dict(form=form)
 
-    """
+def index():
     #Check if WEBSITE_PARAMETERS initialised. If not, we can either start with dummy data, or a blank database
     if not WEBSITE_PARAMETERS:
         form = FORM.confirm(T('I want to start with an empty database'),{T('I want to try the example database'):URL('populate_example_database')})
@@ -93,12 +96,14 @@ def address():
     """
     Allows to access the "address" component
     """
-    return dict()
+    contacts = db(db.contact.show_in_address_component == True).select()
+    return dict(contacts=contacts)
 
 def newsletter():
     """
     Allows to access the "newsletter" component
     """
+    db.registered_user.subscribe_to_newsletter.readable = db.registered_user.subscribe_to_newsletter.writable = False
     form = SQLFORM(db.registered_user, _class='blueText')
     if form.process().accepted:
        response.flash = T('form accepted')
@@ -106,6 +111,14 @@ def newsletter():
        response.flash = T('form has errors')
     return dict(form=form)
 
+
+def meta_component():
+    """
+    Allows to access the "meta_component" component
+    """
+    components = db(db.page_component.parent == request.vars.component_id).select(orderby = db.page_component.rank)
+    page = db.page(request.vars.container_id)
+    return dict(page=page, components=components)
 
 def call():
     """
@@ -149,26 +162,50 @@ def contact_form():
         Field('subject',requires=IS_NOT_EMPTY(), label=T('Subject')),
         Field('message', 'text',requires=IS_NOT_EMPTY(), label=T('Message'))
         )
+
+    contacts = db(db.contact.show_in_contact_form == True).select()
+    opt=[OPTION(contact.name, _value=contact.id) for contact in contacts]
+    sel = SELECT(opt,_id="%s_%s" % ('no_table', 'send_to'),
+                            _class='generic-widget', 
+                            _name='send_to'
+                        )
+    my_extra_element = TR(TD(LABEL(T('Send to')),_class='w2p_fl'),TD(sel,_class='w2p_fw'), _id="no_table_send_to__row")
+    form[0].insert(-2,my_extra_element)
+    nb_contact=len(contacts)
+    ## Uncomment here to add the captcha...
     #form.element('table').insert(-1,(T('Confirm that you are not a machine'),Recaptcha(request, public_key, private_key),''))
+
     if form.process().accepted:
-        message=T("""
-            Name : %s
-            Email : %s
-            Subject : %s
-            Message : %s
-        """) % (form.vars.your_name, form.vars.your_email, form.vars.subject, form.vars.message)
-        if mail.send(
-                    to=WEBSITE_PARAMETERS.contact_form_email,
-                    cc=WEBSITE_PARAMETERS.contact_form_cc if WEBSITE_PARAMETERS.contact_form_cc else '',
-                    bcc=WEBSITE_PARAMETERS.contact_form_bcc if WEBSITE_PARAMETERS.contact_form_bcc else '',
-                    subject=T('Question from %s on %s website') % (form.vars.your_name,WEBSITE_PARAMETERS.website_name),
-                    reply_to = form.vars.your_email,
-                    message = message):
-            response.flash = T('Your message has been sent. Thank you')
-            response.js = "jQuery('#%s').hide()" % request.cid
+        a_contact = db.contact(form.vars.send_to)
+        if nb_contact > 1:
+            mail_subject = T('Question from %s for %s on %s website') % (form.vars.your_name,a_contact.name,WEBSITE_PARAMETERS.website_name)
         else:
-            form.errors.your_email = T('Unable to send the email')
+            mail_subject = T('Question from %s on %s website') % (form.vars.your_name,WEBSITE_PARAMETERS.website_name)
+        if a_contact:
+            message=T("""
+                Name : %s
+                Email : %s
+                Subject : %s
+                Message : %s
+            """) % (form.vars.your_name, form.vars.your_email, form.vars.subject, form.vars.message)
+            if mail:
+                if mail.send(
+                            to=a_contact.contact_form_email,
+                            cc=a_contact.contact_form_cc if a_contact.contact_form_cc else '',
+                            bcc=a_contact.contact_form_bcc if a_contact.contact_form_bcc else '',
+                            subject=mail_subject,
+                            reply_to = form.vars.your_email,
+                            message = message):
+                    response.flash = T('Your message has been sent. Thank you')
+                    response.js = "jQuery('#%s').hide()" % request.cid
+                else:
+                    response.flash = T('Unable to send the email')
+            else:
+                response.flash = T('Unable to send the email : email parameters not defined')
+        else:
+            response.flash = T('Unable to send the email : no contact selected')
     return dict(form=form,
+                nb_contact=nb_contact,
                 left_sidebar_enabled=True,
                 right_sidebar_enabled=True)
 

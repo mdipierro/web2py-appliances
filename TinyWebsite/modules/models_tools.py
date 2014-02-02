@@ -2,23 +2,26 @@ def start_datetime(row):
     from datetime import datetime
 
     #dbg.set_trace()
-    if row.calendar_event.duration:
-        myDateTime = datetime(row.calendar_event.start_date.year, row.calendar_event.start_date.month, row.calendar_event.start_date.day,
-                                      row.calendar_event.duration.start_hour.hour, row.calendar_event.duration.start_hour.minute,
-                                      row.calendar_event.duration.start_hour.second)
+    _row = row[row.keys()[0]]
+    if _row.duration:
+        myDateTime = datetime(_row.start_date.year, _row.start_date.month, _row.start_date.day,
+                                      _row.duration.start_hour.hour, _row.duration.start_hour.minute,
+                                      _row.duration.start_hour.second)
     else:
-        myDateTime = datetime(row.calendar_event.start_date.year, row.calendar_event.start_date.month, row.calendar_event.start_date.day)
+        myDateTime = datetime(_row.start_date.year, _row.start_date.month, _row.start_date.day)
     return myDateTime.strftime('%B %d, %Y %H:%M:%S')
 
 def end_datetime(row):
     from datetime import datetime, timedelta
 
-    if row.calendar_event.duration:
-        delta = timedelta(minutes=row.calendar_event.duration.duration_in_minutes)
-        myDateTime = datetime(row.calendar_event.start_date.year, row.calendar_event.start_date.month, row.calendar_event.start_date.day,
-                                      row.calendar_event.duration.start_hour.hour, row.calendar_event.duration.start_hour.minute,
-                                      row.calendar_event.duration.start_hour.second)
+    #dbg.set_trace()
+    _row = row[row.keys()[0]]
+    if _row.duration:
+        delta = timedelta(minutes=_row.duration.duration_in_minutes)
+        myDateTime = datetime(_row.start_date.year, _row.start_date.month, _row.start_date.day,
+                                      _row.duration.start_hour.hour, _row.duration.start_hour.minute,
+                                      _row.duration.start_hour.second)
         myDateTime = myDateTime + delta
     else:
-        myDateTime = datetime(row.calendar_event.start_date.year, row.calendar_event.start_date.month, row.calendar_event.start_date.day)
+        myDateTime = datetime(_row.start_date.year, _row.start_date.month, _row.start_date.day)
     return myDateTime.strftime('%B %d, %Y %H:%M:%S')

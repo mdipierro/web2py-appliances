@@ -1,2 +1,60 @@
 {{extend 'layout.html'}}
-{{=LOAD('files', 'files.load', ajax=False)}}
+
+<h3>
+	{{=T('Files to download')}}
+	{{if auth.has_membership('manager'):}}
+		{{=manager_toolbar()}}
+	{{pass}}
+</h3>
+
+{{prev_page=None}}
+{{for file in files:}}
+		{{if file.page != prev_page:}}
+			{{if prev_page <> None:}}
+				</div>
+			{{pass}}
+			<div class="span10 file-box">
+			{{if file.page > 0:}}
+				{{if file.protected:}}
+					<h3>{{=T('%s - Protected',file.page.title)}}</h3>
+				{{else:}}
+					<h3>{{=file.page.title}}</h3>
+				{{pass}}
+			{{else:}}
+				{{if file.protected:}}
+					<h3>{{=T('Protected')}}</h3>
+				{{else:}}
+					<h3>{{=T('Miscellaneous')}}</h3>
+				{{pass}}
+			{{pass}}	
+		{{pass}}
+			<div class="span">
+				<hr>
+				<p>
+					<a href={{=URL('default', 'download', args=file.file)}}>
+						{{if file.protected:}}
+							<div class="protected">
+								<h4>
+									{{=T('*** %s (protected) ***',file.title)}}
+						{{else:}}
+							<div>
+								<h4>
+									{{=file.title}}
+						{{pass}}
+									{{if file.size:}}
+										({{=sizeof_file(file.size)}})
+									{{pass}}
+									{{if auth.has_membership('manager'):}}
+										{{=manager_toolbar(file.id)}}
+									{{ pass }}
+								</h4>
+							<h5>{{=file.comment}}</h5>
+						</div>
+					</a>
+				</p>
+			</div>
+	{{prev_page = file.page}}
+{{pass}}
+{{if files:}}
+	</div>
+{{pass}}

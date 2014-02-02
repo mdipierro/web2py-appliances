@@ -3,6 +3,20 @@
 ==============================================================*/
 
 body{height:auto;} /* to avoid vertical scroll bar */
+
+a{}
+a:visited{}
+a:hover{}
+a:focus{}
+a:active{}
+
+h1{}
+h2{}
+h3{}
+h4{}
+h5{}
+h6{}
+
 div.flash.flash-center{left:25%;right:25%;}
 div.flash.flash-top,div.flash.flash-top:hover{
   position:relative;
@@ -38,6 +52,7 @@ div.flash.flash-top,div.flash.flash-top:hover{
 }
 /* auth navbar - primitive style */
 .auth_navbar,.auth_navbar a{color:inherit;}
+.navbar-inner {-webkit-border-radius:0;-moz-border-radius:0;border-radius:0}
 .ie-lte7 .auth_navbar,.auth_navbar a{color:expression(this.parentNode.currentStyle['color']); /* ie7 doesn't support inherit */}
 .auth_navbar a{white-space:nowrap;} /* to avoid the nav split on more lines */
 .auth_navbar a:hover{color:white;text-decoration:none;}
@@ -75,6 +90,7 @@ div.controls select +.error_wrapper {margin-left:5px;}
 .ie-lte7 div.error{color:#fff;}
 
 /* beautify brand */
+.navbar {margin-bottom:0}
 .navbar-inverse .brand{color:#c6cecc;}
 .navbar-inverse .brand b{display:inline-block;margin-top:-1px;}
 .navbar-inverse .brand b>span{font-size:22px;color:white}
@@ -128,6 +144,10 @@ textarea { width:90%}
 div>input[type="radio"],div>input[type="checkbox"]{margin:0;}
 /* bootstrap has button instead of input */
 input[type="button"], input[type="submit"]{margin-right:8px;}
+
+/* web2py radio widget adjustment */
+.generic-widget input[type='radio'] {margin:-1px 0 0 0; vertical-align: middle;}
+.generic-widget input[type='radio'] + label {display:inline-block; margin:0 0 0 6px; vertical-align: middle;}
 
 /*=============================================================
 RULES FOR SOLVING CONFLICTS BETWEEN WEB2PY.CSS AND BOOTSTRAP.CSS
@@ -207,16 +227,21 @@ td.w2p_fw ul{margin-left:0px;}
 /* auth_user_remember checkbox extrapadding in IE fix */
 .ie-lte9 input#auth_user_remember.checkbox {padding-left:0;}
 
+div.controls .error {
+    width: auto;
+}
+
 /*=============================================================
                        MEDIA QUERIES
 ==============================================================*/
 
 @media only screen and (max-width:979px){
   body{padding-top:0px;}
-  #navbar{top:5px;}
+  #navbar{/*top:5px;*/}
   div.flash{right:5px;}
   .dropdown-menu ul{visibility:visible;}
 }
+
 @media only screen and (max-width:479px){
   body{
     padding-left:10px;
@@ -229,4 +254,11 @@ td.w2p_fw ul{margin-left:0px;}
   input[type="text"],input[type="password"],select{
     width:95%;
   }
+}
+
+@media (max-width: 767px) {
+    .navbar {
+        margin-right: -20px;
+        margin-left: -20px;
+    }
 }

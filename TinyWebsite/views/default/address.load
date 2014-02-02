@@ -1,23 +1,52 @@
-<address>
-	<p><h3>{{=T('Address')}}</h3></p>
-	{{if WEBSITE_PARAMETERS.contact_address:}}
-		<p>
-		{{for line in WEBSITE_PARAMETERS.contact_address.split('\n'):}}
-			{{=line}} <br />
+{{if len(contacts) > 0:}}
+	<div>
+		{{if len(contacts) == 1:}}
+			<p><h3>{{=T('Address')}}</h3></p>
+		{{else:}}
+			<p><h3>{{=T('Addresses')}}</h3></p>
 		{{pass}}
-		</p>
-	{{pass}}
-	{{if WEBSITE_PARAMETERS.contact_telephone:}}
-		<div class="blueText">{{=T('Tel : ')}}{{=WEBSITE_PARAMETERS.contact_telephone}}</div>
-	{{pass}}
-	{{if WEBSITE_PARAMETERS.contact_fax:}}
-		<div class="blueText">{{=T('Fax : ')}}{{=WEBSITE_PARAMETERS.contact_fax}}</div>
-	{{pass}}
-</address>
-
-<!-- google maps plan -->
-{{if WEBSITE_PARAMETERS.contact_google_maps_plan_url:}}
-	<p>
-		<a href="{{=XML(WEBSITE_PARAMETERS.contact_google_maps_plan_url)}}" target="_blank">{{=T('Show the plan')}}</a>
-	</p>
+		{{ for contact in contacts:}}
+		<div>
+			<p>
+				<h4>{{=contact.name}}</h4>
+			</p>
+			{{if contact.description:}}
+				<p>
+				{{for line in contact.description.split('\n'):}}
+					{{=line}} <br />
+				{{pass}}
+				</p>
+			{{pass}}
+			{{if contact.address or contact.telephone or contact.fax or contact.website or contact.email:}}
+				<address>
+					{{if contact.address:}}
+						<p>
+						{{for line in contact.address.split('\n'):}}
+							{{=line}} <br />
+						{{pass}}
+						</p>
+					{{pass}}
+					{{if contact.telephone:}}
+						<div class="blueText">{{=T('Tel : ')}}{{=contact.telephone}}</div>
+					{{pass}}
+					{{if contact.fax:}}
+						<div class="blueText">{{=T('Fax : ')}}{{=contact.fax}}</div>
+					{{pass}}
+					{{if contact.website:}}
+						<div>{{=A(contact.website, _href=contact.website)}}</div>
+					{{pass}}
+					{{if contact.email:}}
+						<div>{{=A(contact.email, _href='mailto:'+contact.email)}}</div>
+					{{pass}}
+				</address>
+			{{pass}}
+			<!-- google maps plan -->
+			{{if contact.google_maps_plan_url:}}
+				<p>
+					<a href="{{=XML(contact.google_maps_plan_url)}}" target="_blank">{{=T('Show the plan')}}</a>
+				</p>
+			{{pass}}
+		</div>
+		{{pass}}
+	</div>
 {{pass}}

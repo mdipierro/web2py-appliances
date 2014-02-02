@@ -11,7 +11,10 @@ import copy
 import gluon.contenttype
 import gluon.fileutils
 
-response.subtitle = 'Database Administration (appadmin)'
+try:
+    import pygraphviz as pgv
+except ImportError:
+    pgv = None
 
 # ## critical --- make a copy of the environment
 
@@ -29,17 +32,35 @@ except:
 
 if request.env.http_x_forwarded_for or request.is_https:
     session.secure()
-elif (remote_addr not in hosts) and (remote_addr != "127.0.0.1"):
+elif (remote_addr not in hosts) and (remote_addr != "127.0.0.1") and \
+    (request.function != 'manage'):
     raise HTTP(200, T('appadmin is disabled because insecure channel'))
 
-if (request.application == 'admin' and not session.authorized) or \
+if request.function == 'manage':
+    if not 'auth' in globals() or not request.args:
+        redirect(URL(request.controller, 'index'))
+    manager_action = auth.settings.manager_actions.get(request.args(0), None)
+    if manager_action is None and request.args(0) == 'auth':
+        manager_action = dict(role=auth.settings.auth_manager_role,
+                              heading=T('Manage Access Control'),
+                              tables=[auth.table_user(),
+                                      auth.table_group(),
+                                      auth.table_permission()])
+    manager_role = manager_action.get('role', None) if manager_action else None
+    auth.requires_membership(manager_role)(lambda: None)()
+    menu = False
+elif (request.application == 'admin' and not session.authorized) or \
         (request.application != 'admin' and not gluon.fileutils.check_credentials(request)):
     redirect(URL('admin', 'default', 'index',
                  vars=dict(send=URL(args=request.args, vars=request.vars))))
+else:
+    response.subtitle = 'Database Administration (appadmin)'
+    menu = True
 
 ignore_rw = True
 response.view = 'appadmin.html'
-response.menu = [[T('design'), False, URL('admin', 'default', 'design',
+if menu:
+    response.menu = [[T('design'), False, URL('admin', 'default', 'design',
                  args=[request.application])], [T('db'), False,
                  URL('index')], [T('state'), False,
                  URL('state')], [T('cache'), False,
@@ -49,6 +70,10 @@ response.menu = [[T('design'), False, URL('admin', 'default', 'design',
 # ## auxiliary functions
 # ###########################################################
 
+if False and request.tickets_db:
+    from gluon.restricted import TicketStorage
+    ts = TicketStorage()
+    ts._get_table(request.tickets_db, ts.tablename, request.application)
 
 def get_databases(request):
     dbs = {}
@@ -270,14 +295,15 @@ def update():
     (db, table) = get_table(request)
     keyed = hasattr(db[table], '_primarykey')
     record = None
+    db[table]._common_filter = None
     if keyed:
         key = [f for f in request.vars if f in db[table]._primarykey]
         if key:
             record = db(db[table][key[0]] == request.vars[key[
-                        0]], ignore_common_filters=True).select().first()
+                        0]]).select().first()
     else:
         record = db(db[table].id == request.args(
-            2), ignore_common_filters=True).select().first()
+            2)).select().first()
 
     if not record:
         qry = query_by_table_type(table, db)
@@ -314,6 +340,9 @@ def state():
 
 
 def ccache():
+    cache.ram.initialize()
+    cache.disk.initialize()
+
     form = FORM(
         P(TAG.BUTTON(
             T("Clear CACHE?"), _type="submit", _name="yes", _value="yes")),
@@ -380,7 +409,7 @@ def ccache():
 
         return (hours, minutes, seconds)
 
-    for key, value in cache.ram.storage.items():
+    for key, value in cache.ram.storage.iteritems():
         if isinstance(value, dict):
             ram['hits'] = value['hit_total'] - value['misses']
             ram['misses'] = value['misses']
@@ -396,12 +425,13 @@ def ccache():
             if value[0] < ram['oldest']:
                 ram['oldest'] = value[0]
             ram['keys'].append((key, GetInHMS(time.time() - value[0])))
-
-    locker = open(path.join(request.folder,
-                               'cache/cache.lock'), 'a')
+    folder = os.path.join(request.folder,'cache')
+    if not os.path.exists(folder):
+        os.mkdir(folder)
+    locker = open(os.path.join(folder, 'cache.lock'), 'a')
     portalocker.lock(locker, portalocker.LOCK_EX)
     disk_storage = shelve.open(
-        path.join(request.folder, 'cache/cache.shelve'))
+        os.path.join(folder, 'cache.shelve'))
     try:
         for key, value in disk_storage.items():
             if isinstance(value, dict):
@@ -459,3 +489,145 @@ def ccache():
 
     return dict(form=form, total=total,
                 ram=ram, disk=disk, object_stats=hp != False)
+
+
+def table_template(table):
+    from gluon.html import TR, TD, TABLE, TAG
+
+    def FONT(*args, **kwargs):
+        return TAG.font(*args, **kwargs)
+
+    def types(field):
+        f_type = field.type
+        if not isinstance(f_type,str):
+            return ' '
+        elif f_type == 'string':
+            return field.length
+        elif f_type == 'id':
+            return B('pk')
+        elif f_type.startswith('reference') or \
+                f_type.startswith('list:reference'):
+            return B('fk')
+        else:
+            return ' '
+
+    # This is horribe HTML but the only one graphiz understands
+    rows = []
+    cellpadding = 4
+    color = "#000000"
+    bgcolor = "#FFFFFF"
+    face = "Helvetica"
+    face_bold = "Helvetica Bold"
+    border = 0
+
+    rows.append(TR(TD(FONT(table, _face=face_bold, _color=bgcolor),
+                           _colspan=3, _cellpadding=cellpadding,
+                           _align="center", _bgcolor=color)))
+    for row in db[table]:
+        rows.append(TR(TD(FONT(row.name, _color=color, _face=face_bold),
+                              _align="left", _cellpadding=cellpadding,
+                              _border=border),
+                       TD(FONT(row.type, _color=color, _face=face),
+                               _align="left", _cellpadding=cellpadding,
+                               _border=border),
+                       TD(FONT(types(row), _color=color, _face=face),
+                               _align="center", _cellpadding=cellpadding,
+                               _border=border)))
+    return "< %s >" % TABLE(*rows, **dict(_bgcolor=bgcolor, _border=1,
+                                          _cellborder=0, _cellspacing=0)
+                             ).xml()
+
+
+def bg_graph_model():
+    graph = pgv.AGraph(layout='dot',  directed=True,  strict=False,  rankdir='LR')
+
+    subgraphs = dict()
+    for tablename in db.tables:
+        if hasattr(db[tablename],'_meta_graphmodel'):
+            meta_graphmodel = db[tablename]._meta_graphmodel
+        else:
+            meta_graphmodel = dict(group='Undefined', color='#ECECEC')
+
+        group = meta_graphmodel['group'].replace(' ', '')
+        if not subgraphs.has_key(group):
+            subgraphs[group] = dict(meta=meta_graphmodel, tables=[])
+            subgraphs[group]['tables'].append(tablename)
+        else:
+            subgraphs[group]['tables'].append(tablename)
+
+        graph.add_node(tablename, name=tablename, shape='plaintext',
+                       label=table_template(tablename))
+
+    for n, key in enumerate(subgraphs.iterkeys()):
+        graph.subgraph(nbunch=subgraphs[key]['tables'],
+                    name='cluster%d' % n,
+                    style='filled',
+                    color=subgraphs[key]['meta']['color'],
+                    label=subgraphs[key]['meta']['group'])
+
+    for tablename in db.tables:
+        for field in db[tablename]:
+            f_type = field.type
+            if isinstance(f_type,str) and (
+                f_type.startswith('reference') or
+                f_type.startswith('list:reference')):
+                referenced_table = f_type.split()[1].split('.')[0]
+                n1 = graph.get_node(tablename)
+                n2 = graph.get_node(referenced_table)
+                graph.add_edge(n1, n2, color="#4C4C4C", label='')
+
+    graph.layout()
+    #return graph.draw(format='png', prog='dot')
+    if not request.args:
+        return graph.draw(format='png', prog='dot')
+    else:
+        response.headers['Content-Disposition']='attachment;filename=graph.%s'%request.args(0)
+        if request.args(0) == 'dot':
+            return graph.string()
+        else:
+            return graph.draw(format=request.args(0), prog='dot')
+
+def graph_model():
+    return dict(databases=databases, pgv=pgv)
+
+def manage():
+    tables = manager_action['tables']
+    if isinstance(tables[0], str):
+        db = manager_action.get('db', auth.db)
+        db = globals()[db] if isinstance(db, str) else db
+        tables = [db[table] for table in tables]
+    if request.args(0) == 'auth':
+        auth.table_user()._plural = T('Users')
+        auth.table_group()._plural = T('Roles')
+        auth.table_membership()._plural = T('Memberships')
+        auth.table_permission()._plural = T('Permissions')
+    if request.extension != 'load':
+        return dict(heading=manager_action.get('heading',
+                    T('Manage %(action)s') % dict(action=request.args(0).replace('_', ' ').title())),
+                    tablenames=[table._tablename for table in tables],
+                    labels=[table._plural.title() for table in tables])
+
+    table = tables[request.args(1, cast=int)]
+    formname = '%s_grid' % table._tablename
+    linked_tables = orderby = None
+    if request.args(0) == 'auth':
+        auth.table_group()._id.readable = \
+        auth.table_membership()._id.readable = \
+        auth.table_permission()._id.readable = False
+        auth.table_membership().user_id.label = T('User')
+        auth.table_membership().group_id.label = T('Role')
+        auth.table_permission().group_id.label = T('Role')
+        auth.table_permission().name.label = T('Permission')
+        if table == auth.table_user():
+            linked_tables=[auth.settings.table_membership_name]
+        elif table == auth.table_group():
+            orderby = 'role' if not request.args(3) or '.group_id' not in request.args(3) else None
+        elif table == auth.table_permission():
+            orderby = 'group_id'
+    kwargs = dict(user_signature=True, maxtextlength=1000,
+                  orderby=orderby, linked_tables=linked_tables)
+    smartgrid_args = manager_action.get('smartgrid_args', {})
+    kwargs.update(**smartgrid_args.get('DEFAULT', {}))
+    kwargs.update(**smartgrid_args.get(table._tablename, {}))
+    grid = SQLFORM.smartgrid(table, args=request.args[:2], formname=formname, **kwargs)
+    return grid

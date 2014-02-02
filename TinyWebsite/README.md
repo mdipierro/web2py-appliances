@@ -1,7 +1,7 @@
 TinyWebsite
 ============
 
-TinyWebsite, a basic CMS that allows you to create, update, delete your website pages.
+TinyWebsite, a simple CMS that allows you to create, update, delete your website pages.
 TinyWebsite is powered by Web2py, python web framework (http://www.web2py.com/)
 
 When you create a page, you can choose
@@ -9,14 +9,23 @@ When you create a page, you can choose
 - The content, with a wysiwyg editor (you can also upload images)
 - The layout (Activate a left sidebar or a right sidebar)
 - A component :
-    * Photo_gallery : to render random images of the image gallery
-    * News : to see the latest news on your website
-    * Calendar : You can attach a calendar to a page, and manage the booking requests
+    * Calendar with a booking form (receive and manage booking request notifications)
+    * Events calendar (visitors can see how many positions remains available) and possibility to subscribe to an event
+    * Latest news
+    * Photo gallery rendered with Twitter bootstrap carousel
+    * File manager : attach downloadable files to your pages
+    * Newsletter
+    * Contact (you can have several addresses and display them on contact form)
 
-Tiny_website also includes :
-- A photo gallery
-- A list of files to download
-- A contact form
+- Advanced built-in features :
+    * Automatic RSS feed for latest news
+    * Create protected downloadable files visible only for registered users
+    * Edit your pages content directly with raw HTML
+    * Add a custom banner
+    * Define a custom bootstrap theme file
+    * Use your own custom CSS file
+    * Google Analytics automatic tracking
+
 
 ... and some other features to come...
 

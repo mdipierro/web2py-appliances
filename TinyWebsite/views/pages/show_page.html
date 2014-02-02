@@ -10,34 +10,112 @@
     </title>
 {{end}}
 
+
+{{block header}}
+	{{if header_component:}}
+		{{=LOAD(header_component.controller, header_component.name, ajax=header_component.ajax,
+		ajax_trap=header_component.ajax_trap, vars={'container_id':page.id, 'component_id': header_component.id})}}
+	{{pass}}
+{{end}}
+
 {{block left_sidebar}}
-	<div class="hidden-phone">
-		{{if left_sidebar_component:}}
-			{{=LOAD(left_sidebar_component.controller, left_sidebar_component.name, ajax=left_sidebar_component.ajax,
-			ajax_trap=left_sidebar_component.ajax_trap, vars={'container_id':page.id})}}
+	{{if left_sidebar_component:}}
+		{{if left_sidebar_component.container_class:}}
+			<div class="{{=left_sidebar_component.container_class}}">
+		{{else:}}
+			<div>
 		{{pass}}
-	</div>
+			{{=LOAD(left_sidebar_component.controller, left_sidebar_component.name, ajax=left_sidebar_component.ajax,
+			ajax_trap=left_sidebar_component.ajax_trap, vars={'container_id':page.id, 'component_id': left_sidebar_component.id})}}
+		</div>
+	{{pass}}
 {{end}}
 
 {{block right_sidebar}}
 	{{if right_sidebar_component:}}
-		{{=LOAD(right_sidebar_component.controller, right_sidebar_component.name, ajax=right_sidebar_component.ajax,
-		ajax_trap=right_sidebar_component.ajax_trap, vars={'container_id':page.id})}}
+		{{if right_sidebar_component.container_class:}}
+			<div class="{{=right_sidebar_component.container_class}}">
+		{{else:}}
+			<div>
+		{{pass}}
+			{{=LOAD(right_sidebar_component.controller, right_sidebar_component.name, ajax=right_sidebar_component.ajax,
+			ajax_trap=right_sidebar_component.ajax_trap, vars={'container_id':page.id, 'component_id': right_sidebar_component.id})}}
+		</div>
 	{{pass}}
 {{end}}
 
-{{if page and page.content:}}
-<article>
+{{if page and (page.content or central_component):}}	
+	<article>
+		{{if page.subtitle or auth.has_membership('manager'):}}
+			<h3>
+				{{=page.subtitle}}
+				{{if auth.has_membership('manager'):}}
+					{{=manager_toolbar()}}
+					{{=manager_toolbar(page.id)}}
+				{{ pass }}
+			</h3>
+			<hr>
+		{{pass}}
+		{{if central_component:}}
+			{{if central_component.container_class:}}
+				<div class="{{=central_component.container_class}}">
+			{{else:}}
+				<div>
+			{{pass}}
+				{{=LOAD(central_component.controller, central_component.name, ajax=central_component.ajax,
+				ajax_trap=central_component.ajax_trap, vars={'container_id':page.id, 'component_id': central_component.id})}}
+			</div>
+		{{else:}}
+			{{if page.content:}}
+				<div>
+					<p>
+					<section id="page_content">{{=XML(page.content, sanitize=False)}}</section>
+					{{if page.max_content_height:}}
+						<script src="{{=URL('static','js/readmore.min.js')}}"></script>
+						<script type="text/javascript">
+							$('#page_content').readmore({
+							 	speed: 100,
+								moreLink: '<a href="#">{{=T("Read more")}}</a>',
+								lessLink: '<a href="#">{{=T("Read less")}}</a>',
+							 	maxHeight: {{=page.max_content_height}}
+							});
+						</script>
+					{{pass}}
+					{{if pretty_date:}}
+						<br />
+						<em>
+							<small class="muted pull-right">{{=T("Updated %s",pretty_date)}}</small>
+						</em>
+					{{pass}}
+					</p>
+				</div>
+			{{pass}}
+		{{pass}}
+		{{if disqus_shortname:}}
+		    <div id="disqus_thread"></div>
+		    <script type="text/javascript">
+		        var disqus_shortname = '{{=disqus_shortname}}';
+			    var disqus_identifier = '{{=page.id}}';
+			    var disqus_title = '{{=page.title}}';
+			    var disqus_url = '{{=WEBSITE_PARAMETERS.website_url}}';
+
+		        (function() {
+		            var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+		            dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+		            (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+		        })();
+		    </script>
+		    <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+		    <a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+		{{pass}}
+	</article>
+{{else:}}
 	{{if auth.has_membership('manager'):}}
-		{{=manager_toolbar()}}
-		{{=manager_toolbar(page.id)}}
-	{{ pass }}
-	<h3>{{=page.subtitle}}</h3>
-	<div>{{=XML(page.content, sanitize=False)}}</div>
-	{{if pretty_date:}}
-		<div class="muted"><small>{{=T("Updated %s",pretty_date)}}</small></div>
+		<h3>
+			{{=manager_toolbar()}}
+			{{=manager_toolbar(page.id)}}
+		</h3>
 	{{pass}}
-</article>
 {{pass}}
 
 {{block footer}}
@@ -46,20 +124,38 @@
 		<div class="span4 column">
 			{{if left_footer_component:}}
 				{{=LOAD(left_footer_component.controller, left_footer_component.name, ajax=left_footer_component.ajax,
-				ajax_trap=left_footer_component.ajax_trap, vars={'container_id':page.id})}}
+				ajax_trap=left_footer_component.ajax_trap, vars={'container_id':page.id, 'component_id': left_footer_component.id})}}
 			{{pass}}
 		</div>
 		<div class="span4 column">
 			{{if middle_footer_component:}}
 				{{=LOAD(middle_footer_component.controller, middle_footer_component.name, ajax=middle_footer_component.ajax,
-				ajax_trap=middle_footer_component.ajax_trap, vars={'container_id':page.id})}}
+				ajax_trap=middle_footer_component.ajax_trap, vars={'container_id':page.id, 'component_id': middle_footer_component.id})}}
 			{{pass}}
 		</div>
 		<div class="span4 column">
 			{{if right_footer_component:}}
 				{{=LOAD(right_footer_component.controller, right_footer_component.name, ajax=right_footer_component.ajax,
-				ajax_trap=right_footer_component.ajax_trap, vars={'container_id':page.id})}}
+				ajax_trap=right_footer_component.ajax_trap, vars={'container_id':page.id, 'component_id': right_footer_component.id})}}
 			{{pass}}
 		</div>
 	</div>
+{{end}}
+
+{{block page_end}}
+	{{if disqus_shortname:}}
+	    <script type="text/javascript">
+	    var disqus_shortname = '{{=disqus_shortname}}';
+	    var disqus_identifier = '{{=page.id}}';
+	    var disqus_title = '{{=page.title}}';
+	    var disqus_url = '{{=WEBSITE_PARAMETERS.website_url}}';
+
+	    (function () {
+	        var s = document.createElement('script'); s.async = true;
+	        s.type = 'text/javascript';
+	        s.src = '//' + disqus_shortname + '.disqus.com/count.js';
+	        (document.getElementsByTagName('HEAD')[0] || document.getElementsByTagName('BODY')[0]).appendChild(s);
+	    }());
+	    </script>
+	{{pass}}
 {{end}}
