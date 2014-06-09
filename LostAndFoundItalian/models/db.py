@@ -5,7 +5,7 @@
 
 response.title='Terremoto Abruzzo'
 response.subtitle='Cerca cose, persone e animali'
-GOOGLEMAP_KEY="ABQIAAAAT5em2PdsvF3z5onQpCqv0RRbmBRVqcetsYYPAZkdVkJ1U_-f7hQyRsL4C5GpXpg29_Qza9VuE2zX2w"
+GOOGLEMAP_KEY="xxxxx"
 
 try:
     from gluon.contrib.gql import *  # if running on Google App Engine
