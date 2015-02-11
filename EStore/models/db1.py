@@ -82,6 +82,10 @@ db.define_table(
     Field('notes'))
 
 db.define_table(
+    'invoice',
+    Field('order_id', 'string'))
+
+db.define_table(
     'invoice_item',
     Field('invoice','reference invoice'),
     Field('quantity','double',default=1),
@@ -90,7 +94,7 @@ db.define_table(
     db.product,
     db.inventory) # copy the prodoct, in case changes
 
-def price_cart():    
+def price_cart():
     total_pretax = 0.0
     tax = 0.0
     volume = [0, 0, 0]
