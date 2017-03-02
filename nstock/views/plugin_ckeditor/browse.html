@@ -1,0 +1,102 @@
+{{extend 'layout.html'}}
+{{from gluon import *}}
+<style type="text/css">
+    div.item {
+        display: inline-block;
+        min-width: 104px;
+        height: 126px;
+        border: 1px solid gray;
+        -moz-border-radius: 3px;
+        border-radius: 3px;
+        padding: 2px;
+        margin: 3px;
+        text-align: center;
+        cursor: pointer;
+        overflow: hidden;
+    }
+    
+    div.item:hover {
+        background: #eeeed5;
+    }
+    
+    div.item span.delete {
+        background: white;
+        float: right;
+        padding: 2px;
+        border: 1px solid gray;
+        -moz-border-radius: 3px;
+        border-radius: 3px;
+        margin: -3px;
+        margin-bottom: 2px;
+        font-weight: bold;
+    }
+    
+    div.item span.delete:hover {
+        background: #FF7374;
+        color: white;
+    }
+
+    img {
+        max-width: 100px;
+        max-height: 100px;
+        border: 1px solid gray;
+    }
+</style>
+
+{{
+    def icon_url(category):
+        url = URL('static', 'plugin_ckeditor/images') + '/page_white'
+        if category == 'video':
+            return url + '_dvd.png'
+        elif category == 'pdf':
+            return url + '_acrobat.png'
+        elif category == 'archive':
+            return url + '_compress.png'
+        elif category == 'excel':
+            return url + '_excel.png'
+        elif category == 'flash':
+            return url + '_flash.png'
+        elif category == 'powerpoint':
+            return url + '_powerpoint.png'
+        else:
+            return url + '.png'
+    pass
+}}
+
+<h3>Uploads</h3>
+{{for row in rows:}}
+    <div class="item" data-url="{{=row.upload}}">
+        <span class="delete">&nbsp;x&nbsp;</span>
+        {{category = current.plugin_ckeditor.filetype(row.filename)}}
+        {{url = URL('default', 'download', args=[row.upload])}}
+        {{if category != 'image':}}
+            {{url = icon_url(category)}}
+        {{pass}}
+        <img src="{{=url}}" />
+        <div>{{=row.title}}</div>
+    </div>
+{{pass}}
+
+{{if len(rows) == 0:}}
+    <span>There is nothing here. Please upload something first.</span>
+{{pass}}
+
+<script type="text/javascript">
+    jQuery(function() {
+        jQuery('.delete').click(function() {
+            if (confirm('Are you sure you want to delete this item? This cannot be undone and will cause any references to this item to fail.')) {
+                var url = '{{=URL('plugin_ckeditor', 'delete')}}/' + jQuery(jQuery(this).parent()).data('url');
+                jQuery.post(url, function() {
+                    window.location.reload(true);
+                });
+            }
+            return false;
+        });
+        
+        jQuery('.item').click(function() {
+            var url = '{{=URL('default', 'download')}}/' + jQuery(this).data('url');
+            window.opener.CKEDITOR.tools.callFunction({{=cknum}}, url);
+            window.close();
+        });
+    });
+</script>

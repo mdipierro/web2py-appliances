@@ -1,0 +1,14 @@
+<div class="panel panel-default">
+  <div class="panel-body">
+    {{=form.custom.begin}}
+      <div class="form-group">
+        <label for="plugin_package_groups_group_role">{{=form.custom.label.group_role}}</label>
+        {{=form.custom.widget.group_role}}
+      </div>
+      {{=form.custom.submit}}
+      <p class="help-block">
+        {{=form.custom.comment.group_role}}
+      </p>
+    {{=form.custom.end}}
+  </div>
+</div>

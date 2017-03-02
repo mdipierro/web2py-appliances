@@ -1,0 +1,15 @@
+{{=item.headline}}
+{{=item.slugline}}
+{{for k in item.keywords:}}
+{{=k}}
+{{pass}}
+{{=item.genre}}
+{{if (item.section_page is not None) and (item.section_page != ''):}}
+{{=item.section_page}}
+{{pass}}
+{{u = application.db.auth_user(item.created_by)}}
+{{=u.first_name}} {{=u.last_name}}
+{{if (item.located is not None) and (item.located != ''):}}
+{{=item.located}}
+{{pass}}
+{{include}}

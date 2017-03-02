@@ -1,0 +1,2 @@
+{{in_all_items = True}}
+{{include 'item/preview.html'}}

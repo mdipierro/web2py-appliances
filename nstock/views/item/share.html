@@ -1,0 +1,4 @@
+{{extend 'item/item_layout.html'}}
+
+
+{{=LOAD('item', 'share.load', ajax=True, args=[item.unique_id])}}

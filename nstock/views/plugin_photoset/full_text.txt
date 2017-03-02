@@ -1,0 +1,4 @@
+{{from html2text import html2text}}
+{{extend 'item/full_text.txt'}}
+{{=photoset_content.credit_line}}
+{{=html2text(photoset_content.description.decode('utf-8'))}}

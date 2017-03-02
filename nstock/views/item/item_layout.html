@@ -1,0 +1,76 @@
+{{left_sidebar_enabled=True}}
+{{right_sidebar_enabled=True}}
+{{def _():}}
+  {{
+  item_actions = []
+
+  item_actions.extend([
+    (CAT(I(_class="fa fa-newspaper-o"), ' ', T('Content')), False, application.getItemURL(item.unique_id), []),
+    (CAT(I(_class="fa fa-cog"), ' ', T('Details')), False, URL('item', 'meta', args=[item.unique_id]), []),
+    (CAT(I(_class="fa fa-history"), ' ', T('Changelog')), False, URL('item', 'changelog', args=[item.unique_id]), []),
+  ])
+  response.menu += [(T('Item'), False, "#", item_actions)]
+  }}
+{{pass}}
+{{if application.canUpdateItem(item.unique_id):}}
+{{_()}}
+{{pass}}
+
+{{response.title = "nStock - {}".format(item.headline)}}
+{{extend 'layout.html'}}
+
+{{block right_sidebar}}
+  {{=plugin_comment(item.unique_id)}}
+{{end}}
+
+{{block left_sidebar}}
+  {{include 'item/add_items.html'}}
+{{end}}
+
+{{block header}}
+<ol class="breadcrumb">
+  <li>
+    <a href="{{=URL('default', 'index')}}">{{=T('Home')}}</a>
+  </li>
+  {{if session.org_id:}}
+  <li>
+    <a href="{{=URL('org', 'view', args=[session.org_id])}}">
+      {{=db.organization(session.org_id).name}}
+    </a>
+  </li>
+  {{pass}}
+
+  {{desk = db(db.desk.item_list.contains(item.id)).select().first()}}
+  <li>
+    <a href="{{=URL('desk', 'index', args=[desk.id])}}">
+      {{=desk.name}}
+    </a>
+  </li>
+  <li class="active">{{=item.slugline}}</li>
+</ol>
+{{end}}
+
+<!-- metaModal -->
+<div class="modal fade" id="metaModal" tabindex="-1" role="dialog" aria-labelledby="metaModalLabel">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        <h4 class="modal-title" id="metaModalLabel">{{=T("Details")}}</h4>
+      </div>
+      <div id="metaModalBody" class="modal-body">
+      </div>
+    </div>
+  </div>
+</div>
+
+{{include}}
+
+<script>
+  $('#metaModal').on('shown.bs.modal', function (e) {
+    web2py_component("{{=URL('item', 'meta.load', args=[item.unique_id])}}","metaModalBody");
+  });
+  $('#metaModal').on('hidden.bs.modal', function (e) {
+    $('#metaModalBody').html("");
+  });
+</script>

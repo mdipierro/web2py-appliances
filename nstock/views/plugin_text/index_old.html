@@ -1,0 +1,89 @@
+{{left_sidebar_enabled=True}}
+{{right_sidebar_enabled=True}}
+{{extend 'layout.html'}}
+
+{{block left_sidebar}}
+{{=plugin_comment(item.id)}}
+{{end}}
+
+{{block right_sidebar}}
+{{=item_tools(item.id)}}
+{{end}}
+
+{{=form.custom.begin}}
+
+  <!-- Nav tabs -->
+  <ul class="nav nav-tabs" role="tablist">
+    <li role="presentation" class="active"><a href="#main" aria-controls="main" role="tab" data-toggle="tab">Main</a></li>
+    <li role="presentation"><a href="#meta" aria-controls="META" role="tab" data-toggle="tab">META</a></li>
+    <li role="presentation"><a href="#changes" aria-controls="Changes" role="tab" data-toggle="tab">Changes</a></li>
+    <li role="presentation"><a href="#share" aria-controls="Shares" role="tab" data-toggle="tab">Collaboratos</a></li>
+  </ul>
+
+  <!-- Tab panes -->
+  <div class="tab-content">
+    <div role="tabpanel" class="tab-pane active" id="main">
+        <div class="form-group"></div>
+        <div class="form-group">
+            <label for="item_text_headline">{{=form.custom.label.headline}}</label>
+            {{=form.custom.widget.headline}}
+            <p class="help-block">{{=form.custom.comment.headline}}</p>
+        </div>
+        <div class="form-group">
+            <label for="item_text_byline">{{=form.custom.label.byline}}</label>
+            {{=form.custom.widget.byline}}
+            <p class="help-block">{{=form.custom.comment.byline}}</p>
+        </div>
+        <div class="form-group">
+            <label for="item_text_genre">{{=form.custom.label.genre}}</label>
+            {{=form.custom.widget.genre}}
+            <p class="help-block">{{=form.custom.comment.genre}}</p>
+        </div>
+        <div class="form-group">
+            <label for="item_text_body">{{=form.custom.label.body}}</label>
+            <textarea id="item_text_body" class="text form-control" name="body" rows=20>{{=content.body}}</textarea>
+            <p class="help-block">{{=form.custom.comment.body}}</p>
+        </div>
+        <hr />
+        <div class="form-group">
+            {{=form.custom.submit}}
+        </div>          
+    </div>
+    <div role="tabpanel" class="tab-pane" id="meta">
+        {{hidden_fields = ['headline', 'genre', 'body', 'id', 'byline']}}
+        <div class="form-group"></div>
+        {{for k in form.fields:}}
+            {{if k not in hidden_fields:}}
+            <div class="form-group">
+                <label for="item_text_{{=k}}">{{=form.custom.label[k]}}</label>
+                {{=form.custom.widget[k]}}
+                <p class="help-block">{{=form.custom.comment[k]}}</p>
+            </div>
+            {{pass}}
+        {{pass}}
+        <hr />
+        <div class="form-group">
+            {{=form.custom.submit}}
+        </div>
+    </div>
+
+    <div role="tabpanel" class="tab-pane" id="changes">
+        <h4>Change history</h4>
+        <dl class="dl-horizontal">
+            <dt>{{=T('Created by')}}</dt>
+            <dd>
+                {{=db.auth_user(item.created_by).first_name}}
+                {{=db.auth_user(item.created_by).last_name}}
+            </dd>
+            <dt>{{=T('Created on')}}</dt>
+            <dd>{{=item.created_on}}</dd>
+        </dl>
+    </div>
+
+    <div role="tabpanel" class="tab-pane" id="share">
+        {{=LOAD('item', 'share.load', args=[item.id], ajax=True)}}
+    </div>
+  </div>
+
+
+{{=form.custom.end}}

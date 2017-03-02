@@ -1,0 +1,38 @@
+<div class="panel panel-default">
+  <div class="panel-heading">
+    {{=T("Picture")}}
+  </div>
+  <div class="panel-body">
+    <p>
+      <img class="img-responsive margin-auto" src="{{=URL('default', 'download', args=[info.thumbnail])}}" alt="...">
+    </p>
+    {{if info.caption:}}
+    <p><strong>{{=T("Caption")}}</strong>: {{=info.caption}}</p>
+    {{pass}}
+    {{if info.credit_line:}}
+    <p><strong>{{=T("Credit line")}}</strong>: {{=info.credit_line}}</p>
+    {{pass}}
+    {{if info.description:}}
+    <p><strong>{{=T("Description")}}</strong>:</p>
+    {{=XML(info.description)}}
+    {{pass}}
+  </div>
+
+  {{if info.renditions:}}
+    <ul class="list-group">
+      <li class="list-group-item"><strong>{{=T('Renditions')}}</strong>:</li>
+    {{for red in info.renditions:}}
+    {{rendition = db.plugin_picture_rendition(red)}}
+      <li class="list-group-item clearfix">
+        <strong>{{=rendition.purpose}}</strong> |
+        {{=rendition.width}} x {{=rendition.height}} |
+        {{=rendition.color}} |
+        {{=rendition.format}}
+        <a href="{{=URL('default', 'download', args=[rendition.picture])}}" class="btn btn-default btn-xs pull-right" title="{{=T('Download')}}">
+          <i class="fa fa-download"></i>
+        </a>
+      </li>
+    {{pass}}
+    </ul>
+  {{pass}}
+</div>

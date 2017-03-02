@@ -1,0 +1,19 @@
+{{left_sidebar_enabled=True}}
+{{right_sidebar_enabled=True}}
+{{extend 'layout.html'}}
+
+{{block left_sidebar}}
+  <!-- org config. menu -->
+  {{include 'org/org_sidebar.html'}}
+{{end}}
+
+{{block header}}
+<ol class="breadcrumb">
+  <li>
+    <a href="{{=URL('default', 'index')}}">{{=T('Home')}}</a>
+  </li>
+  <li class="active">{{=org.name}}</li>
+</ol>
+{{end}}
+
+{{=form}}

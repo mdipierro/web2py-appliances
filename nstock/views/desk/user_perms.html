@@ -1,0 +1,80 @@
+{{left_sidebar_enabled=True}}
+{{right_sidebar_enabled=False}}
+{{extend 'layout.html'}}
+
+
+{{block header}}
+<ol class="breadcrumb">
+  <li>
+    <a href="{{=URL('default', 'index')}}">{{=T('Home')}}</a>
+  </li>
+  {{if session.org_id:}}
+  <li>
+    <a href="{{=URL('org', 'view', args=[session.org_id])}}">
+      {{=db.organization(session.org_id).name}}
+    </a>
+  </li>
+  {{pass}}
+  <li class="active">
+    {{=desk.name}}
+  </li>
+</ol>
+{{end}}
+
+{{block left_sidebar}}
+  {{include 'item/add_items.html'}}
+
+  <!-- desk management -->
+  {{include 'desk/desk_menu.html'}}
+{{end}}
+
+<form action="#" enctype="multipart/form-data" method="post">
+<div class="panel panel-default">
+  <div class="panel-heading">
+    <h3 class="panel-title">
+      <i class="fa fa-lock"></i>
+      {{=my_user.first_name}} {{=my_user.last_name}}
+      <span class="text-muted">{{=T('permissions on')}} {{=desk.name}}</span>
+    </h3>
+  </div>
+  <div class="panel-body">
+    <div class="checkbox">
+        <label>
+          {{=form.custom.widget.read_desk}} {{=form.custom.label.read_desk}}
+          <span class="help-block">
+            {{=form.custom.comment.read_desk}}
+          </span>
+        </label>
+    </div>
+    <div class="checkbox">
+        <label>
+          {{=form.custom.widget.update_items}} {{=form.custom.label.update_items}}
+          <span class="help-block">
+            {{=form.custom.comment.update_items}}
+          </span>
+        </label>
+    </div>
+    <div class="checkbox">
+        <label>
+          {{=form.custom.widget.push_items}} {{=form.custom.label.push_items}}
+          <span class="help-block">
+            {{=form.custom.comment.push_items}}
+          </span>
+        </label>
+    </div>
+    <div class="checkbox">
+        <label>
+          {{=form.custom.widget.update_desk}} {{=form.custom.label.update_desk}}
+          <span class="help-block">
+            {{=form.custom.comment.update_desk}}
+          </span>
+        </label>
+    </div>
+  </div>
+  <div class="panel-footer  clearfix">
+    <div class="pull-right">
+      {{=form.custom.submit}}
+    </div>
+  </div>
+</div>
+{{=form.custom.end}}

@@ -1,0 +1,24 @@
+{{extend 'item/item_layout.html'}}
+
+<div class="panel panel-default">
+  <div class="panel-heading">
+    <h3 class="panel-title">{{=item.headline}} <small>{{=T("Content")}}</small></h3>
+  </div>
+  <div class="panel-body">
+    {{=form.custom.begin}}
+    <div class="form-group" id="plugin_text_text_byline__row">
+      <label class="control-label" for="plugin_text_text_byline" id="plugin_text_text_byline__label">{{=T("By line")}}</label>
+      {{=form.custom.widget.byline}}
+      <span class="help-block"></span>
+    </div>
+    <div class="form-group" id="plugin_text_text_body__row">
+      <label class="control-label" for="plugin_text_text_body" id="plugin_text_text_body__label">{{=T("Text")}}</label>
+      {{=form.custom.widget.body}}
+      <span class="help-block"></span>
+    </div>
+    <div class="form-group" id="submit_record__row">
+      {{=form.custom.submit}}
+    </div>
+    {{=form.custom.end}}
+  </div>
+</div>

@@ -1,0 +1,72 @@
+{{left_sidebar_enabled=True}}
+{{right_sidebar_enabled=True}}
+{{extend 'layout.html'}}
+
+{{block left_sidebar}}
+  <!-- org config. menu -->
+  {{include 'org/org_sidebar.html'}}
+{{end}}
+
+{{block header}}
+<ol class="breadcrumb">
+  <li>
+    <a href="{{=URL('default', 'index')}}">{{=T('Home')}}</a>
+  </li>
+  <li class="active">{{=org.name}}</li>
+</ol>
+{{end}}
+
+<form class="form-inline" action="#" enctype="multipart/form-data" method="post">
+  <div class="form-group">
+    <input class="form-control" id="members_email" name="email" value="" type="text" placeholder="{{=T('e-mail address')}}" autocomplete="off">
+  </div>
+  {{=form.custom.submit}}
+  {{if form.errors:}}
+  <p class="help-block text-danger">{{=form.errors.email}}</p>
+  {{pass}}
+{{=form.custom.end}}
+
+<hr>
+
+{{if org.users:}}
+  <div class="table-responsive">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        <th>
+          {{=T("Name")}}
+        </th>
+        <th>
+          {{=T("Email")}}
+        </th>
+        <th>
+          <!-- Opps -->
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      {{for u_id in org.users:}}
+        {{ org_user = db.auth_user(u_id) }}
+        <tr>
+          <td>
+            {{=org_user.first_name}} {{=org_user.last_name}}
+          </td>
+          <td>
+            {{=org_user.email}}
+          </td>
+          <td>
+            <a href="{{=URL('org', 'members', args=[org.id, 'delete', u_id])}}" class="btn btn-danger btn-xs" title="{{=T('Delete')}}">
+              <i class="fa fa-close"></i>
+            </a>
+          </td>
+        </tr>
+      {{pass}}
+    </tbody>
+  </table>
+</div>
+{{else:}}
+  <div class="alert alert-warning" role="alert">
+    <strong>{{=T("Warning!")}}</strong>
+    {{=T("Your organization don't have members yet.")}}
+  </div>
+{{pass}}

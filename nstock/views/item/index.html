@@ -1,0 +1,87 @@
+{{left_sidebar_enabled=True}}
+{{right_sidebar_enabled=True}}
+{{extend 'layout.html'}}
+
+
+{{block header}}
+<ol class="breadcrumb">
+  <li>
+    <a href="{{=URL('default', 'index')}}">{{=T('Home')}}</a>
+  </li>
+  {{if session.org_id:}}
+  <li>
+    <a href="{{=URL('org', 'view', args=[session.org_id])}}">
+      {{=db.organization(session.org_id).name}}
+    </a>
+  </li>
+  {{pass}}
+
+  {{if session.desk_id:}}
+  <li>
+    <a href="{{=URL('desk', 'index', args=[session.desk_id])}}">
+      {{=db.desk(session.desk_id).name}}
+    </a>
+  </li>
+  {{pass}}
+  <li class="active">{{=item.slugline}}</li>
+</ol>
+{{end}}
+
+<div id="hiddethis" class="hidden">
+
+</div>
+
+<!-- preview tools -->
+<div id="modal-preview" class="modal fade" tabindex="-1" role="dialog">
+  <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        <h4 class="modal-title">{{=T("Image preview")}}</h4>
+      </div>
+      <div class="modal-body">
+        <div id="photoset-preview-cmp">
+          Here we show the carousel
+        </div>
+      </div>
+      <div class="modal-footer">
+        <a id="preview_download" href="#" class="btn btn-primary">
+          <i class="fa fa-download"></i> {{=T("Download")}}
+        </a>
+        <button type="button" class="btn btn-default" data-dismiss="modal">{{=T('Close')}}</button>
+      </div>
+    </div><!-- /.modal-content -->
+  </div><!-- /.modal-dialog -->
+</div><!-- /.modal -->
+
+<!-- metaModal -->
+<div class="modal fade" id="metaModal" tabindex="-1" role="dialog" aria-labelledby="metaModalLabel">
+  <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        <h4 class="modal-title" id="metaModalLabel">{{=T("Details")}}</h4>
+      </div>
+      <div id="metaModalBody" class="modal-body">
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  $('#metaModal').on('hidden.bs.modal', function (e) {
+    $('#metaModalBody').html("");
+    jQuery('#main').get(0).reload();
+  });
+</script>
+
+{{=LOAD(url=URL('item', 'index.load', args=[item.unique_id], user_signature=True), ajax=True, user_signature=True,target='main')}}
+
+<script>
+  // $('#metaModal').on('shown.bs.modal', function (e) {
+  //   web2py_component("{{=URL('item', 'meta.load', args=[item.unique_id])}}","metaModalBody");
+  // });
+  $('#metaModal').on('hidden.bs.modal', function (e) {
+    $('#metaModalBody').html("");
+  });
+</script>

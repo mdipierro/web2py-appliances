@@ -1,0 +1,8 @@
+<div id="hiddethis" class="hidden">
+
+</div>
+<div class="panel-group" id="accordion" role="tablist" aria-multiselectable="true">
+{{for grp in pkg_content.groups:}}
+  {{=LOAD('plugin_package', 'view_group.load', args=[pkg_item.id, grp], user_signature=True, ajax=True, target="g-cmp-{}".format(grp))}}
+{{pass}}
+</div>

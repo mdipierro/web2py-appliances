@@ -1,0 +1,18 @@
+{{if posible_desk:}}
+  <p><strong>{{=T("Headline")}}</strong>: {{=item.headline}}</p>
+  <hr />
+  <form data-w2p_target="{{=request.cid}}" action="#" method="POST" enctype="multipart/form-data">
+
+  <div class="form-group">
+    <label for="share_to_desk">{{=form.custom.label.to_desk}}</label>
+    {{=form.custom.widget.to_desk}}
+    <span class="help-block">{{=form.custom.comment.to_desk}}</span>
+  </div>
+
+  {{=form.custom.submit}}
+  {{=form.custom.end}}
+{{else:}}
+<div class="alert alert-warning">
+  {{=T("Warning !")}} {{=T("You can't push this item to any other Desk")}}
+</div>
+{{pass}}

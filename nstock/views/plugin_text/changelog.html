@@ -1,0 +1,32 @@
+{{extend 'item/item_layout.html'}}
+
+
+<div class="panel panel-default">
+  <div class="panel-heading">
+    <h3 class="panel-title">
+      {{=T('Content changelog')}} <small>{{=item.headline}}</small>
+    </h3>
+  </div>
+  <div class="panel-body">
+    <p>
+      {{=T('''
+      Current item content version by %(first_name)s %(last_name)s on %(date_time)s
+      ''') % dict(
+        first_name=db.auth_user(content.modified_by).first_name,
+        last_name=db.auth_user(content.modified_by).last_name,
+        date_time=content.modified_on
+      )}}
+    </p>
+  </div>
+
+  {{if changes.rows:}}
+    {{=changes}}
+  {{pass}}
+  <div class="panel-footer">
+      <a class="btn btn-default" href="{{=URL('item', 'changelog.html', args=[item.unique_id])}}">
+          <i class="fa fa-caret-left"></i>
+
+          {{=T('Metadata changes')}}
+      </a>
+  </div>
+</div>

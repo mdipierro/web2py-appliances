@@ -1,0 +1,55 @@
+{{left_sidebar_enabled=True}}
+{{right_sidebar_enabled=True}}
+{{response.files.append(URL('static','plugin_photoset/css/fileuploader.css'))}}
+{{response.files.append(URL('static','plugin_photoset/js/fileuploader.js'))}}
+
+{{extend 'layout.html'}}
+
+{{=form}}
+<hr>
+<div class="alert alert-info">
+  <strong>{{=T("Warning!")}}</strong>
+  {{=T("Upload the photos before submiting the form.")}}
+</div>
+<div id="file-uploader">
+  <noscript><p>{{=T('Please enable JavaScript to use file uploader.')}}</p></noscript>
+</div>
+
+<script>
+$(document).ready(function() {
+  var uploader = new qq.FileUploader({
+        // pass the dom node (ex. $(selector)[0] for jQuery users)
+        element: document.getElementById('file-uploader'),
+        // path to server-side upload script
+        action: '{{=URL("upload_photo")}}',
+        sizeLimit: 0,
+        minSizeLimit: 0,
+        allowedExtensions: ['jpg', 'jpeg', 'png'],
+        // set to true to output server response to console
+        debug: true,
+
+        // events
+        // you can return false to abort submit
+        onSubmit: function(id, fileName){},
+        onProgress: function(id, fileName, loaded, total){},
+        onComplete: function(id, fileName, responseJSON){},
+        onCancel: function(id, fileName){},
+
+        messages: {
+            // error messages, see qq.FileUploaderBasic for content
+            typeError: "{file} {{=T('has invalid extension.')}} {{=T('Only')}} {extensions} {{=T('are allowed.')}}",
+            sizeError: "{file} {{=T('is too large, maximum file size is')}} {sizeLimit}.",
+            minSizeError: "{file} {{=T('is too small, minimum file size is')}} {minSizeLimit}.",
+            emptyError: "{file} {{=T('is empty, please select files again without it.')}}",
+            onLeave: "{{=T('The files are being uploaded, if you leave now the upload will be cancelled.')}}"
+        },
+        showMessage: function(message){ alert(message); },
+        uploadButtonText: '{{=T("Select and upload photos")}}',
+        template: '<div class="qq-uploader">' +
+          '<div class="qq-upload-drop-area"><span>{dragText}</span></div>' +
+          '<div class="qq-upload-button">{uploadButtonText}</div>' +
+          '<hr><ul class="qq-upload-list"></ul>' +
+          '</div>',
+    });
+    });
+</script>

@@ -1,0 +1,52 @@
+{{left_sidebar_enabled=True}}
+{{right_sidebar_enabled=True}}
+{{extend 'layout.html'}}
+
+{{=form.custom.begin}}
+<div class="form-group">
+  <label for="plugin_package_item_headline">{{=form.custom.label.headline}}</label>
+  {{=form.custom.widget.headline}}
+  <p class="help-block">{{=form.custom.comment.headline}}</p>
+</div>
+<div class="form-group">
+  <label for="plugin_package_item_keywords">{{=form.custom.label.keywords}}</label>
+  {{=form.custom.widget.keywords}}
+  <p class="help-block">{{=form.custom.comment.keywords}}</p>
+</div>
+<div class="form-group">
+  <label for="plugin_package_item_genre">{{=form.custom.label.genre}}</label>
+  {{=form.custom.widget.genre}}
+  <p class="help-block">{{=form.custom.comment.genre}}</p>
+</div>
+<div class="form-group">
+  <label for="plugin_package_item_description">{{=form.custom.label.description}}</label>
+  {{=form.custom.widget.description}}
+  <p class="help-block">{{=form.custom.comment.description}}</p>
+</div>
+
+
+<div class="form-group">
+  <label for="plugin_package_item_headline">{{=T('Items on the package')}}</label>
+  <table id="plugin_package_item_maingroup" class="table table-striped">
+    <thead>
+      <tr>
+        <th>{{=T('Type')}}</th> <th>{{=T('Headline')}}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{for item_id in session.marked_items:}}
+      {{item = application.getItemByUUID(item_id)}}
+      <tr>
+        <th scope="row"> {{=T(item.item_type)}} </th>
+        <td>
+          {{=item.headline}}
+        </td>
+      </tr>
+      {{pass}}
+    </tbody>
+  </table>
+</div>
+<div class="form-group" id="submit_record__row">
+  {{=form.custom.submit}}
+</div>
+{{=form.custom.end}}

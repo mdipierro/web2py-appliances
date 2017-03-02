@@ -1,0 +1,32 @@
+<div class="panel panel-default">
+  {{if p_content.description and (p_content.description != ''):}}
+  <div class="panel-body">
+    <p><strong>{{=T('Description')}}</strong>:</p>
+    {{=XML(p_content.description)}}
+  </div>
+  {{pass}}
+  {{if p_content.item_list:}}
+  <div class="table-responsive">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        <th>{{=T('Type')}}</th> <th>{{=T('Headline')}}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{for g_item_id in p_content.item_list:}}
+      {{g_item = application.getItemByUUID(g_item_id)}}
+      <tr>
+        <th scope="row"> {{=T(g_item.item_type)}} </th>
+        <td>
+          <a href="{{=URL('item', 'index.html', args=[g_item.unique_id])}}">
+            {{=g_item.headline}}
+          </a>
+        </td>
+      </tr>
+      {{pass}}
+    </tbody>
+  </table>
+  </div>
+  {{pass}}
+</div>

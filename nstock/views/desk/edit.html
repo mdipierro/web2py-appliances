@@ -1,0 +1,31 @@
+{{left_sidebar_enabled=True}}
+{{right_sidebar_enabled=False}}
+{{extend 'layout.html'}}
+
+
+{{block header}}
+<ol class="breadcrumb">
+  <li>
+    <a href="{{=URL('default', 'index')}}">{{=T('Home')}}</a>
+  </li>
+  {{if session.org_id:}}
+  <li>
+    <a href="{{=URL('org', 'view', args=[session.org_id])}}">
+      {{=db.organization(session.org_id).name}}
+    </a>
+  </li>
+  {{pass}}
+  <li class="active">
+    {{=desk.name}}
+  </li>
+</ol>
+{{end}}
+
+{{block left_sidebar}}
+  {{include 'item/add_items.html'}}
+
+  <!-- desk management -->
+  {{include 'desk/desk_menu.html'}}
+{{end}}
+
+{{=form}}

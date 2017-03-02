@@ -1,0 +1,126 @@
+{{if 'in_all_items' in globals().keys():}}
+  {{remove_item = False}}
+{{else:}}
+  {{remove_item = True}}
+{{pass}}
+
+{{contentType = application.getContentType(item.item_type)}}
+
+{{if contentType is not None:}}
+  <div id="item-{{=item.id}}" class="media item-preview">
+    <div class="media-body text-preview">
+        <div class="pull-right">
+            {{marked = session.marked_items}}
+            <button id="toggle{{=item.id}}" class="btn btn-default {{='active' if item.unique_id in marked else ''}}" title="{{=T('Mark / unmark')}}">
+              <i class="fa fa-map-pin"></i>
+            </button>
+
+            <script>
+            $(function() {
+
+              $('#toggle{{=item.id}}').click(function(e) {
+                e.stopPropagation();
+                Pace.start();
+                web2py_component("{{=URL('desk', 'toogle_mark.load', args=[item.unique_id])}}", target='hiddethis');
+                $( this ).toggleClass( 'active' );
+                Pace.stop();
+              });
+
+            });
+            </script>
+
+          {{if application.canUpdateItem(item.unique_id):}}
+          <button id="itemSend{{=item.id}}" class="btn btn-default" title="{{=T('Send')}}">
+            <i class="fa fa-send"></i>
+          </button>
+          <script type="text/javascript">
+            $('#itemSend{{=item.id}}').click(function (e) {
+              e.stopPropagation();
+              $('#metaModalLabel').html('{{=T("Send")}}');
+              $('#metaModal').modal('show');
+              web2py_component("{{=URL('item','share.load', args=[item.unique_id])}}","metaModalBody");
+            });
+          </script>
+          {{pass}}
+
+          <!-- Item menu -->
+          <div class="btn-group">
+            <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+              <li class="fa fa-bars"></li>
+            </button>
+            <ul class="dropdown-menu pull-right">
+              {{if application.canUpdateItem(item.unique_id):}}
+                <li>
+                  <a href="{{=application.getItemURL(item.unique_id)}}">
+                    <i class="fa fa-edit"></i>
+                    {{=T("Edit content")}}
+                  </a>
+                </li>
+                <li>
+                  <a id="itemDetails{{=item.id}}" href="#">
+                      <i class="fa fa-cog"></i> {{=T('Details')}}
+                  </a>
+                  <script type="text/javascript">
+                    $('#itemDetails{{=item.id}}').click(function (e) {
+                      e.stopPropagation();
+                      $('#metaModalLabel').html('{{=T("Details")}}');
+                      $('#metaModal').modal('show');
+                      web2py_component("{{=URL('item', 'meta.load', args=[item.unique_id])}}","metaModalBody");
+                      return false;
+                    });
+                  </script>
+                </li>
+                <li role="separator" class="divider"></li>
+              {{pass}}
+              <li>
+                <a href="{{=URL('item', 'changelog.html', args=[item.unique_id])}}">
+                  <i class="fa fa-history"></i> {{=T('Changelog')}}
+                </a>
+              </li>
+              <li>
+                <!-- View item comments -->
+                <a href="#" data-toggle="modal" data-target="#cmtModal{{=item.id}}">
+                  <i class="fa fa-comments"></i> {{=T("Comments")}}
+                </a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      <p><strong>{{=T("Headline")}}</strong>: {{=item.headline}}</p>
+      <p><strong>{{=T("Slugline")}}</strong>: {{=item.slugline}}</p>
+      <p>
+        <strong>{{=T("Keywords")}}</strong>:
+        {{for k in item.keywords:}}
+          <span class="badge">{{=k}}</span>
+        {{pass}}
+      </p>
+      <p><strong>{{=T("Genre")}}</strong>: {{=item.genre}}</p>
+      {{if item.located:}}
+        <p><strong>{{=T("Located")}}</strong>: {{=item.located}}</p>
+      {{pass}}
+      {{if item.section_page:}}
+        <p><strong>{{=T("Section")}}</strong>: {{=item.section_page}}</p>
+      {{pass}}
+      {{if item.language_tag:}}
+        <p><strong>{{=T("Language")}}</strong>:
+        {{=db.item.language_tag.represent(item.language_tag, item)}}</p>
+      {{pass}}
+      {{if item.embargoed:}}
+        <p><strong>{{=T("Embargoed")}}</strong>: {{=item.embargoed.strftime("%Y-%m-%d %-I:%M %p")}}</p>
+      {{pass}}
+      {{=contentType.preview(item)}}
+      {{author = db.auth_user(item.created_by)}}
+      <p>
+        <strong class="small text-muted">{{=author.first_name}} {{=author.last_name}}</strong>
+        <span class="small text-muted">
+          --
+          {{=item.created_on}}
+        </span>
+      </p>
+
+      <div class="pull-right">
+        {{=plugin_comment_short(item.unique_id)}}
+      </div>
+    </div>
+  </div>
+{{pass}}

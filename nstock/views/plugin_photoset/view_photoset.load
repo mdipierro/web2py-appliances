@@ -1,0 +1,125 @@
+<div id="file-uploader">
+  <noscript><p>{{=T('Please enable JavaScript to use file uploader.')}}</p></noscript>
+</div>
+
+<div id="modal-preview" class="modal fade" tabindex="-1" role="dialog">
+  <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        <h4 class="modal-title">{{=item.headline}}</h4>
+      </div>
+      <div class="modal-body">
+        <div id="photoset-preview-cmp">
+          Here we show the carousel
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">{{=T('Close')}}</button>
+      </div>
+    </div><!-- /.modal-content -->
+  </div><!-- /.modal-dialog -->
+</div><!-- /.modal -->
+
+<div class="container-fluid photoset-preview">
+  <div class="row">
+    {{for _pid in photos:}}
+    {{_photo = db.plugin_photoset_photo(_pid)}}
+    {{if _photo:}}
+    <div class="col-md-6">
+      <div class="panel panel-default">
+        <div class="panel-body">
+          <img src="{{=URL('default', 'download', args=[_photo.thumbnail])}}" alt="" class="img-responsive text-center">
+        </div>
+        <div class="panel-footer">
+          <div class="btn-toolbar" role="toolbar">
+            <div class="btn-group btn-group-xs">
+              <a href="{{=URL('default', 'download', args=[_photo.picture])}}" class="btn btn-default btn-xs">
+                <i class="fa fa-download"></i>
+              </a>
+              <a id="photo-preview-{{=_photo.id}}" class="btn btn-default btn-xs">
+                <i class="fa fa-search"></i>
+              </a>
+              <script type="text/javascript">
+                $('#photo-preview-{{=_photo.id}}').click(function(e) {
+                  e.preventDefault();
+                  Pace.start();
+                  web2py_component("{{=URL('plugin_photoset', 'preview_photo.load', args=[item.unique_id, _photo.id])}}", target='photoset-preview-cmp');
+                  $( '#modal-preview' ).modal('show');
+                  Pace.stop();
+                });
+              </script>
+            </div>
+
+            <div class="btn-group btn-group-xs pull-right">
+              {{if application.canUpdateItem(item.unique_id):}}
+              <a id="photoset_action_delete_{{=_photo.id}}" class="btn btn-danger btn-xs">
+                <i class="fa fa-close"></i>
+              </a>
+              <script type="text/javascript">
+                $('#photoset_action_delete_{{=_photo.id}}').click(function(e) {
+                  e.preventDefault();
+                  Pace.start();
+                  web2py_component("{{=URL('plugin_photoset', 'delete_photo.load', args=[item.unique_id, _photo.id])}}", target='hiddethis');
+                  $('#view_photoset').get(0).reload();
+                  Pace.stop();
+                });
+              </script>
+              {{else:}}
+              <a class="btn btn-danger btn-xs" disabled="disabled">
+                <i class="fa fa-close"></i>
+              </a>
+              {{pass}}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    {{pass}}
+    {{pass}}
+  </div>
+</div>
+
+
+{{if application.canUpdateItem(item.unique_id):}}
+<script>
+$(document).ready(function() {
+  var uploader = new qq.FileUploader({
+        // pass the dom node (ex. $(selector)[0] for jQuery users)
+        element: document.getElementById('file-uploader'),
+        // path to server-side upload script
+        action: '{{=URL("upload_photo", args=[item.unique_id])}}',
+        sizeLimit: 0,
+        minSizeLimit: 0,
+        allowedExtensions: ['jpg', 'jpeg', 'png'],
+        // set to true to output server response to console
+        debug: true,
+
+        // events
+        // you can return false to abort submit
+        onSubmit: function(id, fileName){},
+        onProgress: function(id, fileName, loaded, total){},
+        onComplete: function(id, fileName, responseJSON){
+          $('#view_photoset').get(0).reload();
+        },
+        onCancel: function(id, fileName){},
+
+        messages: {
+            // error messages, see qq.FileUploaderBasic for content
+            typeError: "{file} {{=T('has invalid extension.')}} {{=T('Only')}} {extensions} {{=T('are allowed.')}}",
+            sizeError: "{file} {{=T('is too large, maximum file size is')}} {sizeLimit}.",
+            minSizeError: "{file} {{=T('is too small, minimum file size is')}} {minSizeLimit}.",
+            emptyError: "{file} {{=T('is empty, please select files again without it.')}}",
+            onLeave: "{{=T('The files are being uploaded, if you leave now the upload will be cancelled.')}}"
+        },
+        showMessage: function(message){ alert(message); },
+        uploadButtonText: '{{=T("Select and upload more photos")}}',
+        template: '<div class="qq-uploader">' +
+          '<div class="qq-upload-drop-area"><span>{dragText}</span></div>' +
+          '<div class="qq-upload-button">{uploadButtonText}</div>' +
+          '<hr><ul class="qq-upload-list"></ul>' +
+          '</div>',
+    });
+    });
+</script>
+{{pass}}

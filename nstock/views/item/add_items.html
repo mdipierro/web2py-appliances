@@ -1,0 +1,16 @@
+<div class="panel panel-default">
+    <div class="panel-heading">
+      <h3 class="panel-title">{{=T('Add Items')}}</h3>
+    </div>
+    <div class="list-group">
+        <!-- get all registered content-types -->
+        {{for ct in application.registry:}}
+            {{url, title = application.registry[ct].create_item_url()}}
+            {{if url is not None:}}
+            <a href="{{=url}}" class="list-group-item">
+                {{=title}}
+            </a>
+            {{pass}}
+        {{pass}}
+    </div>
+</div>

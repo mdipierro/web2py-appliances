@@ -1,0 +1,37 @@
+{{if auth.user is not None:}}
+<ul class="nav navbar-nav navbar-right">
+  <li id='notIcon'>
+    <a href="{{=URL('notifications', 'index')}}" title="{{=T('You have unread notifications')}}" v-if="status">
+      <i class="fa fa-bell color-blue"></i>
+    </a>
+    <a href="{{=URL('notifications', 'index')}}" title="{{=T('Notification center')}}" v-else>
+      <i class="fa fa-bell-o"></i>
+    </a>
+  </li>
+</ul>
+
+
+<script>
+var notIcon = new Vue({
+  el: '#notIcon',
+  data: {
+    status: false
+  },
+  methods: {
+    loadData: function () {
+      $.get('{{=URL("notifications", "has_notifications")}}', function (response) {
+        this.status = response;
+      }.bind(this));
+    }
+  },
+  mounted: function () {
+    this.loadData();
+
+    setInterval(function () {
+      this.loadData();
+    }.bind(this), 30000);
+  }
+});
+</script>
+
+{{pass}}

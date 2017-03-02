@@ -1,0 +1,73 @@
+{{left_sidebar_enabled=True}}
+{{right_sidebar_enabled=False}}
+{{extend 'layout.html'}}
+
+
+{{block header}}
+<ol class="breadcrumb">
+  <li>
+    <a href="{{=URL('default', 'index')}}">{{=T('Home')}}</a>
+  </li>
+  {{if session.org_id:}}
+  <li>
+    <a href="{{=URL('org', 'view', args=[session.org_id])}}">
+      {{=db.organization(session.org_id).name}}
+    </a>
+  </li>
+  {{pass}}
+  <li class="active">
+    {{=desk.name}}
+  </li>
+</ol>
+{{end}}
+
+{{block left_sidebar}}
+  {{include 'item/add_items.html'}}
+
+  <!-- desk management -->
+  {{include 'desk/desk_menu.html'}}
+{{end}}
+
+{{if my_users:}}
+<h4>
+  {{=T("Organization users")}}
+</h4>
+<div class="table-responsive">
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th>
+        {{=T("Name")}}
+      </th>
+      <th>
+        {{=T("Email")}}
+      </th>
+      <th>
+        <!-- Opps -->
+      </th>
+    </tr>
+  </thead>
+  <tbody>
+    {{for org_user in my_users:}}
+      <tr>
+        <td>
+          {{=org_user.first_name}} {{=org_user.last_name}}
+        </td>
+        <td>
+          {{=org_user.email}}
+        </td>
+        <td>
+          <a href="{{=URL('desk', 'users', args=[desk.id, org_user.id])}}" class="btn btn-primary btn-xs" title="{{=T('Permissions')}}">
+            <i class="fa fa-lock"></i> {{=T("Permissions")}}
+          </a>
+        </td>
+      </tr>
+    {{pass}}
+  </tbody>
+</table>
+</div>
+{{else:}}
+<div class="alert alert-warning">
+  {{=T("Warning!")}} {{=T("The organization don't have any user.")}}
+</div>
+{{pass}}
