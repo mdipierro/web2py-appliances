@@ -1,0 +1,33 @@
+{{extend 'item/item_layout.html'}}
+
+<div class="panel panel-default">
+  <div class="panel-heading">
+    <h3 class="panel-title">
+      {{=T('META changelog')}} <small>{{=item.headline}}</small>
+    </h3>
+  </div>
+  <div class="panel-body">
+    <p>
+        {{=T('''
+        Current item metadata version by %(first_name)s %(last_name)s on %(date_time)s
+        ''') % dict(
+          first_name=db.auth_user(item.modified_by).first_name,
+          last_name=db.auth_user(item.modified_by).last_name,
+          date_time=item.modified_on
+        )}}
+    </p>
+  </div>
+
+  {{if changes.rows:}}
+    {{=changes}}
+  {{pass}}
+  <div class="panel-footer">
+    {{if application.getContentChangesURL(item.unique_id):}}
+        <a class="btn btn-default" href="{{=application.getContentChangesURL(item.unique_id)}}">
+            {{=T('Content changes')}}
+
+            <i class="fa fa-caret-right"></i>
+        </a>
+    {{pass}}
+  </div>
+</div>

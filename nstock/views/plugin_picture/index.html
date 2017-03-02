@@ -1,0 +1,82 @@
+{{extend 'item/item_layout.html'}}
+
+<div class="panel panel-default">
+  <div class="panel-heading">
+    <h3 class="panel-title">{{=item.headline}} <small>{{=T("Content")}}</small></h3>
+  </div>
+
+  <div class="panel-body">
+    <p>
+      <img src="{{=URL('default', 'download', args=[content.thumbnail])}}" alt="" class="img-responsive margin-auto"/>
+    </p>
+
+    {{=form}}
+  </div>
+
+</div>
+
+<div class="btn-toolbar">
+  <div class="btn-group pull-right">
+    <a class="btn btn-success" href="{{=URL('plugin_picture', 'add_rendition', args=[item.unique_id])}}">
+      <i class="fa fa-plus"></i> {{=T('Add rendition')}}
+    </a>
+  </div>
+</div>
+
+<hr>
+<div id="hiddethis" class="hidden">
+
+</div>
+{{for red in content.renditions:}}
+{{rendition = db.plugin_picture_rendition(red)}}
+<div id="rendition{{=rendition.id}}" class="panel panel-default">
+  <div class="panel-heading">
+    <h3 class="panel-title">{{=T('Rendition')}} <small>{{=rendition.purpose}}</small></h3>
+  </div>
+
+  <ul class="list-group">
+    <li class="list-group-item">
+      <strong>{{=T('Size')}}</strong>: {{=rendition.width}} x {{=rendition.height}}
+    </li>
+    <li class="list-group-item">
+      <strong>{{=T('Mode')}}</strong>: {{=rendition.color}}
+    </li>
+    <li class="list-group-item">
+      <strong>{{=T('Format')}}</strong>: {{=rendition.format}}
+    </li>
+  </ul>
+
+  <div class="panel-footer clearfix">
+    <!-- rendition tool bar  -->
+    <div class="btn-toolbar pull-right" role="toolbar">
+      <div class="btn-group">
+        <a href="{{=URL('default', 'download', args=[rendition.picture])}}" class="btn btn-default btn-sm">
+          <i class="fa fa-download"></i>
+          {{=T('Download')}}
+        </a>
+        {{if application.canUpdateItem(item.unique_id):}}
+            <!-- Only the owner in the original item can do this. -->
+            <a id="del-red-{{=rendition.id}}" class="btn btn-danger btn-sm">
+              <i class="fa fa-close"></i>
+              {{=T('Delete')}}
+            </a>
+            <script>
+              $(function() {
+
+                $('#del-red-{{=rendition.id}}').click(function(e) {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  Pace.start();
+                  web2py_component("{{=URL('plugin_picture', 'delete_rendition.load', args=[item.unique_id, rendition.id])}}", target='hiddethis');
+                  $( "#rendition{{=rendition.id}}" ).remove();
+                  Pace.stop();
+                });
+
+              });
+            </script>
+        {{pass}}
+      </div>
+    </div>
+  </div>
+</div>
+{{pass}}

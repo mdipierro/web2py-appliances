@@ -1,0 +1,4 @@
+{{from html2text import html2text}}
+{{extend 'item/full_text.txt'}}
+{{=text_content.byline}}
+{{=html2text(text_content.body.decode('utf-8'))}}

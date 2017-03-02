@@ -1,0 +1,24 @@
+{{extend 'item/item_layout.html'}}
+
+<div class="panel panel-default">
+  <div class="panel-heading">
+    <h3 class="panel-title">
+      {{=item.headline}} <small>{{=T('Content changelog')}}</small>
+    </h3>
+  </div>
+  <div class="panel-body">
+    <p>
+      {{=T('''
+      Current item content version by %(first_name)s %(last_name)s on %(date_time)s
+      ''') % dict(
+        first_name=db.auth_user(content.modified_by).first_name,
+        last_name=db.auth_user(content.modified_by).last_name,
+        date_time=content.modified_on
+      )}}
+    </p>
+  </div>
+
+  {{if changes.rows:}}
+    {{=changes}}
+  {{pass}}
+</div>

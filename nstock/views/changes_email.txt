@@ -1,0 +1,23 @@
+<p>
+{{=user.first_name}} {{=user.last_name}}, {{=T('has made changes to the item')}}:
+</p>
+
+<p>
+  <a href="{{=URL('item', 'index.html', args=[item.unique_id], scheme=True, host=True)}}">
+    <strong>{{=item.headline}}</strong>
+  </a>
+</p>
+
+<p>{{=T('You can see the changes on')}}:</p>
+
+<a href="{{=URL('item', 'changelog.html', args=[item.unique_id], scheme=True, host=True)}}">
+{{=URL('item', 'changelog.html', args=[item.unique_id], scheme=True, host=True)}}
+</a>
+
+<p>
+--<br />
+{{=T('See you on nStock')}}.<br />
+<a href="{{=URL('default', 'index.html', scheme=True, host=True)}}">
+  {{=URL('default', 'index.html', scheme=True, host=True)}}
+</a><br />
+</p>

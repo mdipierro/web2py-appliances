@@ -1,0 +1,49 @@
+{{left_sidebar_enabled=True}}
+{{right_sidebar_enabled=True}}
+{{extend 'layout.html'}}
+
+{{block left_sidebar}}
+  <!-- org config. menu -->
+  {{include 'org/org_sidebar.html'}}
+{{end}}
+
+<!-- Display the list of desks for the user. -->
+
+{{block header}}
+<ol class="breadcrumb">
+  <li>
+    <a href="{{=URL('default', 'index')}}">{{=T('Home')}}</a>
+  </li>
+  <li class="active">{{=org.name}}</li>
+</ol>
+{{end}}
+
+<h4>{{=T("Desks")}}</h4>
+<div class="list-group">
+  {{ user_desk = application.getUserDesk() }}
+  <a href="{{=URL('desk', 'index', args=[user_desk.id])}}" class="list-group-item">
+    <span class="badge">{{=len(user_desk.item_list)}}</span>
+    <h4 class="list-group-item-heading">
+      {{=user_desk.name}}
+    </h4>
+    <p class="list-group-item-text">
+      {{=T('Personal user desk')}}
+    </p>
+  </a>
+  {{for desk_id in org.desks:}}
+    {{desk = db.desk(desk_id)}}
+    {{if auth.has_permission('read', db.desk, desk_id) or auth.has_permission('update', db.desk, desk_id) or auth.has_permission('update_items', db.desk, desk_id):}}
+    <a class="list-group-item" href="{{=URL('desk', 'index', args=[desk.id])}}">
+      <span class="badge">{{=len(desk.item_list)}}</span>
+      <h4 class="list-group-item-heading">{{=desk.name}}</h4>
+    </a>
+    {{else:}}
+    <a class="list-group-item disabled" href="#">
+      <h4 class="list-group-item-heading">{{=desk.name}}</h4>
+    </a>
+    {{pass}}
+  {{pass}}
+</div>
+{{if auth.has_permission('update', db.organization, org.id):}}
+<a href="{{=URL('desk', 'create')}}" class="btn btn-default">{{=T('Add new desk')}}</a>
+{{pass}}

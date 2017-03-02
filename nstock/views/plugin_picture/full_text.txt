@@ -1,0 +1,5 @@
+{{from html2text import html2text}}
+{{extend 'item/full_text.txt'}}
+{{=pic_info.credit_line}}
+{{=html2text(pic_info.description.decode('utf-8'))}}
+{{=pic_info.caption}}

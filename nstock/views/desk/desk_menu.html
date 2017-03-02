@@ -1,0 +1,54 @@
+<div class="panel panel-default">
+  <div class="panel-heading">
+    <h3 class="panel-title">{{=desk.name}}</h3>
+  </div>
+
+  <div class="list-group">
+    <a href="{{=URL('desk', 'index', args=[desk.id])}}" class="list-group-item {{='active' if request.controller == 'desk' and request.function == 'index' else ''}}">
+      <i class="fa fa-file-o"></i>
+      {{=T('Items')}}
+    </a>
+
+    {{ if desk.id != application.getUserDesk().id and auth.has_permission('update', db.desk, desk.id):}}
+    <a href="{{=URL('desk', 'edit', args=[desk.id])}}" class="list-group-item {{='active' if request.controller == 'desk' and request.function == 'edit' else ''}}">
+      <i class="fa fa-edit"></i>
+      {{=T('Rename')}}
+    </a>
+    {{else:}}
+      {{if desk.id != application.getUserDesk().id:}}
+        <a href="#" class="list-group-item disabled">
+          <i class="fa fa-edit"></i>
+          {{=T('Rename')}}
+        </a>
+      {{pass}}
+    {{pass}}
+
+    {{ if desk.id != application.getUserDesk().id and auth.has_permission('update', db.desk, desk.id):}}
+    <a href="{{=URL('desk', 'users', args=[desk.id])}}" class="list-group-item {{='active' if request.controller == 'desk' and request.function == 'users' else ''}}">
+      <i class="fa fa-unlock"></i>
+      {{=T('Permissions')}}
+    </a>
+    {{else:}}
+      {{if desk.id != application.getUserDesk().id:}}
+      <a href="#" class="list-group-item disabled">
+        <i class="fa fa-unlock"></i>
+        {{=T('Permissions')}}
+      </a>
+      {{pass}}
+    {{pass}}
+
+    {{ if desk.id != application.getUserDesk().id and auth.has_permission('update', db.desk, desk.id):}}
+    <a href="{{=URL('desk', 'delete', args=[desk.id])}}" class="list-group-item {{='active' if request.controller == 'desk' and request.function == 'delete' else ''}}">
+      <i class="fa fa-close"></i>
+      {{=T('Remove')}}
+    </a>
+    {{else:}}
+      {{if desk.id != application.getUserDesk().id:}}
+      <a href="#" class="list-group-item disabled">
+        <i class="fa fa-close"></i>
+        {{=T('Remove')}}
+      </a>
+      {{pass}}
+    {{pass}}
+  </div>
+</div>

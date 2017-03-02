@@ -1,0 +1,37 @@
+<div id="carousel-photoset-preview" class="carousel slide" data-ride="carousel">
+  <!-- Indicators -->
+  <ol class="carousel-indicators">
+    {{p_index = 0}}
+    {{for _pid in content.photoset:}}
+    <li data-target="#carousel-photoset-preview" data-slide-to="{{=p_index}}" class="{{='active' if _pid==photo.id else ''}}"></li>
+    {{p_index = p_index + 1}}
+    {{pass}}
+  </ol>
+
+  <!-- Wrapper for slides -->
+  <div class="carousel-inner">
+    {{p_index = 0 }}
+    {{for _pid in content.photoset:}}
+    <div class="item {{='active' if _pid==photo.id else ''}}">
+      {{_inner_photo = db.plugin_photoset_photo(_pid)}}
+      <img src="{{=URL('default', 'download', args=[_inner_photo.picture])}}" alt="{{=item.slugline}}" class="img-responsive center-block">
+      <div class="carousel-caption">
+        {{if content.credit_line:}}
+          {{=content.credit_line}}
+        {{pass}}
+      </div>
+    </div>
+    {{p_index = p_index + 1}}
+    {{pass}}
+  </div>
+
+  <!-- Controls -->
+  <a class="left carousel-control" href="#carousel-photoset-preview" role="button" data-slide="prev">
+    <span class="glyphicon glyphicon-chevron-left" aria-hidden="true"></span>
+    <span class="sr-only">Previous</span>
+  </a>
+  <a class="right carousel-control" href="#carousel-photoset-preview" role="button" data-slide="next">
+    <span class="glyphicon glyphicon-chevron-right" aria-hidden="true"></span>
+    <span class="sr-only">Next</span>
+  </a>
+</div>

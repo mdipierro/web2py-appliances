@@ -1,0 +1,12 @@
+.photoset-preview > .row > .col-md-6 {
+  /*padding-left: 5px;
+  padding-right: 5px;*/
+}
+
+.photoset-preview > .row > .col-md-6 > .panel > .panel-body {
+  padding: 0px;
+}
+
+.photoset-preview .img-responsive {
+    margin: 0 auto;
+}

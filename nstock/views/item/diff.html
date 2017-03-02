@@ -1,0 +1,33 @@
+{{left_sidebar_enabled=False}}
+{{right_sidebar_enabled=False}}
+
+{{extend 'item/item_layout.html'}}
+
+<div class="container-fluid">
+  <div class="row">
+      <div class="col-md-6">
+
+        <div class="panel panel-default">
+          <div class="panel-heading">
+            <h3 class="panel-title">{{=T('Before')}}</h3>
+          </div>
+          <div class="panel-body">
+            {{=form_archive}}
+          </div>
+        </div>
+
+      </div>
+      <div class="col-md-6">
+
+          <div class="panel panel-default">
+            <div class="panel-heading">
+              <h3 class="panel-title">{{=T('Currrent')}}</h3>
+            </div>
+            <div class="panel-body">
+              {{=form_actual}}
+            </div>
+          </div>
+
+      </div>
+  </div>
+</div>

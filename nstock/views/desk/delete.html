@@ -1,0 +1,43 @@
+{{left_sidebar_enabled=True}}
+{{right_sidebar_enabled=False}}
+{{extend 'layout.html'}}
+
+
+{{block header}}
+<ol class="breadcrumb">
+  <li>
+    <a href="{{=URL('default', 'index')}}">{{=T('Home')}}</a>
+  </li>
+  {{if session.org_id:}}
+  <li>
+    <a href="{{=URL('org', 'view', args=[session.org_id])}}">
+      {{=db.organization(session.org_id).name}}
+    </a>
+  </li>
+  {{pass}}
+  <li class="active">
+    {{=desk.name}}
+  </li>
+</ol>
+{{end}}
+
+{{block left_sidebar}}
+  {{include 'item/add_items.html'}}
+
+  <!-- desk management -->
+  {{include 'desk/desk_menu.html'}}
+{{end}}
+
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-md-6 col-md-offset-3">
+      <div class="alert alert-warning">
+        <p>
+          {{=T("Deleting this desk will push all the Items to the author's desk's")}}
+        </p>
+        <hr>
+        {{=form}}
+      </div>
+    </div>
+  </div>
+</div>

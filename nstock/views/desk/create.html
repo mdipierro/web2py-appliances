@@ -1,0 +1,24 @@
+{{left_sidebar_enabled=True}}
+{{right_sidebar_enabled=True}}
+{{extend 'layout.html'}}
+
+{{block left_sidebar}}
+  <!-- org config. menu -->
+  {{include 'org/org_sidebar.html'}}
+{{end}}
+
+{{block header}}
+<ol class="breadcrumb">
+  <li>
+    <a href="{{=URL('default', 'index')}}">{{=T('Home')}}</a>
+  </li>
+  <li>
+    <a href="{{=URL('org', 'view', args=[session.org_id])}}">
+      {{=org.name}}
+    </a>
+  </li>
+  <li class="active">{{=T('Add new desk')}}</li>
+</ol>
+{{end}}
+
+{{=form}}

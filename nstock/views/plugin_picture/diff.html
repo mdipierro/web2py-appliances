@@ -1,0 +1,196 @@
+{{left_sidebar_enabled=False}}
+{{right_sidebar_enabled=False}}
+{{response.files.append(URL('static','css/diffview.css'))}}
+{{response.files.append(URL('static','js/diffview.js'))}}
+{{response.files.append(URL('static','js/difflib.js'))}}
+
+{{extend 'item/item_layout.html'}}
+
+<div class="container-fluid">
+  <div class="row">
+
+      {{if 'credit_line' in fields_names:}}
+      <div class="col-md-6">
+
+          <div class="panel panel-default">
+            <div class="panel-heading">
+              <h3 class="panel-title">{{=T('Before')}}</h3>
+            </div>
+            <div class="panel-body">
+                <p>
+                  <strong>{{=form_actual.custom.label.credit_line}}</strong>
+                  {{=form_archive.custom.widget.credit_line}}
+                </p>
+            </div>
+          </div>
+
+      </div>
+      <div class="col-md-6">
+
+          <div class="panel panel-default">
+            <div class="panel-heading">
+              <h3 class="panel-title">{{=T('Currrent')}}</h3>
+            </div>
+            <div class="panel-body">
+              <p>
+                <strong>{{=form_actual.custom.label.credit_line}}</strong>
+                {{=form_actual.custom.widget.credit_line}}
+              </p>
+            </div>
+          </div>
+
+      </div>
+      {{pass}}
+
+      {{if 'caption' in fields_names:}}
+      <div class="col-md-6">
+
+          <div class="panel panel-default">
+            <div class="panel-heading">
+              <h3 class="panel-title">{{=T('Before')}}</h3>
+            </div>
+            <div class="panel-body">
+                <p>
+                  <strong>{{=form_actual.custom.label.caption}}</strong>
+                  {{=form_archive.custom.widget.caption}}
+                </p>
+            </div>
+          </div>
+
+      </div>
+      <div class="col-md-6">
+
+          <div class="panel panel-default">
+            <div class="panel-heading">
+              <h3 class="panel-title">{{=T('Currrent')}}</h3>
+            </div>
+            <div class="panel-body">
+              <p>
+                <strong>{{=form_actual.custom.label.caption}}</strong>
+                {{=form_actual.custom.widget.caption}}
+              </p>
+            </div>
+          </div>
+
+      </div>
+      {{pass}}
+
+      {{if 'renditions' in fields_names:}}
+      <div class="col-md-6">
+
+          <div class="panel panel-default">
+            <div class="panel-heading">
+              <h3 class="panel-title">{{=T('Before')}}</h3>
+            </div>
+            <div class="panel-body">
+                <p><strong>{{=T("Renditions")}}</strong></p>
+                {{for red in archive.renditions:}}
+                {{rendition = db.plugin_picture_rendition(red)}}
+                <div class="panel panel-default">
+                  <div class="panel-heading">
+                    <h3 class="panel-title">{{=T('Rendition')}} <small>{{=rendition.purpose}}</small></h3>
+                  </div>
+
+                  <ul class="list-group">
+                    <li class="list-group-item">
+                      <strong>{{=T('Size')}}</strong>: {{=rendition.width}} x {{=rendition.height}}
+                    </li>
+                    <li class="list-group-item">
+                      <strong>{{=T('Mode')}}</strong>: {{=rendition.color}}
+                    </li>
+                    <li class="list-group-item">
+                      <strong>{{=T('Format')}}</strong>: {{=rendition.format}}
+                    </li>
+                  </ul>
+
+                </div>
+                {{pass}}
+            </div>
+          </div>
+
+      </div>
+      <div class="col-md-6">
+
+          <div class="panel panel-default">
+            <div class="panel-heading">
+              <h3 class="panel-title">{{=T('Currrent')}}</h3>
+            </div>
+            <div class="panel-body">
+              <p><strong>{{=T("Renditions")}}</strong></p>
+              {{for red in content.renditions:}}
+              {{rendition = db.plugin_picture_rendition(red)}}
+              <div class="panel panel-default">
+                <div class="panel-heading">
+                  <h3 class="panel-title">{{=T('Rendition')}} <small>{{=rendition.purpose}}</small></h3>
+                </div>
+
+                <ul class="list-group">
+                  <li class="list-group-item">
+                    <strong>{{=T('Size')}}</strong>: {{=rendition.width}} x {{=rendition.height}}
+                  </li>
+                  <li class="list-group-item">
+                    <strong>{{=T('Mode')}}</strong>: {{=rendition.color}}
+                  </li>
+                  <li class="list-group-item">
+                    <strong>{{=T('Format')}}</strong>: {{=rendition.format}}
+                  </li>
+                </ul>
+
+              </div>
+              {{pass}}
+            </div>
+          </div>
+
+      </div>
+      {{pass}}
+
+      {{if 'description' in fields_names:}}
+      <div class="col-md-12">
+        <!-- text content diff using jsdifflib -->
+        <div class="panel panel-default">
+          <div class="panel-heading">
+            <h3 class="panel-title">{{=form_actual.custom.label.description}}</h3>
+          </div>
+          <!-- the actual content in to separate and hidden text areas -->
+          <textarea id="current" rows="8" cols="40" style="display: None;">{{=form_actual.custom.widget.description}}</textarea>
+          <textarea id="before" rows="8" cols="40" style="display: None;">{{=form_archive.custom.widget.description}}</textarea>
+          <input style="display: None;" type="text" name="contextSize" id="contextSize" value="">
+          <!-- the diff table output to full panel width -->
+          <div id="diffoutput"></div>
+
+          <script type="text/javascript">
+
+          function diffUsingJS(viewType) {
+          	"use strict";
+          	var byId = function (id) { return document.getElementById(id); },
+          		base = difflib.stringAsLines(byId("before").value),
+          		newtxt = difflib.stringAsLines(byId("current").value),
+          		sm = new difflib.SequenceMatcher(base, newtxt),
+          		opcodes = sm.get_opcodes(),
+          		diffoutputdiv = byId("diffoutput"),
+          		contextSize = byId("contextSize").value;
+
+          	diffoutputdiv.innerHTML = "";
+          	contextSize = contextSize || null;
+
+          	diffoutputdiv.appendChild(diffview.buildView({
+          		baseTextLines: base,
+          		newTextLines: newtxt,
+          		opcodes: opcodes,
+          		baseTextName: "{{=T('Before')}}",
+          		newTextName: "{{=T('Current')}}",
+          		contextSize: contextSize,
+          		viewType: viewType
+          	}));
+          }
+
+          $( document ).ready(function() {
+              diffUsingJS(0);
+          });
+          </script>
+        </div>
+      </div>
+      {{pass}}
+
+  </div>
+</div>

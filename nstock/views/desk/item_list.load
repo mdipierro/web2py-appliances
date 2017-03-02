@@ -1,0 +1,63 @@
+
+<div id="hiddethis" class="hidden">
+
+</div>
+
+<div class="container-fluid">
+
+    <div class="row item-rows">
+        {{for m_id in desk.item_list:}}
+        <!-- <div class="col-xs-12 col-sm-12 col-md-6"> -->
+          {{ item = db.item(m_id) }}
+          {{in_all_items = True}}
+          {{ if application.canReadItem(item.unique_id) or application.canUpdateItem(item.unique_id): }}
+          {{include 'item/preview.html'}}
+          {{ pass }}
+        <!-- </div> -->
+        {{pass}}
+    </div>
+
+
+    <!-- preview tools -->
+    <div id="modal-preview" class="modal fade" tabindex="-1" role="dialog">
+      <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            <h4 class="modal-title">{{=T("Image preview")}}</h4>
+          </div>
+          <div class="modal-body">
+            <div id="photoset-preview-cmp">
+              Here we show the carousel
+            </div>
+          </div>
+          <div class="modal-footer">
+            <a id="preview_download" href="#" class="btn btn-primary">
+              <i class="fa fa-download"></i> {{=T("Download")}}
+            </a>
+            <button type="button" class="btn btn-default" data-dismiss="modal">{{=T('Close')}}</button>
+          </div>
+        </div><!-- /.modal-content -->
+      </div><!-- /.modal-dialog -->
+    </div><!-- /.modal -->
+    <!-- metaModal -->
+    <div class="modal fade" id="metaModal" tabindex="-1" role="dialog" aria-labelledby="metaModalLabel">
+      <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            <h4 class="modal-title" id="metaModalLabel">{{=T("Details")}}</h4>
+          </div>
+          <div id="metaModalBody" class="modal-body">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      $('#metaModal').on('hidden.bs.modal', function (e) {
+        $('#metaModalBody').html("");
+        jQuery('#main').get(0).reload();
+      });
+    </script>
+</div>

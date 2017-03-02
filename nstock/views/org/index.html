@@ -1,0 +1,42 @@
+{{left_sidebar_enabled=True}}
+{{right_sidebar_enabled=True}}
+{{extend 'layout.html'}}
+
+
+{{if orgs:}}
+  <p>
+    {{=T("Your organizations")}}:
+  </p>
+
+  <div class="list-group">
+    {{for org in orgs:}}
+    <a href="{{=URL('org', 'view', args=[org.id])}}" class="list-group-item">
+      <h4 class="list-group-item-heading">{{=org.name}}</h4>
+      <p class="list-group-item-text">
+        {{=org.description}}
+      </p>
+    </a>
+    {{pass}}
+    {{if auth.has_permission('create_org', db.organization):}}
+    <a class="list-group-item" href="{{=URL('create')}}">
+      <p class="list-group-item-text">
+        <i class="fa fa-plus-square"></i>
+        {{=T("Create new organization")}}
+      </p>
+    </a>
+    {{pass}}
+  </div>
+{{else:}}
+  <div class="alert alert-info">
+    <p>
+      {{=T("You don't have or have joined to any organization")}}
+    </p>
+    {{if auth.has_permission('create_org', db.organization):}}
+    <hr>
+    <a class="btn btn-primary" href="{{=URL('create')}}">
+      <i class="fa fa-plus-square"></i>
+      {{=T("Create new organization")}}
+    </a>
+    {{pass}}
+  </div>
+{{pass}}

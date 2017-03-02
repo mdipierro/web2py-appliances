@@ -1,0 +1,27 @@
+{{response.files.append(URL('static','plugin_photoset/css/fileuploader.css'))}}
+{{response.files.append(URL('static','plugin_photoset/css/style.css'))}}
+{{response.files.append(URL('static','plugin_photoset/js/fileuploader.js'))}}
+{{extend 'item/item_layout.html'}}
+
+
+<div id="hiddethis" class="hidden">
+
+</div>
+
+<div class="container-fluid">
+
+  <div class="row">
+    <div class="col-md-12">
+      <!-- here goes the basic form -->
+      {{=LOAD(c='plugin_photoset', f='edit_form.load', ajax=True, args=[item.unique_id], target='edit_form')}}
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-md-12">
+      <!-- here put the JS uploader -->
+      {{=LOAD(c='plugin_photoset', f='view_photoset.load', ajax=True, args=[item.unique_id], target='view_photoset')}}
+    </div>
+  </div>
+
+</div>

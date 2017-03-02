@@ -1,0 +1,17 @@
+<p>{{=user.first_name}} {{=user.last_name}}, {{=T('has share the item')}}:</p>
+
+<p>
+  <a href="{{=URL('item', 'index.html', args=[item.unique_id], scheme=True, host=True)}}">
+    <strong>{{=item.headline}}</strong>
+  </a>
+</p>
+
+<p>{{=T('With')}} {{=t_user.first_name}} {{=t_user.last_name}} [{{=t_user.email}}].</p>
+
+<p>
+--<br />
+{{=T('See you on nStock')}}.<br />
+<a href="{{=URL('default', 'index.html', scheme=True, host=True)}}">
+  {{=URL('default', 'index.html', scheme=True, host=True)}}
+</a><br />
+</p>

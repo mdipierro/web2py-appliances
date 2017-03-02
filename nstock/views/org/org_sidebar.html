@@ -1,0 +1,25 @@
+<div class="list-group">
+  <a href="{{=URL('org', 'view', args=[session.org_id])}}" class="list-group-item {{='active' if (request.controller == 'org' and request.function == 'view') else ''}}">
+    <i class="fa fa-desktop"></i> {{=T('Desks')}}
+  </a>
+
+  {{if auth.has_permission('update', db.organization, session.org_id):}}
+  <a href="{{=URL('org', 'edit', args=[session.org_id])}}" class="list-group-item {{='active' if (request.controller == 'org' and request.function == 'edit') else ''}}">
+    <i class="fa fa-cog"></i> {{=T('Settings')}}
+  </a>
+  {{else:}}
+  <a href="#" class="list-group-item disabled">
+    <i class="fa fa-cog"></i> {{=T('Settings')}}
+  </a>
+  {{pass}}
+
+  {{if auth.has_permission('update', db.organization, session.org_id):}}
+  <a href="{{=URL('org', 'members', args=[session.org_id])}}" class="list-group-item {{='active' if (request.controller == 'org' and request.function == 'members') else ''}}">
+    <i class="fa fa-users"></i> {{=T('Members')}}
+  </a>
+  {{else:}}
+  <a href="#" class="list-group-item disabled">
+    <i class="fa fa-users"></i> {{=T('Members')}}
+  </a>
+  {{pass}}
+</div>

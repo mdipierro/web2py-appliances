@@ -1,0 +1,15 @@
+<div class="panel panel-default">
+  <div class="panel-heading">
+    {{=T("Text")}}
+  </div>
+  <div class="panel-body">
+    {{=XML(p_content.body)}}
+    {{if p_content.byline:}}
+      <hr />
+      <p>
+        <strong>{{=T("By line")}}</strong>:
+        {{=p_content.byline}}
+      </p>
+    {{pass}}
+  </div>
+</div>

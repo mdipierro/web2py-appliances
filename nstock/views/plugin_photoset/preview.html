@@ -1,0 +1,39 @@
+<div class="panel panel-default">
+  <div class="panel-heading">
+    {{=T("Pictures")}}
+  </div>
+  <div class="panel-body">
+    <p>
+      {{if photoset_content.photoset is not None:}}
+        {{for _p_id in photoset_content.photoset:}}
+        {{_photo = db.plugin_photoset_photo(_p_id)}}
+        {{if _photo:}}
+        <div class="panel col-md-4 panel-mb-5">
+            <img id="photo-preview-{{=_photo.id}}" src="{{=URL('default', 'download', args=[_photo.thumbnail])}}"
+                alt="" class="img-responsive img-rounded hand-pointer preview-img-hover">
+            <script type="text/javascript">
+              $('#photo-preview-{{=_photo.id}}').click(function(e) {
+                e.preventDefault();
+                Pace.start();
+                $("#preview_download").attr("href", "{{=URL('default', 'download', args=[_photo.picture])}}");
+                web2py_component("{{=URL('plugin_photoset', 'preview_photo.load', args=[item.unique_id, _photo.id])}}", target='photoset-preview-cmp');
+                $( '#modal-preview' ).modal('show');
+                Pace.stop();
+              });
+            </script>
+        </div>
+        {{pass}}
+        {{pass}}
+      {{pass}}
+    </p>
+    <div class="clearfix"></div>
+    {{if photoset_content.credit_line:}}
+    <p><strong>{{=T("Credit line")}}:</strong> {{=photoset_content.credit_line}}</p>
+    {{pass}}
+    {{if photoset_content.description:}}
+    <p><strong>{{=T('Description')}}</strong>:</p>
+    {{=XML(photoset_content.description)}}
+    {{pass}}
+  </div>
+
+</div>
