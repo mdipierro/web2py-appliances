@@ -1,7 +1,0 @@
-{{extend 'layout.html'}}
-
-{{
-try: task['task']['traceback']=PRE(task['task']['traceback'])
-except: pass
-}}
-{{=BEAUTIFY(task)}}
