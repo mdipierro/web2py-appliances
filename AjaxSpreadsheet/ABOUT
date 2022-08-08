@@ -1,1 +1,0 @@
-It is embeddable spreadsheet. Cells can have numbers, text and formulas. Cells can have arbitrary names (regex:\w+), can be readonly, and other constraints. It is secure since only math functions and user defined variables are allowed. Cells are not limited to be in a grid but can be moved anywhere in an html page. It is based on jQuery.
