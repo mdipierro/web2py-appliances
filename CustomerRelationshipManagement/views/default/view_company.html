@@ -1,9 +1,0 @@
-{{extend 'layout.html'}}
-<h1><a href="{{=company.url or '#'}}">{{=company.name}}</a></h1>
-
-{{=button('edit','edit_company',company.id)}}
-{{=button('contacts','list_persons',company.id)}}
-
-{{=crud.read(db.company,company)}}
-
-{{=tag('company',company.id)}}
