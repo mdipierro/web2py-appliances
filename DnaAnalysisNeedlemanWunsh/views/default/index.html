@@ -1,9 +1,0 @@
-{{extend 'layout.html'}}
-
-<a href="{{=URL('compare')}}">compare</a>
-
-<ul>
-{{for row in rows:}}
-<li>{{=row.name}}[<a href="{{=URL('gene_size',vars=dict(id=row.id))}}" >gene sizes</a>]</li>
-{{pass}}
-</ul>
