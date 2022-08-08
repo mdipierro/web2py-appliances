@@ -1,1 +1,0 @@
-def index(): redirect(URL(r=request,c='test',f='recipes'))
