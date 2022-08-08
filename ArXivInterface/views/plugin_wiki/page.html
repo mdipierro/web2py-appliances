@@ -1,8 +1,0 @@
-{{extend 'layout.html'}}
-{{if page:}}
-{{if page.slug.startswith('meta-'):}}{{=CODE(page.body)}}{{else:}}{{=plugin_wiki.render(page.body)}}{{pass}}
-{{if plugin_wiki_editor:}}
-<div class="plugin_wiki_info">Last modified by {{=db.plugin_wiki_page.modified_by.represent(page.modified_by)}} {{=prettydate(page.modified_on)}} {{if plugin_wiki_editor:}}[<a href="{{=URL('page_history',args=slug)}}">history</a>]{{pass}}[<a href="{{=URL('page_edit',args=slug)}}">edit</a>]</div>{{pass}}
-{{else:}}
-<div class="plugin_wiki_notification">This page does not exist yet. <a href="{{=URL('page_edit',args=slug, vars=dict(template=request.vars.template or ''))}}">Create this page</a></div>
-{{pass}}

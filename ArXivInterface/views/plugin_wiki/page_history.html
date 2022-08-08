@@ -1,9 +1,0 @@
-{{extend 'layout.html'}}
-
-<h1>{{=page.title}} History</h1>
-<ul>
-  <li>{{=A('%(modified_on)s by %(modified_by)s as "%(title)s" (current page)' % page,_href=URL('page',args=page.slug))}}<br/>{{=page.changelog}}</li>
-  {{for item in history:}}
-  <li>{{=A('%(modified_on)s by %(modified_by)s as "%(title)s"' % item,_href=URL('page_archive',args=item.id))}}<br/>{{=item.changelog}}</li>
-  {{pass}}
-</ul>

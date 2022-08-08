@@ -1,2 +1,0 @@
-python web2py.py -S nersc -M -N -R applications/nersc/private/partse.py
-rebuilds data and reads private/sql_ls.txt

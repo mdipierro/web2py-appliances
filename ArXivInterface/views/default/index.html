@@ -1,7 +1,0 @@
-{{extend 'layout.html'}}
-
-<ul data-role="listview" data-inset="true">
-  {{for key,title in CLASSIFICATION:}}
-  <li><a href="{{=URL('search',args=key)}}">{{=key}} <span style="font-size:0.75em">{{=title}}</span></a></li>
-  {{pass}}
-</ul> 

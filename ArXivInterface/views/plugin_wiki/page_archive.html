@@ -1,3 +1,0 @@
-{{extend 'layout.html'}}
-<div class="plugin_wiki_notification">This is an old version of <a href="{{=URL('page',args=page.slug)}}">this page</a></div>
-{{if page.slug.startswith('meta-'):}}{{=CODE(page.body)}}{{else:}}{{=plugin_wiki.render(page.body)}}{{pass}}
